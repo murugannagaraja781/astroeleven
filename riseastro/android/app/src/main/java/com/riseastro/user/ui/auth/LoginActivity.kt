@@ -1,0 +1,234 @@
+package com.astroeleven.app.ui.auth
+
+import android.content.Intent
+import android.os.Bundle
+import android.widget.Toast
+import androidx.activity.compose.setContent
+import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.draw.shadow
+import com.astroeleven.app.R
+import com.astroeleven.app.data.local.TokenManager
+import com.astroeleven.app.data.repository.AuthRepository
+import com.astroeleven.app.ui.theme.CosmicAppTheme
+import com.astroeleven.app.ui.theme.AstroDimens
+import kotlinx.coroutines.launch
+
+class LoginActivity : AppCompatActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            CosmicAppTheme {
+                LoginScreen()
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LoginScreen() {
+    val context = LocalContext.current
+    val repository = remember { AuthRepository() }
+    val scope = rememberCoroutineScope()
+
+    var phoneNumber by remember { mutableStateOf("") }
+    var referralCode by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
+
+    val tokenManager = remember { TokenManager(context) }
+
+    LaunchedEffect(Unit) {
+        val pending = tokenManager.getPendingReferral()
+        if (!pending.isNullOrBlank()) {
+            referralCode = pending
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(CosmicAppTheme.colors.bgStart),
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(AstroDimens.Large)
+                .shadow(elevation = 20.dp, shape = RoundedCornerShape(24.dp), spotColor = CosmicAppTheme.colors.accent),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = CosmicAppTheme.colors.cardBg),
+            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(AstroDimens.Large)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Welcome to Astro Eleven!",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = CosmicAppTheme.colors.accent,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text(
+                    text = "Securely verify with your mobile number",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = CosmicAppTheme.colors.textSecondary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                )
+
+                // Log in or Sign up Divider
+                Row(
+                    modifier = Modifier.padding(vertical = AstroDimens.Medium),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    HorizontalDivider(modifier = Modifier.weight(1f), color = CosmicAppTheme.colors.cardStroke.copy(alpha = 0.3f))
+                    Text(
+                        text = "Log in or Sign up",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = CosmicAppTheme.colors.textSecondary,
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+                    HorizontalDivider(modifier = Modifier.weight(1f), color = CosmicAppTheme.colors.cardStroke.copy(alpha = 0.3f))
+                }
+
+                // Phone Input with Country Code
+                Surface(
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    shape = RoundedCornerShape(AstroDimens.RadiusMedium),
+                    color = CosmicAppTheme.colors.bgStart,
+                    border = BorderStroke(1.dp, CosmicAppTheme.colors.cardStroke.copy(alpha = 0.5f))
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxSize().padding(horizontal = AstroDimens.Medium),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("🇮🇳", fontSize = 24.sp)
+                        Text("+91", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 8.dp), color = CosmicAppTheme.colors.textPrimary)
+                        Icon(Icons.Default.ArrowDropDown, null, tint = CosmicAppTheme.colors.textPrimary)
+                        
+                        Box(modifier = Modifier.width(1.dp).fillMaxHeight(0.6f).background(CosmicAppTheme.colors.cardStroke).padding(horizontal = 8.dp))
+                        
+                        TextField(
+                            value = phoneNumber,
+                            onValueChange = { if (it.length <= 10) phoneNumber = it.filter { char -> char.isDigit() } },
+                            placeholder = { Text("Enter Mobile number", color = CosmicAppTheme.colors.textSecondary.copy(alpha = 0.5f)) },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent,
+                                cursorColor = CosmicAppTheme.colors.accent,
+                                focusedTextColor = CosmicAppTheme.colors.textPrimary,
+                                unfocusedTextColor = CosmicAppTheme.colors.textPrimary
+                            ),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(AstroDimens.Medium))
+
+                // Optional Referral Code
+                OutlinedTextField(
+                    value = referralCode,
+                    onValueChange = { referralCode = it.uppercase() },
+                    label = { Text("Referral Code (Optional)", fontSize = 14.sp) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(AstroDimens.RadiusMedium),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = CosmicAppTheme.colors.accent,
+                        focusedLabelColor = CosmicAppTheme.colors.accent
+                    ),
+                    leadingIcon = { Icon(Icons.Default.Email, null, tint = CosmicAppTheme.colors.accent) }
+                )
+
+                Spacer(modifier = Modifier.height(AstroDimens.Large))
+
+                // Send OTP Button
+                com.astroeleven.app.ui.theme.components.AstroButton(
+                    text = "SEND OTP",
+                    onClick = {
+                        if (phoneNumber.length < 10) {
+                            Toast.makeText(context, "Enter 10 digit number", Toast.LENGTH_SHORT).show()
+                            return@AstroButton
+                        }
+                        isLoading = true
+                        scope.launch {
+                            try {
+                                val fullPhone = "91${phoneNumber.trim()}"
+                                val result = repository.sendOtp(fullPhone)
+                                if (result.isSuccess) {
+                                    val intent = Intent(context, OtpVerificationActivity::class.java)
+                                    intent.putExtra("phone", fullPhone)
+                                    intent.putExtra("referralCode", referralCode.trim())
+                                    
+                                    // If we are using the pending referral, we can clear it now that it's being processed
+                                    if (referralCode.trim() == tokenManager.getPendingReferral()) {
+                                        tokenManager.clearPendingReferral()
+                                    }
+                                    
+                                    context.startActivity(intent)
+                                } else {
+                                    Toast.makeText(context, "Error: ${result.exceptionOrNull()?.message}", Toast.LENGTH_SHORT).show()
+                                }
+                            } finally {
+                                isLoading = false
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    isLoading = isLoading
+                )
+
+                Spacer(modifier = Modifier.height(AstroDimens.Large))
+
+                // Terms and Conditions
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = AstroDimens.Large, bottom = 8.dp),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text("By signing up, you agree to our ", style = MaterialTheme.typography.labelSmall, color = CosmicAppTheme.colors.textSecondary, textAlign = TextAlign.Center)
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text("Terms ", style = MaterialTheme.typography.labelSmall, color = CosmicAppTheme.colors.accent, modifier = Modifier.clickable { })
+                    Text("& ", style = MaterialTheme.typography.labelSmall, color = CosmicAppTheme.colors.textSecondary)
+                    Text("Privacy Policy", style = MaterialTheme.typography.labelSmall, color = CosmicAppTheme.colors.accent, modifier = Modifier.clickable { })
+                }
+            }
+        }
+    }
+}

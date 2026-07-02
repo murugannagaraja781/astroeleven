@@ -1,0 +1,102 @@
+package com.astroeleven.app.ui.chat
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+
+@Composable
+fun AudioPlayerBubble(audioUrl: String, durationStr: String, isMe: Boolean, audioPlayer: ChatAudioPlayer) {
+    val isPlayingGlobal by audioPlayer.isPlaying.collectAsState()
+    val currentUrlGlobal by audioPlayer.currentUrl.collectAsState()
+    val progressGlobal by audioPlayer.progress.collectAsState()
+    val isPreparingGlobal by audioPlayer.isPreparing.collectAsState()
+    val durationGlobal by audioPlayer.duration.collectAsState()
+
+    val isThisPlaying = isPlayingGlobal && currentUrlGlobal == audioUrl
+    val isThisPreparing = isPreparingGlobal && currentUrlGlobal == audioUrl
+    
+    val currentProgress = if (currentUrlGlobal == audioUrl) progressGlobal else 0f
+    val currentDuration = if (currentUrlGlobal == audioUrl) durationGlobal else 0f
+    
+    val currentPosition = currentProgress * currentDuration
+
+    // WhatsApp-style colors
+    val contentColor = Color(0xFF4A4A4A) // Dark gray for icons/text
+    val sliderColor = if (isMe) Color(0xFF25D366) else Color(0xFF34B7F1) // Green for me, blue for other
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .width(260.dp)
+            .padding(4.dp)
+    ) {
+        // Play/Pause/Loading Button
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(40.dp)
+                .clickable {
+                    if (isThisPreparing) return@clickable
+                    audioPlayer.play(audioUrl)
+                }
+        ) {
+            if (isThisPreparing) {
+                CircularProgressIndicator(color = sliderColor, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+            } else {
+                Icon(
+                    imageVector = if (isThisPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                    contentDescription = if (isThisPlaying) "Pause" else "Play",
+                    tint = contentColor,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        // Slider and Duration Text
+        Column(modifier = Modifier.weight(1f)) {
+            Slider(
+                value = currentProgress,
+                onValueChange = { newProgress -> 
+                    if (isThisPlaying || isThisPreparing || currentUrlGlobal == audioUrl) {
+                        audioPlayer.seekTo(newProgress)
+                    }
+                },
+                colors = SliderDefaults.colors(
+                    thumbColor = sliderColor,
+                    activeTrackColor = sliderColor,
+                    inactiveTrackColor = Color.Gray.copy(alpha = 0.3f)
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(24.dp)
+            )
+            
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                val currentSec = (currentPosition / 1000).toInt()
+                val currentStr = String.format("%02d:%02d", currentSec / 60, currentSec % 60)
+                
+                Text(
+                    text = if (isThisPlaying) currentStr else durationStr,
+                    fontSize = 11.sp,
+                    color = contentColor.copy(alpha = 0.7f)
+                )
+            }
+        }
+    }
+}

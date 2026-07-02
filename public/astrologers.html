@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Astrologer Directory – Astro Eleven</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-body: #FFFDF9;
+      --bg-card: #FFFFFF;
+      --bg-card-hover: #FFFBF0;
+      --border-soft: rgba(255, 127, 0, 0.08);
+      --primary: #FF7F00;
+      --primary-glow: rgba(255, 127, 0, 0.1);
+      --accent: #E5A900;
+      --text-main: #2C251D;
+      --radius-lg: 16px;
+      --radius-sm: 8px;
+      --glass-blur: blur(12px);
+      --font-body: 'Poppins', sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font-body);
+      background: var(--bg-body);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background: var(--bg-card);
+      padding: 1rem 2rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      border-bottom: 1px solid var(--border-soft);
+    }
+    h1 { margin: 0; font-size: 1.5rem; }
+    main { flex:1; display:flex; justify-content:center; align-items:flex-start; padding:2rem; }
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 960px;
+      padding: 1.5rem;
+      backdrop-filter: var(--glass-blur);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+    }
+    table { width:100%; border-collapse:collapse; margin-top:1rem; }
+    th, td { padding:0.75rem 1rem; text-align:left; }
+    th { background: var(--primary); color:#fff; font-weight:600; }
+    tr:nth-child(even) { background:#fafafa; }
+    tr:hover { background: var(--bg-card-hover); }
+    .status {
+      display:inline-block;
+      width:12px; height:12px; border-radius:50%; margin-right:6px; vertical-align:middle;
+    }
+    .online { background:#FFCC00; }
+    .offline { background:#9CA3AF; }
+    .busy { background:#EF4444; }
+    .avatar { width:40px; height:40px; border-radius:50%; object-fit:cover; margin-right:8px; }
+    .name-cell { display:flex; align-items:center; }
+    a.back { color:var(--primary); text-decoration:none; margin-bottom:1rem; display:inline-block; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Astrologer Directory</h1>
+  </header>
+  <main>
+    <div class="card">
+      <a href="/" class="back">← Back to Home</a>
+      <table id="astro-table">
+        <thead>
+          <tr>
+            <th>Profile</th>
+            <th>Name</th>
+            <th>Price (₹)</th>
+            <th>Status</th>
+            <th>Experience (yrs)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="5" style="text-align:center;">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+  <script>
+    // Fetch the list of astrologers from the API and render a table
+    async function loadAstrologers() {
+      try {
+        const resp = await fetch('/api/astrology/astrologers');
+        const data = await resp.json();
+        const tbody = document.querySelector('#astro-table tbody');
+        tbody.innerHTML = '';
+        if (!data.ok || !Array.isArray(data.astrologers)) {
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red;">Failed to load data</td></tr>';
+          return;
+        }
+        data.astrologers.forEach(ast => {
+          const tr = document.createElement('tr');
+          // Profile image with optional status badge
+          const img = document.createElement('img');
+          img.src = ast.image.startsWith('http') ? ast.image : '/'+ast.image;
+          img.alt = ast.name;
+          img.className = 'avatar';
+          const statusSpan = document.createElement('span');
+          statusSpan.className = 'status ' + (ast.isOnline ? 'online' : ast.isBusy ? 'busy' : 'offline');
+          const profileTd = document.createElement('td');
+          profileTd.appendChild(img);
+          // Name cell
+          const nameTd = document.createElement('td');
+          nameTd.className = 'name-cell';
+          nameTd.textContent = ast.name;
+          // Price
+          const priceTd = document.createElement('td');
+          priceTd.textContent = ast.price;
+          // Status text
+          const statusTd = document.createElement('td');
+          const statusText = ast.isOnline ? 'Online' : ast.isBusy ? 'Busy' : 'Offline';
+          statusTd.appendChild(statusSpan);
+          const txt = document.createTextNode(' ' + statusText);
+          statusTd.appendChild(txt);
+          // Experience
+          const expTd = document.createElement('td');
+          expTd.textContent = ast.experience || 0;
+          // Append cells
+          tr.appendChild(profileTd);
+          tr.appendChild(nameTd);
+          tr.appendChild(priceTd);
+          tr.appendChild(statusTd);
+          tr.appendChild(expTd);
+          tbody.appendChild(tr);
+        });
+      } catch (e) {
+        console.error('Error loading astrologers', e);
+        const tbody = document.querySelector('#astro-table tbody');
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red;">Error loading data</td></tr>';
+      }
+    }
+    loadAstrologers();
+  </script>
+</body>
+</html>

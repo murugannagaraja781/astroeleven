@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ============================================ -->
+    <!-- ASTROELEVEN BRAND PALETTE                      -->
+    <!-- Based on Logo: Yellow (#F5C518) + Orange (#FF7F00) -->
+    <!-- ============================================ -->
+
+    <!-- Background Colors -->
+    <color name="royal_midnight_blue">#140F0A</color>
+    <color name="brand_bg_soft">#140F0A</color>
+    <color name="brand_card_white">#241A12</color>
+    <color name="milk_white">#140F0A</color>
+
+    <!-- Primary Brand Colors (From Logo) -->
+    <color name="peacock_teal">#FF7F00</color>   <!-- Orange from logo -->
+    <color name="peacock_green">#FF7F00</color>   <!-- Orange from logo -->
+    <color name="color4">#FF7F00</color>          <!-- Header Orange -->
+    <color name="royal_gold">#F5C518</color>      <!-- Yellow from logo -->
+
+    <!-- MARKETPLACE PALETTE -->
+    <color name="marketplace_yellow">#FF7F00</color>  <!-- Logo Orange CTA -->
+    <color name="marketplace_red">#FF7F00</color>     <!-- Logo Orange -->
+    <color name="marketplace_bg">#140F0A</color>      <!-- Deep Dark BG -->
+
+    <!-- Text Colors -->
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#A58B74</color>
+    <color name="text_muted">#6D5A4A</color>
+    <color name="soft_ivory">#FFFFFF</color>
+    <color name="text_on_card">#FFFFFF</color>
+    <color name="void_black">#000000</color>
+    <color name="error_red">#DC2626</color>
+    <color name="status_green">#2E7D32</color>     <!-- Keep for online status -->
+    <color name="status_red">#DC2626</color>
+
+    <!-- System Color Mappings -->
+    <color name="colorPrimary">@color/peacock_teal</color>
+    <color name="colorPrimaryDark">#D4700B</color>
+    <color name="colorAccent">@color/royal_gold</color>
+
+    <color name="primary">@color/peacock_teal</color>
+    <color name="primary_variant">#D4700B</color>
+    <color name="on_primary">#FFFFFF</color>
+
+    <color name="secondary">@color/royal_gold</color>
+    <color name="secondary_variant">@color/peacock_teal</color>
+    <color name="on_secondary">#1C1F26</color>
+
+    <color name="background">#140F0A</color>
+    <color name="on_background">#FFFFFF</color>
+
+    <color name="surface">#241A12</color>
+    <color name="on_surface">#FFFFFF</color>
+
+    <color name="error">@color/error_red</color>
+    <color name="on_error">#FFFFFF</color>
+
+    <color name="status_online">#2E7D32</color>    <!-- Keep green for online -->
+    <color name="status_busy">@color/status_red</color>
+    <color name="divider">#E2E8F0</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#1C1F26</color>
+    <color name="support_blue">#3A4F7A</color>
+    <color name="border_color">#FF7F00</color>     <!-- Orange border -->
+
+    <!-- LEGACY COMPATIBILITY -->
+    <color name="text_white">#FFFFFF</color>
+    <color name="text_on_red">#FFFFFF</color>
+    <color name="text_on_primary">#FFFFFF</color>
+
+    <color name="brand_true_red">@color/peacock_teal</color>
+    <color name="brand_true_red_dark">#D4700B</color>
+    <color name="bg_surface_variant">#FFF3E0</color>  <!-- Warm orange tint -->
+    <color name="divider_cream">#EEEEEE</color>
+    <color name="divider_gold">#F5C518</color>
+    <color name="brand_ripple">#EEEEEE</color>
+
+    <!-- Brand Accent Colors (All Orange/Yellow theme) -->
+    <color name="brand_avocado">#FF7F00</color>
+    <color name="brand_gold">#F5C518</color>
+    <color name="brand_orange">#FF7F00</color>
+    <color name="brand_purple">#D4700B</color>
+    <color name="brand_emerald_royal">#FF7F00</color>
+    <color name="brand_emerald_dark">#D4700B</color>
+    <color name="brand_gold_dark">#C4960F</color>
+    <color name="brand_status_online">#00C853</color>  <!-- Keep green for status -->
+    <color name="avatar_background">#FFF3E0</color>    <!-- Warm avatar bg -->
+    <color name="accent">#FF7F00</color>
+
+    <color name="neuro_indigo">#FFFFFF</color>
+    <color name="galaxy_blue">#1C1F26</color>
+    <color name="kuber_gold">#F5C518</color>
+    <color name="muted_gold">#C4960F</color>
+    <color name="starlight_white">#FFFFFF</color>
+    <color name="nebula_blue">#1C1F26</color>
+    <color name="nebula_purple">#D4700B</color>
+
+    <!-- Gradient Colors (Orange theme) -->
+    <color name="gradient_start">#F5C518</color>
+    <color name="gradient_center">#FF7F00</color>
+    <color name="gradient_end">#D4700B</color>
+
+    <!-- Default Material colors -->
+    <color name="purple_200">#FFB74D</color>       <!-- Warm Orange Light -->
+    <color name="purple_500">@color/peacock_teal</color>
+    <color name="purple_700">#D4700B</color>
+    <color name="teal_200">@color/royal_gold</color>
+    <color name="teal_700">@color/peacock_teal</color>
+
+    <!-- Call Colors (Keep green for accept, red for reject) -->
+    <color name="call_accept">#00E676</color>
+    <color name="call_reject">#FF5252</color>
+
+    <!-- Action Button Colors (Orange theme) -->
+    <color name="action_chat">#FF7F00</color>
+    <color name="action_call">#FF7F00</color>
+
+    <!-- Premium Surface Border -->
+    <color name="surface_border">#F5DEB3</color>   <!-- Warm wheat border -->
+
+    <!-- Soft Card Shadow Tint -->
+    <color name="card_shadow">#1A000000</color>
+
+    <!-- Sacred Glow (Orange at low opacity) -->
+    <color name="sacred_emerald_glow">#14FF7F00</color>
+
+    <!-- Luxury Gold -->
+    <color name="luxury_gold">#F5C518</color>
+</resources>

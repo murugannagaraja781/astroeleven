@@ -1,0 +1,35 @@
+{
+  "name": "simple-peer",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "build": "echo No build step required",
+    "dev": "node server.js",
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "astronomia": "^4.2.0",
+    "compression": "^1.8.1",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.2.1",
+    "firebase-admin": "^10.3.0",
+    "google-auth-library": "^10.5.0",
+    "helmet": "^8.1.0",
+    "luxon": "^3.7.2",
+    "mongodb": "^7.3.0",
+    "mongoose": "^9.0.1",
+    "multer": "^2.0.2",
+    "node-fetch": "^2.7.0",
+    "nodemailer": "^9.0.1",
+    "razorpay": "^2.9.6",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
+    "sweph-wasm": "^2.6.9"
+  },
+  "description": ""
+}

@@ -1,0 +1,120 @@
+package com.astroeleven.app.data.api
+
+import com.astroeleven.app.data.model.AuthResponse
+import com.astroeleven.app.data.model.PaymentInitiateRequest
+import com.astroeleven.app.data.model.PaymentInitiateResponse
+import com.astroeleven.app.data.model.SendOtpRequest
+import com.astroeleven.app.data.model.VerifyOtpRequest
+import retrofit2.Response
+import retrofit2.http.Body
+import retrofit2.http.POST
+
+interface ApiInterface {
+
+    @POST("api/send-otp")
+    suspend fun sendOtp(@Body request: SendOtpRequest): Response<com.google.gson.JsonObject>
+
+    @POST("api/verify-otp")
+    suspend fun verifyOtp(@Body request: VerifyOtpRequest): Response<AuthResponse>
+
+    @POST("api/payment/create")
+    suspend fun initiatePayment(@Body request: PaymentInitiateRequest): Response<PaymentInitiateResponse>
+
+    @POST("api/phonepe/sign")
+    suspend fun signPhonePe(@Body request: PaymentInitiateRequest): Response<com.astroeleven.app.data.model.PhonePeSignResponse>
+
+    @retrofit2.http.GET("api/phonepe/status/{transactionId}")
+    suspend fun checkPaymentStatus(@retrofit2.http.Path("transactionId") transactionId: String): Response<com.google.gson.JsonObject>
+
+    @POST("api/payment/token")
+    suspend fun getPaymentToken(@Body request: PaymentInitiateRequest): Response<com.google.gson.JsonObject>
+
+    @retrofit2.http.POST("api/payment/callback")
+    suspend fun verifyPayment(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+
+    @retrofit2.http.GET("api/user/{userId}")
+    suspend fun getUserProfile(@retrofit2.http.Path("userId") userId: String): Response<com.astroeleven.app.data.model.AuthResponse>
+
+    // Add other endpoints as needed
+    // @POST("register") ...
+    @POST("api/city-autocomplete")
+    suspend fun searchCity(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+
+    @POST("api/city-timezone")
+    suspend fun getCityTimezone(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+
+    @retrofit2.http.GET("api/home/banners")
+    suspend fun getBanners(): Response<com.astroeleven.app.data.model.BannerResponse>
+
+    @POST("api/charts/birth-chart")
+    suspend fun getBirthChart(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+
+    @POST("api/match/porutham")
+    suspend fun getMatchPorutham(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+
+    @POST("api/rasi-eng/charts/full")
+    suspend fun getRasiEngBirthChart(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+
+    @POST("api/rasi-eng/matching")
+    suspend fun getRasiEngMatching(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+
+    @retrofit2.http.GET("api/academy/videos")
+    suspend fun getAcademyVideos(): Response<com.google.gson.JsonObject>
+    @retrofit2.http.GET("api/user/{userId}/intake")
+    suspend fun getUserIntake(@retrofit2.http.Path("userId") userId: String): Response<com.google.gson.JsonObject>
+
+    @POST("api/user/intake")
+    suspend fun saveUserIntake(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+
+    @retrofit2.http.GET("api/chat/history/{sessionId}")
+    suspend fun getChatHistory(@retrofit2.http.Path("sessionId") sessionId: String): Response<com.google.gson.JsonObject>
+
+    @retrofit2.http.GET("api/horoscope/rasi-palan")
+    suspend fun getRasipalan(): Response<List<com.astroeleven.app.data.model.RasipalanItem>>
+
+    @POST("api/horoscope/generate-chart")
+    suspend fun generateRasiChart(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+    @retrofit2.http.GET("api/payment/history/{userId}")
+    suspend fun getPaymentHistory(@retrofit2.http.Path("userId") userId: String): Response<com.google.gson.JsonObject>
+    @POST("api/astrologer/register")
+    suspend fun registerAstrologer(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+
+    @retrofit2.http.Multipart
+    @POST("api/user/profile-pic")
+    suspend fun uploadProfilePic(
+        @retrofit2.http.Part("userId") userId: okhttp3.RequestBody,
+        @retrofit2.http.Part image: okhttp3.MultipartBody.Part,
+        @retrofit2.http.Query("userId") userIdQuery: String? = null
+    ): Response<com.google.gson.JsonObject>
+
+    @retrofit2.http.Multipart
+    @POST("upload")
+    suspend fun uploadFile(
+        @retrofit2.http.Part file: okhttp3.MultipartBody.Part
+    ): Response<com.google.gson.JsonObject>
+
+    @retrofit2.http.GET("api/config/webrtc")
+    suspend fun getWebRTCConfig(): Response<com.google.gson.JsonObject>
+
+    @retrofit2.http.GET("api/admin/astrologers/pending")
+    suspend fun getPendingAstrologers(): Response<com.google.gson.JsonObject>
+
+    @POST("api/admin/astrologers/approve")
+    suspend fun approveAstrologer(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+
+    @retrofit2.http.GET("api/app-config")
+    suspend fun getAppConfig(): Response<com.google.gson.JsonObject>
+
+    @POST("api/reviews")
+    suspend fun submitReview(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+
+    @retrofit2.http.GET("api/admin/system/status")
+    suspend fun getSystemStatus(): Response<com.google.gson.JsonObject>
+
+    @retrofit2.http.GET("api/home/data")
+    suspend fun getHomeData(): Response<com.astroeleven.app.data.model.HomeDataResponse>
+
+    @POST("api/rasi-eng/kp-chart")
+    suspend fun getKpChart(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+}
+

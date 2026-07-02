@@ -1,0 +1,14 @@
+--- /Users/wohozo/Documents/astroeleven/socket/callHandler.js
++++ /Users/wohozo/Documents/astroeleven/socket/callHandler.js
+@@ -96,6 +96,11 @@
+                 return typeof cb === 'function' && cb({ ok: false, error: 'User not found' });
+             }
+ 
++            // Sync true wallet balance from PHP MySQL before starting the call
++            if (fromUser && fromUser.role === 'client') {
++                fromUser.walletBalance = await billingService.syncWalletBalance(fromUserId) || fromUser.walletBalance;
++            }
++
+             if (fromUser && fromUser.role === 'client' && (fromUser.walletBalance || 0) <= 0) {
+                 console.warn(`[CallHandler][request-session] Insufficient balance for ${fromUserId}`);
+                 return typeof cb === 'function' && cb({ ok: false, error: 'Insufficient Main Balance.' });

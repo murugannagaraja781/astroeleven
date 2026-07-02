@@ -1,0 +1,3094 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Astro Eleven - Super Admin</title>
+    <link rel="icon" type="image/svg+xml" href="images/astroeleven_icon.svg">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Outfit:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/smoothness/jquery-ui.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+    <link rel="stylesheet" href="superadmin.css">
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <div id="nav-overlay" class="nav-overlay" onclick="toggleNav()"></div>
+        <div class="app-header">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div class="menu-trigger" onclick="toggleNav()">
+                    <i class="fas fa-bars"></i>
+                </div>
+                <div style="font-family: var(--font-heading); font-weight: bold; font-size: 1.2rem; display: flex; align-items: center; gap: 8px;">
+                    <img src="images/astroeleven_icon.svg" style="height: 28px;" alt="Logo">
+                    <span>Admin</span>
+                </div>
+            </div>
+            <div style="display: flex; gap: 18px; align-items: center;">
+                <!-- Notification Bell System -->
+                <div id="admin-notif-container" style="position:relative; cursor:pointer; padding: 5px;" onclick="toggleNotifDropdown()">
+                    <i class="fas fa-bell" style="font-size:1.5rem; color: var(--primary); filter: drop-shadow(0 0 5px var(--primary-glow));"></i>
+                    <span id="notif-badge" style="display:none; position:absolute; top:0; right:0; background:#EF4444; color:#fff; font-size:0.65rem; font-weight:bold; width:18px; height:18px; line-height:18px; text-align:center; border-radius:50%; border:2px solid var(--bg-body); box-shadow: 0 0 10px rgba(239,68,68,0.5);">0</span>
+                    
+                    <!-- Notification Flyout -->
+                    <div id="notif-dropdown" class="admin-card" style="display:none; position:absolute; right:-20px; top:45px; width:340px; z-index:10002; padding:0; overflow:hidden; border: 1px solid var(--border-medium); box-shadow: 0 15px 50px rgba(0,0,0,0.6); animation: slideInRight 0.3s ease;">
+                        <div style="padding:15px; background:rgba(255, 204, 0,0.05); border-bottom:1px solid var(--border-soft); display:flex; justify-content:space-between; align-items:center;">
+                            <h4 style="margin:0; font-family:var(--font-heading); font-size:1rem; color:var(--primary);"><i class="fas fa-history"></i> Recent Activity</h4>
+                            <span onclick="clearNotifs(); event.stopPropagation();" style="cursor:pointer; color:var(--text-muted); font-size:0.75rem; text-decoration:underline;">Clear All</span>
+                        </div>
+                        <div id="notif-history-list" style="max-height:450px; overflow-y:auto;">
+                            <div style="padding:30px; text-align:center; color:var(--text-muted); font-size:0.9rem;">No recent notifications</div>
+                        </div>
+                        <div style="padding:10px; text-align:center; background:rgba(255, 127, 0, 0.05); border-top:1px solid var(--border-soft);">
+                            <small style="color:var(--text-dim);">Last 50 events shown</small>
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="logout()" class="btn-admin"
+                    style="background: none; border: none; color: #EF4444; min-width: auto; padding: 8px; font-size: 1.2rem; cursor:pointer;">
+                    <i class="fas fa-power-off"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="admin-content-area">
+            <!-- Tab 1: Home -->
+            <div id="admin-sect-home" class="admin-tab-section active">
+                <div id="adminAlertArea_Home" style="margin-bottom: 30px;">
+                    <!-- High Priority Alerts -->
+                    <div id="adminPendingAstrologersSection" style="display:none; margin-bottom:25px;">
+                        <h3 style="margin:0 0 15px 0; font-family:var(--font-heading); color:var(--primary); font-size:1.1rem;"><i class="fas fa-user-clock"></i> Pending Astrologer Registrations</h3>
+                        <div id="adminPendingAstrologersList" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap:15px;">
+                            <div class="loader"></div>
+                        </div>
+                    </div>
+
+                    <div id="adminWithdrawalsSection" style="display:none; margin-bottom:25px;">
+                        <h3 style="margin:0 0 15px 0; font-family:var(--font-heading); color:#EF4444; font-size:1.1rem;"><i class="fas fa-hand-holding-usd"></i> Urgent Withdrawal Requests</h3>
+                        <div id="adminWithdrawalsList" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap:15px;">
+                            <div class="loader"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-header" style="display:flex; justify-content:space-between; align-items:center;">
+                    <h2 class="dashboard-title" style="font-family: var(--font-heading); color: var(--text-main); margin:0;"><i
+                            class="fas fa-chart-line" style="color: var(--primary);"></i> OVERVIEW</h2>
+                    <div style="display:flex; gap:15px;">
+                        <span class="status-pill"><i class="fas fa-magic"></i> Free Horoscope: <b style="color:#10B981;">Online</b></span>
+                        <span class="status-pill"><i class="fas fa-heart"></i> Free Match: <b style="color:#10B981;">Online</b></span>
+                        <span class="status-pill"><i class="fas fa-server"></i> Server: <b style="color:#10B981;">Healthy</b></span>
+                    </div>
+                </div>
+                
+                <style>
+                    .status-pill {
+                        background: rgba(255,255,255,0.05);
+                        padding: 6px 12px;
+                        border-radius: 50px;
+                        font-size: 0.75rem;
+                        border: 1px solid var(--border-soft);
+                        color: var(--text-dim);
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                    }
+                    .status-pill i { color: var(--primary); }
+                </style>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="card-icon revenue-icon"><i class="fas fa-rupee-sign"></i></div>
+                        <div id="quickRev" class="stat-value">₹0</div>
+                        <div class="stat-label">Total Revenue</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="card-icon profit-icon"><i class="fas fa-chart-line"></i></div>
+                        <div id="quickProfit" class="stat-value">₹0</div>
+                        <div class="stat-label">Net Profit</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="card-icon payout-icon"><i class="fas fa-wallet"></i></div>
+                        <div id="quickPayout" class="stat-value">₹0</div>
+                        <div class="stat-label">Astro Payout</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="card-icon activity-icon"><i class="fas fa-clock"></i></div>
+                        <div id="quickMins" class="stat-value">0</div>
+                        <div class="stat-label">Mins Billed</div>
+                    </div>
+                </div>
+
+                <div style="margin: 25px 0 15px 0; font-family: var(--font-heading); color: var(--text-dim); font-size: 0.8rem; letter-spacing: 1px; display: flex; align-items: center; gap: 10px;">
+                    <span style="width: 8px; height: 8px; border-radius: 50%; background: #10B981; box-shadow: 0 0 10px #10B981; display: inline-block; animation: pulse 2s infinite;"></span>
+                    LIVE REAL-TIME ACTIVITY
+                </div>
+
+                <!-- Live Video Astrologers Visibility -->
+                <div id="liveVideoAstrosSection" style="margin-bottom: 25px; display: none;">
+                    <div id="liveVideoAstrosList" style="display: flex; overflow-x: auto; gap: 15px; padding: 5px 5px 15px 5px; scrollbar-width: none; -ms-overflow-style: none; scroll-behavior: smooth;">
+                        <!-- Dynamic items will be injected here -->
+                    </div>
+                </div>
+                <style>
+                    #liveVideoAstrosList::-webkit-scrollbar { display: none; }
+                    .live-astro-chip {
+                        flex: 0 0 auto;
+                        background: var(--bg-card);
+                        border: 1px solid var(--border-soft);
+                        border-radius: 15px;
+                        padding: 10px 15px;
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                        min-width: 180px;
+                        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+                        position: relative;
+                        overflow: hidden;
+                        border-bottom: 2px solid #10B981;
+                    }
+                    .live-badge {
+                        position: absolute;
+                        top: 8px;
+                        right: 8px;
+                        background: #EF4444;
+                        color: white;
+                        font-size: 0.6rem;
+                        font-weight: 800;
+                        padding: 2px 6px;
+                        border-radius: 4px;
+                        letter-spacing: 0.5px;
+                        animation: pulse-red 2s infinite;
+                    }
+                    @keyframes pulse-red {
+                        0% { transform: scale(1); opacity: 1; }
+                        50% { transform: scale(1.05); opacity: 0.8; }
+                        100% { transform: scale(1); opacity: 1; }
+                    }
+                </style>
+
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:15px; margin-bottom: 25px;">
+                    <div class="admin-card" style="display:flex; align-items:center; gap:15px; padding:15px; border-bottom:3px solid #10B981; background:rgba(16,185,129,0.02);">
+                        <div style="width:40px; height:40px; border-radius:10px; background:rgba(16,185,129,0.1); display:flex; align-items:center; justify-content:center; color:#10B981; font-size:1.2rem;">
+                            <i class="fas fa-phone-alt"></i>
+                        </div>
+                        <div>
+                            <div id="liveCalls" style="font-size:1.4rem; font-weight:bold; color:var(--text-main);">0</div>
+                            <div style="font-size:0.75rem; color:var(--text-dim); text-transform:uppercase; font-weight:600;">Active Calls</div>
+                        </div>
+                    </div>
+                    <div class="admin-card" style="display:flex; align-items:center; gap:15px; padding:15px; border-bottom:3px solid var(--primary); background:rgba(255, 204, 0,0.02);">
+                        <div style="width:40px; height:40px; border-radius:10px; background:rgba(255, 204, 0,0.1); display:flex; align-items:center; justify-content:center; color:var(--primary); font-size:1.2rem;">
+                            <i class="fas fa-user-astronaut"></i>
+                        </div>
+                        <div>
+                            <div id="liveAstros" style="font-size:1.4rem; font-weight:bold; color:var(--text-main);">0</div>
+                            <div style="font-size:0.75rem; color:var(--text-dim); text-transform:uppercase; font-weight:600;">Online Astros</div>
+                        </div>
+                    </div>
+                    <div class="admin-card" style="display:flex; align-items:center; gap:15px; padding:15px; border-bottom:3px solid var(--accent); background:rgba(14,165,233,0.02);">
+                        <div style="width:40px; height:40px; border-radius:10px; background:rgba(14,165,233,0.1); display:flex; align-items:center; justify-content:center; color:var(--accent); font-size:1.2rem;">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div>
+                            <div id="liveClients" style="font-size:1.4rem; font-weight:bold; color:var(--text-main);">0</div>
+                            <div style="font-size:0.75rem; color:var(--text-dim); text-transform:uppercase; font-weight:600;">Active Clients</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="revenueChart" height="200"></canvas>
+                </div>
+            </div>
+
+            <!-- Tab 2: Earnings -->
+            <div id="admin-sect-earnings" class="admin-tab-section">
+                <h2 style="margin-bottom:20px;"><i class="fas fa-chart-pie"></i> Financial Ledger</h2>
+                <div class="admin-card" style="padding:0; overflow:hidden;">
+                    <table style="width:100%; border-collapse:collapse;">
+                        <thead style="background:#f9fafb; border-bottom:1px solid #eee;">
+                            <tr>
+                                <th style="padding:15px; text-align:left;">Type</th>
+                                <th style="padding:15px; text-align:center;">Count</th>
+                                <th style="padding:15px; text-align:right;">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fullLedgerBody">
+                            <tr>
+                                <td colspan="3">
+                                    <div class="loader"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab 3: Payouts/Astrologers -->
+            <div id="admin-sect-payouts" class="admin-tab-section">
+                <h2 style="margin-bottom:20px;"><i class="fas fa-user-astronaut"></i> Astrologer Management</h2>
+                
+                <!-- Search Box for Astrologer Management -->
+                <div style="margin-bottom: 20px; display: flex; gap: 10px;">
+                    <div style="position: relative; flex: 1;">
+                        <i class="fas fa-search" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+                        <input type="text" id="adminAstroSearch" placeholder="Search Astrologer Name, Phone or ID..." oninput="searchAstrologers()" 
+                               style="width: 100%; padding: 12px 15px 12px 45px; background: var(--bg-card); border: 1px solid var(--border-soft); border-radius: 12px; color: var(--text-main); font-size: 0.95rem; box-shadow: var(--shadow-glow);">
+                    </div>
+                </div>
+
+                <div id="adminAstroList"
+                    style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;">
+                    <div class="loader"></div>
+                </div>
+                <!-- Pagination Controls for Astrologers -->
+                <div class="admin-pagination-container" style="margin-top:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <div id="astroPaginationInfo" style="font-size:0.9rem; color:var(--text-muted);">Showing 0 to 0 of 0 Astrologers</div>
+                    <div style="display:flex; gap:10px;">
+                        <button id="astroPrevBtn" onclick="changeAstroPage(-1)" class="btn-admin" style="width:auto; padding:8px 15px; margin:0;" disabled>Prev</button>
+                        <button id="astroNextBtn" onclick="changeAstroPage(1)" class="btn-admin" style="width:auto; padding:8px 15px; margin:0;" disabled>Next</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Performance: Leaderboard -->
+            <div id="admin-sect-performance" class="admin-tab-section">
+                <h2 style="margin-bottom:20px;"><i class="fas fa-medal" style="color:#FFD700;"></i> Astrologer Performance Leaderboard</h2>
+                <div class="admin-card" style="padding:0; overflow:hidden;">
+                    <table style="width:100%; border-collapse:collapse; color:var(--text-main);">
+                        <thead>
+                            <tr style="background:rgba(255,255,255,0.05); text-align:left;">
+                                <th style="padding:15px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted);">Rank / Astro</th>
+                                <th style="padding:15px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted); text-align:center;">Sessions</th>
+                                <th style="padding:15px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted); text-align:center;">Minutes</th>
+                                <th style="padding:15px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted); text-align:center;">Unique Clients</th>
+                                <th style="padding:15px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted); text-align:right;">Earnings</th>
+                                <th style="padding:15px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted); text-align:center;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="performanceLeaderboardBody">
+                            <!-- Data injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab Notifications: Full History -->
+            <div id="admin-sect-notifications" class="admin-tab-section">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h2 style="margin:0;"><i class="fas fa-bell"></i> System Notifications Log</h2>
+                    <button class="btn-admin" style="background:rgba(239,68,68,0.1); color:#EF4444; border:none;" onclick="clearNotifs()">Clear All History</button>
+                </div>
+                
+                <div id="adminFullNotifList" class="grid-1" style="display:grid; gap:12px;">
+                    <!-- Notification items -->
+                </div>
+            </div>
+
+            <!-- Tab Pending: Astrologer Approvals -->
+            <div id="admin-sect-pending" class="admin-tab-section">
+                <h2 style="margin-bottom:20px;"><i class="fas fa-user-clock"></i> Pending Astrologer Registrations</h2>
+                <p style="color:var(--text-dim); margin-bottom:20px;">Review and approve/reject new astrologer applications.</p>
+                <!-- Search Box for Pending Registrations -->
+                <div style="margin-bottom: 20px;">
+                    <input type="text" id="adminPendingSearch" placeholder="Search pending applications by name or phone..." oninput="searchPendingAstrologers()" class="app-input">
+                </div>
+                <div id="tabPendingList" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap:15px;">
+                    <div class="loader"></div>
+                </div>
+                <!-- Pagination Controls for Pending Requests -->
+                <div class="admin-pagination-container" style="margin-top:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <div id="pendingPaginationInfo" style="font-size:0.9rem; color:var(--text-muted);">Showing 0 to 0 of 0 Pending Requests</div>
+                    <div style="display:flex; gap:10px;">
+                        <button id="pendingPrevBtn" onclick="changePendingPage(-1)" class="btn-admin" style="width:auto; padding:8px 15px; margin:0;" disabled>Prev</button>
+                        <button id="pendingNextBtn" onclick="changePendingPage(1)" class="btn-admin" style="width:auto; padding:8px 15px; margin:0;" disabled>Next</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Users: Client Management -->
+            <div id="admin-sect-users" class="admin-tab-section">
+                <h2 style="margin-bottom:20px;"><i class="fas fa-users"></i> Client Management</h2>
+                <div style="margin-bottom:20px;">
+                    <input type="text" id="adminUserSearch" oninput="searchAdminUsers()"
+                        placeholder="Search clients by name or phone..." class="app-input">
+                </div>
+                <div id="adminClientList" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap:15px;">
+                    <div class="loader"></div>
+                </div>
+                <!-- Pagination Controls for Clients -->
+                <div class="admin-pagination-container" style="margin-top:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <div id="clientPaginationInfo" style="font-size:0.9rem; color:var(--text-muted);">Showing 0 to 0 of 0 Clients</div>
+                    <div style="display:flex; gap:10px;">
+                        <button id="clientPrevBtn" onclick="changeClientPage(-1)" class="btn-admin" style="width:auto; padding:8px 15px; margin:0;" disabled>Prev</button>
+                        <button id="clientNextBtn" onclick="changeClientPage(1)" class="btn-admin" style="width:auto; padding:8px 15px; margin:0;" disabled>Next</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Add Astrologer -->
+            <div id="admin-sect-add-astro" class="admin-tab-section">
+                <h2 style="margin-bottom:20px;"><i class="fas fa-user-plus"></i> Create New Astrologer</h2>
+                <div class="admin-card">
+                    <h4 style="margin-top:0; color:var(--primary);"><i class="fas fa-id-card"></i> Profile Information</h4>
+                    <div class="grid-2">
+                        <div>
+                            <label class="app-label">Display Name</label>
+                            <input type="text" id="addAstroName" class="app-input" placeholder="e.g. Astro Rahul">
+                        </div>
+                        <div>
+                            <label class="app-label">Phone Number (with Country Code)</label>
+                            <input type="text" id="addAstroPhone" class="app-input" placeholder="+91 9999999999">
+                        </div>
+                    </div>
+                    <div class="grid-2" style="margin-top:15px;">
+                        <div>
+                            <label class="app-label">Email Address</label>
+                            <input type="email" id="addAstroEmail" class="app-input" placeholder="rahul@example.com">
+                        </div>
+                        <div>
+                            <label class="app-label">Profile Image URL (Optional)</label>
+                            <input type="text" id="addAstroImage" class="app-input" placeholder="https://...">
+                        </div>
+                    </div>
+                    
+                    <h4 style="margin-top:25px; color:var(--primary); border-top:1px solid var(--border-soft); padding-top:20px;"><i class="fas fa-star"></i> Astrology Details</h4>
+                    <div class="grid-3">
+                        <div>
+                            <label class="app-label">Consultation Price (₹/min)</label>
+                            <input type="number" id="addAstroPrice" class="app-input" value="10">
+                        </div>
+                        <div>
+                            <label class="app-label">Experience (Years)</label>
+                            <input type="number" id="addAstroExp" class="app-input" value="5">
+                        </div>
+                        <div>
+                            <label class="app-label">Skills (comma separated)</label>
+                            <input type="text" id="addAstroSkills" class="app-input" placeholder="Vedic, Tarot, Numerology">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="app-label">Short Bio / Profession</label>
+                        <input type="text" id="addAstroProfession" class="app-input" placeholder="Expert Vedic Astrologer & Vastu Consultant">
+                    </div>
+
+                    <h4 style="margin-top:25px; color:var(--primary); border-top:1px solid var(--border-soft); padding-top:20px;"><i class="fas fa-university"></i> Bank & Identity (Optional)</h4>
+                    <div class="grid-2">
+                        <div>
+                            <label class="app-label">Aadhar Number</label>
+                            <input type="text" id="addAstroAadhar" class="app-input">
+                        </div>
+                        <div>
+                            <label class="app-label">PAN Number</label>
+                            <input type="text" id="addAstroPan" class="app-input">
+                        </div>
+                    </div>
+                    <div class="grid-2" style="margin-top:15px;">
+                        <div>
+                            <label class="app-label">Bank Details (Acc/IFSC)</label>
+                            <input type="text" id="addAstroBank" class="app-input">
+                        </div>
+                        <div>
+                            <label class="app-label">UPI ID / Number</label>
+                            <input type="text" id="addAstroUpi" class="app-input">
+                        </div>
+                    </div>
+
+                    <div style="margin-top:30px;">
+                        <button class="cosmic-btn" style="width:100%;" onclick="createNewAstrologer()"><i class="fas fa-user-check"></i> Create Astrologer Account</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 5: Withdrawals -->
+            <div id="admin-sect-withdrawals" class="admin-tab-section">
+                <h2 style="margin-bottom:20px;"><i class="fas fa-money-bill-transfer"></i> Withdrawal Requests</h2>
+                <div class="filter-tabs" style="margin-bottom:15px;">
+                    <button class="c-tab active" onclick="filterWithdrawals('all', this)">All</button>
+                    <button class="c-tab" onclick="filterWithdrawals('pending', this)">Pending</button>
+                    <button class="c-tab" onclick="filterWithdrawals('approved', this)">Approved</button>
+                    <button class="c-tab" onclick="filterWithdrawals('rejected', this)">Rejected</button>
+                </div>
+                <div id="adminFullWithdrawalsList">
+                    <div class="loader"></div>
+                </div>
+            </div>
+
+            <!-- Tab 6: Academy -->
+            <div id="admin-sect-academy" class="admin-tab-section">
+                <h2 style="margin-bottom:20px;"><i class="fas fa-graduation-cap"></i> Academy Videos</h2>
+                <div class="admin-card">
+                    <h4>Add New Video</h4>
+                    <input type="text" id="academyTitle" class="app-input" placeholder="Title"
+                        style="margin-bottom:10px;">
+                    <input type="text" id="academyUrl" class="app-input" placeholder="YouTube URL"
+                        style="margin-bottom:10px;">
+                    <input type="text" id="academyThumbnail" class="app-input" placeholder="Thumbnail URL (Optional)"
+                        style="margin-bottom:10px;">
+                    <input type="text" id="academyCategory" class="app-input" placeholder="Category"
+                        style="margin-bottom:10px;">
+                    <button class="cosmic-btn" onclick="addAcademyVideo()" style="width:100%;">Add Video</button>
+                </div>
+                <div id="adminAcademyList">
+                    <div class="loader"></div>
+                </div>
+            </div>
+
+            <!-- Tab: Ritual Management -->
+            <div id="admin-sect-rituals" class="admin-tab-section">
+                <div class="dashboard-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h2 class="dashboard-title" style="margin:0;"><i class="fas fa-magic"></i> Rituals Management</h2>
+                    <button class="btn-admin" onclick="resetRitualForm()"><i class="fas fa-plus"></i> New Ritual</button>
+                </div>
+                
+                <div class="admin-card" style="margin-bottom: 30px;">
+                    <h4 style="margin-top:0; color:var(--primary);"><i class="fas fa-plus-circle"></i> Add / Edit Ritual</h4>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
+                        <div>
+                            <label class="app-label">Title (English)</label> 
+                            <input type="text" id="ritualTitle" class="app-input" placeholder="e.g. Morning Pooja">
+                        </div>
+                        <div>
+                            <label class="app-label">Title (Tamil)</label>
+                            <input type="text" id="ritualTitle_ta" class="app-input" placeholder="உதாரணம்: காலை பூஜை">
+                        </div>
+                    </div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
+                        <div>
+                            <label class="app-label">Subtitle (English)</label>
+                            <input type="text" id="ritualSubtitle" class="app-input" placeholder="Start your day with grace">
+                        </div>
+                        <div>
+                            <label class="app-label">Subtitle (Tamil)</label>
+                            <input type="text" id="ritualSubtitle_ta" class="app-input" placeholder="தெய்வீக அருளுடன் தொடங்குங்கள்">
+                        </div>
+                    </div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
+                        <div>
+                            <label class="app-label">Description (English)</label>
+                            <textarea id="ritualDesc" class="app-input" style="height:80px;"></textarea>
+                        </div>
+                        <div>
+                            <label class="app-label">Description (Tamil)</label>
+                            <textarea id="ritualDesc_ta" class="app-input" style="height:80px;"></textarea>
+                        </div>
+                    </div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
+                        <div>
+                            <label class="app-label">Ritual Image</label>
+                            <div style="display:flex; gap:10px;">
+                                <input type="text" id="ritualImageUrl" class="app-input" placeholder="URL or upload" style="flex:1;">
+                                <input type="file" id="ritualImageFile" style="display:none;" onchange="document.getElementById('ritualImageUrl').value = this.files[0].name">
+                                <button class="btn-admin" onclick="document.getElementById('ritualImageFile').click()"><i class="fas fa-upload"></i></button>
+                            </div>
+                        </div>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                            <div>
+                                <label class="app-label">Price (₹)</label>
+                                <input type="number" id="ritualPrice" class="app-input" value="0">
+                            </div>
+                            <div>
+                                <label class="app-label">Display Order</label>
+                                <input type="number" id="ritualOrder" class="app-input" value="0">
+                            </div>
+                        </div>
+                    </div>
+                    <div style="margin-bottom:20px;">
+                        <label style="cursor:pointer; display:flex; align-items:center; gap:8px;">
+                            <input type="checkbox" id="ritualActive" checked> Is Active / Visible in App
+                        </label>
+                    </div>
+                    <input type="hidden" id="ritualId">
+                    <button class="cosmic-btn" style="width:100%;" onclick="saveRitual()"><i class="fas fa-save"></i> Save Ritual</button>
+                </div>
+
+                <div id="adminRitualList" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap:15px;">
+                    <div class="loader"></div>
+                </div>
+            </div>
+
+
+
+            <!-- Tab: App Banners -->
+            <div id="admin-sect-slider" class="admin-tab-section">
+                <h2 style="margin-bottom:20px;"><i class="fas fa-images"></i> App Slider Banners</h2>
+                <p style="color:var(--text-dim); margin-bottom:20px; font-size:0.85rem;">
+                    <i class="fas fa-info-circle"></i> Banners added here will appear in the app home screen slider. Changes reflect immediately after save.
+                </p>
+
+                <div class="admin-card" style="margin-bottom: 30px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+                        <h4 style="margin:0; color:var(--primary);"><i class="fas fa-plus-circle"></i> <span id="bannerFormTitle">Add New Banner</span></h4>
+                        <button class="btn-admin" style="min-width:auto; padding:6px 14px; font-size:0.75rem;" onclick="resetBannerForm()"><i class="fas fa-plus"></i> New Banner</button>
+                    </div>
+
+                    <!-- Image Preview -->
+                    <div id="bannerPreviewBox" style="display:none; margin-bottom:15px; border-radius:10px; overflow:hidden; border:2px dashed var(--border-soft); background:rgba(255,255,255,0.03);">
+                        <img id="bannerPreviewImg" src="" style="width:100%; max-height:200px; object-fit:cover; display:block;">
+                        <div style="padding:8px 12px; font-size:0.7rem; color:var(--text-dim);">↑ Banner Preview (App will show this image)</div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
+                        <input type="text" id="bannerTitle" class="app-input" placeholder="Title (e.g. Mega Discount)">
+                        <input type="text" id="bannerSubtitle" class="app-input" placeholder="Subtitle (short description)">
+                    </div>
+
+                    <div style="margin-bottom:15px;">
+                        <label class="app-label" style="font-size:0.7rem; margin-bottom:6px; display:block;">Banner Image</label>
+                        <div style="display:flex; gap:10px;">
+                            <input type="text" id="bannerImageUrl" class="app-input" placeholder="Paste image URL or upload file" style="flex:1;"
+                                oninput="updateBannerPreview(this.value)">
+                            <input type="file" id="bannerImageFile" accept="image/*" style="display:none;" onchange="handleBannerFileSelect(this)">
+                            <button class="btn-admin" onclick="document.getElementById('bannerImageFile').click()" title="Upload Image">
+                                <i class="fas fa-upload"></i> Upload
+                            </button>
+                        </div>
+                        <small style="color:var(--text-dim); font-size:0.65rem; margin-top:4px; display:block;">Recommended: 1200 × 400 px (3:1 ratio) · JPG/PNG/WebP</small>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
+                        <input type="text" id="bannerCta" class="app-input" placeholder="CTA Button Text (e.g. Book Now)">
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                            <div>
+                                <label class="app-label" style="font-size:0.7rem;">Order</label>
+                                <input type="number" id="bannerOrder" class="app-input" placeholder="0" min="0">
+                            </div>
+                            <div>
+                                <label class="app-label" style="font-size:0.7rem;">Offer %</label>
+                                <input type="number" id="bannerOffer" class="app-input" placeholder="0" min="0" max="100">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:15px; margin-bottom:20px; align-items:end;">
+                        <div>
+                            <label class="app-label" style="font-size:0.7rem;">Button Size</label>
+                            <select id="bannerBtnSize" class="app-input" style="padding: 0 5px;">
+                                <option value="small">Small</option>
+                                <option value="medium">Medium</option>
+                                <option value="large">Large</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="app-label" style="font-size:0.7rem;">Expiry Date (optional)</label>
+                            <input type="date" id="bannerExpiry" class="app-input">
+                        </div>
+                        <div style="display:flex; align-items:center; padding-bottom:5px;">
+                            <label style="cursor:pointer; display:flex; align-items:center; gap:8px; font-size:0.85rem;">
+                                <input type="checkbox" id="bannerActive" checked> Active
+                            </label>
+                        </div>
+                    </div>
+
+                    <button class="cosmic-btn" style="width:100%;" onclick="saveBanner()"><i class="fas fa-save"></i> Save Banner</button>
+                </div>
+
+                <h3 style="margin-bottom:15px; color:var(--text-dim); font-size:0.9rem;"><i class="fas fa-list"></i> All Banners (DB)</h3>
+                <div id="adminBannerList" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap:15px;">
+                    <div class="loader"></div>
+                </div>
+            </div>
+
+
+            <!-- Tab: Home Services -->
+            <div id="admin-sect-services" class="admin-tab-section">
+                <h2 style="margin-bottom:20px; font-family: var(--font-heading); color: var(--primary);"><i class="fas fa-th-large"></i> Home Grid Services</h2>
+                <p style="color:var(--text-dim); margin-bottom:20px;">Customize the icons and titles for the four main home services.</p>
+                
+                <div id="adminServicesList" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap:20px;">
+                    <!-- Dynamically populated service cards -->
+                    <div class="loader"></div>
+                </div>
+            </div>
+
+            <div id="admin-sect-slab" class="admin-tab-section">
+                <h2 style="margin-bottom:20px; font-family: var(--font-heading); color: var(--primary);"><i
+                        class="fas fa-layer-group"></i> Manage Slab Rates</h2>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:30px;">
+                    <!-- Left: Edit Rates -->
+                    <div class="admin-card">
+                        <h4 style="border-bottom:1px solid #eee; padding-bottom:10px; margin-bottom:15px;">Update
+                            Commission Rates</h4>
+                        <p style="font-size:0.85rem; color:#666; margin-bottom:15px;">
+                            Set the percentage shared with astrologers for each time slab. <br>
+                            <b>Example:</b> 0.40 means 40% commission.
+                        </p>
+                        <div id="slab-inputs-container">
+                            <!-- Dynamic inputs loaded here -->
+                            <div class="loader"></div>
+                        </div>
+                        <button class="cosmic-btn" style="margin-top:20px; width:100%;" onclick="saveSlabRates()">
+                            <i class="fas fa-save"></i> Update Rates
+                        </button>
+                    </div>
+
+                    <!-- Right: Rules Info -->
+                    <div class="admin-card"
+                        style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-soft);">
+                        <h4
+                            style="border-bottom: 1px solid var(--border-soft); padding-bottom: 15px; margin-bottom: 20px; font-family: var(--font-heading);">
+                            ℹ️ Slab Logic Rules</h4>
+                        <div class="slab-rule-item"
+                            style="background: rgba(255, 255, 255, 0.03); border-color: var(--border-soft);">
+                            <div class="slab-badge" style="background: var(--primary); color: #000;">Slab 1</div>
+                            <div>
+                                <b style="color: var(--text-main);">0 - 5 Minutes</b><br>
+                                <span style="font-size: 0.8rem; color: var(--text-muted);">Initial conversation
+                                    phase.</span>
+                            </div>
+                        </div>
+                        <div class="slab-rule-item"
+                            style="background: rgba(255, 255, 255, 0.03); border-color: var(--border-soft);">
+                            <div class="slab-badge" style="background: var(--primary); color: #000;">Slab 2</div>
+                            <div>
+                                <b style="color: var(--text-main);">6 - 10 Minutes</b><br>
+                                <span style="font-size: 0.8rem; color: var(--text-muted);">Engagement phase.</span>
+                            </div>
+                        </div>
+                        <div class="slab-rule-item"
+                            style="background: rgba(255, 255, 255, 0.03); border-color: var(--border-soft);">
+                            <div class="slab-badge" style="background: var(--primary); color: #000;">Slab 3</div>
+                            <div>
+                                <b style="color: var(--text-main);">11 - 15 Minutes</b><br>
+                                <span style="font-size: 0.8rem; color: var(--text-muted);">Deep consultation
+                                    phase.</span>
+                            </div>
+                        </div>
+                        <div class="slab-rule-item"
+                            style="background: rgba(255, 255, 255, 0.03); border-color: var(--border-soft);">
+                            <div class="slab-badge" style="background: var(--primary); color: #000;">Slab 4</div>
+                            <div>
+                                <b style="color: var(--text-main);">16+ Minutes</b><br>
+                                <span style="font-size: 0.8rem; color: var(--text-muted);">Long duration retention
+                                    bonus.</span>
+                            </div>
+                        </div>
+
+                        <div
+                            style="margin-top: 20px; font-size: 0.8rem; color: var(--text-muted); padding: 15px; background: rgba(255, 204, 0, 0.05); border-radius: 12px; border: 1px solid var(--border-accent);">
+                            <b style="color: var(--primary);">Note:</b> Commission is calculated based on the <i>total
+                                duration accumulated</i> in the current month for a specific Astrologer-Client pair.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 8: Offers & FCM -->
+            <div id="admin-sect-offers" class="admin-tab-section">
+                <h2 style="margin-bottom:20px;"><i class="fas fa-bullhorn"></i> Send Offers & FCM</h2>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                    <div class="admin-card">
+                        <h4>1. Select Users</h4>
+                        <div style="margin-bottom:10px;">
+                            <label><input type="checkbox" id="fcmAllUsers" onchange="toggleFcmUserSelection()"> Send to
+                                ALL Users (with FCM token)</label>
+                        </div>
+                        <div id="fcmUserSearchContainer" class="glass-card" style="padding: 10px; margin-top: 15px;">
+                            <input type="text" id="fcmUserSearch" class="app-input" placeholder="Search users..."
+                                oninput="searchFcmUsers()">
+                            <div id="fcmUserList"
+                                style="max-height: 300px; overflow-y: auto; margin-top: 10px; padding: 5px;">
+                                <!-- User list with checkboxes -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="admin-card">
+                        <h4>2. Message Details</h4>
+                        <input type="text" id="fcmTitle" class="app-input"
+                            placeholder="Offer Title (e.g. 50% Cashback!)" style="margin-bottom:10px;">
+                        <textarea id="fcmBody" class="app-input" placeholder="Message content..."
+                            style="margin-bottom:10px; height:100px;"></textarea>
+                        
+                        <div style="display:flex; gap:10px; align-items:center; margin-bottom: 20px;">
+                            <input type="text" id="fcmImageUrl" class="app-input" placeholder="Icon/Logo URL (e.g. Astro Eleven Logo)" value="https://astroeleven.com/images/astroeleven_icon.svg" style="margin-bottom:0; flex:1;">
+                            <img id="fcmPrev" src="https://astroeleven.com/images/astroeleven_icon.svg" style="width:38px; height:38px; border-radius:6px; background:rgba(255, 204, 0,0.05); border:1px solid var(--border-soft);">
+                        </div>
+
+                        <button id="btnSendBulkFcm" class="cosmic-btn" style="width:100%;" onclick="sendOfferFCM()">Send Notification</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 9: Refunds -->
+            <div id="admin-sect-refunds" class="admin-tab-section">
+                <h2 style="margin-bottom:20px;"><i class="fas fa-undo"></i> Refund / Client Wallet Add</h2>
+                <div style="margin-bottom:20px;">
+                    <input type="text" id="adminRefundSearch" oninput="searchRefundUsers()"
+                        placeholder="Search clients by name, phone or ID..." class="app-input">
+                </div>
+                <div id="adminRefundList">
+                    <div class="loader"></div>
+                </div>
+            </div>
+
+            <!-- Tab 11: Settings (.env) -->
+            <div id="admin-sect-settings" class="admin-tab-section">
+                <h2 style="margin-bottom:20px; font-family: var(--font-heading); color: var(--primary);"><i class="fas fa-cog"></i> System Configuration (.env)</h2>
+                <p style="color:var(--text-dim); margin-bottom:20px;">Manage environment variables directly from the dashboard. <br><b>Note:</b> Changes are saved directly to the .env file.</p>
+                <div class="admin-card">
+                    <div id="config-inputs-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div class="loader"></div>
+                    </div>
+                    <div style="margin-top:30px; display:flex; gap:15px; border-top: 1px solid var(--border-soft); padding-top:20px;">
+                        <button class="cosmic-btn" style="width:200px;" onclick="saveConfig()"><i class="fas fa-save"></i> Save All Changes</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab SMTP Configuration -->
+            <div id="admin-sect-smtp" class="admin-tab-section">
+                <h2 style="margin-bottom:20px; font-family: var(--font-heading); color: var(--primary);"><i class="fas fa-envelope"></i> SMTP / Email Configuration</h2>
+                <p style="color:var(--text-dim); margin-bottom:20px;">Configure your email sending credentials and destination address. <br><b>Note:</b> Changes are saved directly to the .env file.</p>
+                <div class="admin-card">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div>
+                            <label class="app-label">SMTP HOST</label>
+                            <input type="text" id="smtpHost" class="app-input" placeholder="e.g. smtp.gmail.com">
+                        </div>
+                        <div>
+                            <label class="app-label">SMTP PORT</label>
+                            <input type="number" id="smtpPort" class="app-input" placeholder="e.g. 587">
+                        </div>
+                        <div>
+                            <label class="app-label">SMTP SECURE (true/false)</label>
+                            <select id="smtpSecure" class="app-input" style="padding: 0 10px; height: 42px;">
+                                <option value="false">false (TLS - Port 587)</option>
+                                <option value="true">true (SSL - Port 465)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="app-label">SMTP USER (Email Address)</label>
+                            <input type="text" id="smtpUser" class="app-input" placeholder="e.g. info@astroeleven.com">
+                        </div>
+                        <div>
+                            <label class="app-label">SMTP PASS (App Password)</label>
+                            <input type="password" id="smtpPass" class="app-input" placeholder="Your SMTP Password / App Password">
+                        </div>
+                        <div>
+                            <label class="app-label">EMAIL FROM (Sender Identity)</label>
+                            <input type="text" id="emailFrom" class="app-input" placeholder='e.g. "Astro Eleven Support" &lt;info@astroeleven.com&gt;'>
+                        </div>
+                        <div>
+                            <label class="app-label">EMAIL TO (Feedback Destination Email)</label>
+                            <input type="text" id="emailTo" class="app-input" placeholder="e.g. info@astroeleven.com">
+                        </div>
+                    </div>
+                    <div style="margin-top:30px; display:flex; gap:15px; border-top: 1px solid var(--border-soft); padding-top:20px;">
+                        <button class="cosmic-btn" style="width:200px;" onclick="saveSmtpConfig()"><i class="fas fa-save"></i> Save SMTP Config</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 12: Workflow (Lively System Health) -->
+            <div id="admin-sect-workflow" class="admin-tab-section">
+                <h2 style="margin-bottom:20px; font-family: var(--font-heading); color: var(--primary);"><i class="fas fa-microchip"></i> System Workflow Health</h2>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <p style="color:var(--text-dim); margin:0;">Real-time monitoring of core system components and signaling paths.</p>
+                    <button class="btn-admin" onclick="fetchWorkflowStatus()"><i class="fas fa-sync-alt"></i> Refresh All</button>
+                </div>
+                
+                <div id="workflow-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+                    <!-- Health Cards -->
+                    <div class="admin-card workflow-card" id="wf-server">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                <div class="wf-icon"><i class="fas fa-server"></i></div>
+                                <div>
+                                    <div style="font-weight:bold; color:var(--text-main);">Server Core</div>
+                                    <small style="color:var(--text-dim);">API / HTTP Layer</small>
+                                </div>
+                            </div>
+                            <div class="wf-status"><i class="fas fa-spinner fa-spin" style="color:var(--text-dim);"></i></div>
+                        </div>
+                    </div>
+
+                    <div class="admin-card workflow-card" id="wf-db">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                <div class="wf-icon"><i class="fas fa-database"></i></div>
+                                <div>
+                                    <div style="font-weight:bold; color:var(--text-main);">Database</div>
+                                    <small style="color:var(--text-dim);">MongoDB Atlas</small>
+                                </div>
+                            </div>
+                            <div class="wf-status"><i class="fas fa-spinner fa-spin" style="color:var(--text-dim);"></i></div>
+                        </div>
+                    </div>
+
+                    <div class="admin-card workflow-card" id="wf-socket">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                <div class="wf-icon"><i class="fas fa-plug"></i></div>
+                                <div>
+                                    <div style="font-weight:bold; color:var(--text-main);">Real-time Sync</div>
+                                    <small style="color:var(--text-dim);">Socket.io Node</small>
+                                </div>
+                            </div>
+                            <div class="wf-status"><i class="fas fa-spinner fa-spin" style="color:var(--text-dim);"></i></div>
+                        </div>
+                    </div>
+
+                    <div class="admin-card workflow-card" id="wf-fcm">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                <div class="wf-icon"><i class="fas fa-bell"></i></div>
+                                <div>
+                                    <div style="font-weight:bold; color:var(--text-main);">Push Registry</div>
+                                    <small style="color:var(--text-dim);">Firebase FCM v1</small>
+                                </div>
+                            </div>
+                            <div class="wf-status"><i class="fas fa-spinner fa-spin" style="color:var(--text-dim);"></i></div>
+                        </div>
+                    </div>
+
+                    <div class="admin-card workflow-card" id="wf-webrtc">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                <div class="wf-icon"><i class="fas fa-video"></i></div>
+                                <div>
+                                    <div style="font-weight:bold; color:var(--text-main);">Calling Path</div>
+                                    <small style="color:var(--text-dim);">WebRTC / TURN Relay</small>
+                                </div>
+                            </div>
+                            <div class="wf-status"><i class="fas fa-spinner fa-spin" style="color:var(--text-dim);"></i></div>
+                        </div>
+                    </div>
+                </div>
+
+                <style>
+                    .workflow-card {
+                        transition: all 0.3s ease;
+                        border-left: 4px solid var(--border-soft);
+                    }
+                    .wf-icon {
+                        width: 40px; height: 40px; border-radius: 10px; background: rgba(255, 204, 0,0.1);
+                        display: flex; align-items:center; justify-content:center; color: var(--primary);
+                    }
+                    .wf-status { font-size: 1.2rem; }
+                    .wf-healthy { border-left-color: #10B981 !important; background: rgba(16,185,129,0.02); }
+                    .wf-warning { border-left-color: #FFB300 !important; background: rgba(245,158,11,0.02); }
+                    .wf-error { border-left-color: #EF4444 !important; background: rgba(239,68,68,0.02); }
+                </style>
+            </div>
+
+            <!-- Tab: User Feedback -->
+            <div id="admin-sect-feedback" class="admin-tab-section">
+                <div class="dashboard-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h2 class="dashboard-title" style="margin:0;"><i class="fas fa-comments"></i> User Feedback & Ratings</h2>
+                    <button class="btn-admin" onclick="fetchFeedback()"><i class="fas fa-sync"></i> Refresh List</button>
+                </div>
+                
+                <div id="adminFeedbackList" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap:15px;">
+                    <div class="loader"></div>
+                </div>
+            </div>
+
+            <!-- Tab: History -->
+            <div id="admin-sect-history" class="admin-tab-section">
+                <div class="dashboard-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h2 class="dashboard-title" style="margin:0;"><i class="fas fa-history" style="color:var(--primary);"></i> Communication History</h2>
+                    <button class="btn-admin" onclick="loadSessionsHistory()"><i class="fas fa-sync"></i> Refresh History</button>
+                </div>
+
+                <!-- Top Astrologers Highlights -->
+                <div id="topAstrologersHistorySection" style="margin-bottom: 25px;">
+                    <h3 style="margin:0 0 15px 0; font-family:var(--font-heading); color:var(--primary); font-size:1.1rem;"><i class="fas fa-medal" style="color:#FFD700;"></i> Top 3 Astrologers (Most History)</h3>
+                    <div id="topAstrologersHistoryList" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap:15px;">
+                        <div class="loader"></div>
+                    </div>
+                </div>
+
+                <!-- History Table / Cards -->
+                <div class="admin-card" style="padding:0; overflow:hidden;">
+                    <div style="padding: 15px; background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border-soft); display: flex; gap: 15px; align-items: center;">
+                        <input type="text" id="adminHistorySearch" oninput="searchHistory()" placeholder="Search by Client or Astrologer name..." class="app-input" style="margin:0; flex:1;">
+                        <select id="adminHistoryTypeFilter" onchange="searchHistory()" class="app-input" style="margin:0; width:150px; padding: 0 10px;">
+                            <option value="all">All Types</option>
+                            <option value="chat">Chat</option>
+                            <option value="call">Call</option>
+                        </select>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table style="width:100%; border-collapse:collapse; color:var(--text-main);">
+                            <thead>
+                                <tr style="background:rgba(255,255,255,0.05); text-align:left;">
+                                    <th style="padding:15px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted);">Session ID</th>
+                                    <th style="padding:15px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted);">Client</th>
+                                    <th style="padding:15px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted);">Astrologer</th>
+                                    <th style="padding:15px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted); text-align:center;">Type</th>
+                                    <th style="padding:15px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted); text-align:center;">Duration</th>
+                                    <th style="padding:15px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted); text-align:right;">Charged (₹)</th>
+                                    <th style="padding:15px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted); text-align:center;">Date & Time</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sessionsHistoryTableBody">
+                                <tr>
+                                    <td colspan="7" style="text-align:center; padding:30px;">
+                                        <div class="loader"></div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="admin-footer"
+                style="background: var(--bg-glass-heavy); backdrop-filter: var(--glass-blur); border-top: 1px solid var(--border-soft);">
+                <div class="admin-footer-content">
+                    <div class="admin-footer-section">
+                        <div class="admin-footer-item"><i class="fas fa-users" style="color: var(--primary);"></i>
+                            Users: <span id="footerTotalUsers"
+                                style="color: var(--text-main); font-weight: 600;">...</span></div>
+                        <div class="admin-footer-item"><i class="fas fa-wallet" style="color: var(--primary);"></i>
+                            Revenue: <span id="footerRevenue"
+                                style="color: var(--text-main); font-weight: 600;">...</span></div>
+                        <div class="admin-footer-item"><i class="fas fa-clock" style="color: var(--primary);"></i> <span
+                                id="footerTime" style="color: var(--text-main); font-weight: 600;">--:--</span></div>
+                    </div>
+                    <div class="admin-footer-divider"></div>
+                    <div style="text-align:center; opacity:0.6; font-family: var(--font-heading); letter-spacing: 1px;">
+                        Astro Eleven Admin v2.1 © 2026</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit User Modal -->
+        <!-- Modal: Astrologer Performance -->
+        <div id="modal-performance" class="admin-modal" style="display:none; position:fixed; inset:0; background:rgba(255,255,255,0.65); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); z-index:10000; overflow-y:auto; padding:20px;">
+            <div class="admin-modal-content" style="max-width: 800px; background: var(--bg-body); border: 1px solid var(--border-soft); box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h3 style="margin:0; font-family:var(--font-heading); color:var(--primary);"><i class="fas fa-chart-line"></i> Astrologer Performance</h3>
+                    <button class="close-btn" onclick="closeModal('modal-performance')" style="background:none; border:none; color:var(--text-muted); font-size:1.5rem; cursor:pointer;">&times;</button>
+                </div>
+
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:15px; margin-bottom:25px;">
+                    <div class="admin-card" style="text-align:center; padding:15px; background:rgba(255, 204, 0,0.03);">
+                        <small style="color:var(--text-muted);">Avg. Duration</small>
+                        <div id="perf-avg-duration" style="font-size:1.4rem; font-weight:bold; color:var(--primary);">0m</div>
+                    </div>
+                    <div class="admin-card" style="text-align:center; padding:15px; background:rgba(0,255,136,0.03);">
+                        <small style="color:var(--text-muted);">Retention Rate</small>
+                        <div id="perf-retention" style="font-size:1.4rem; font-weight:bold; color:var(--accent);">0%</div>
+                    </div>
+                    <div class="admin-card" style="text-align:center; padding:15px; background:rgba(255,255,255,0.03);">
+                        <small style="color:var(--text-muted);">Total Earnings</small>
+                        <div id="perf-earnings" style="font-size:1.4rem; font-weight:bold; color:var(--text-main);">₹0</div>
+                    </div>
+                    <div class="admin-card" style="text-align:center; padding:15px; background:rgba(245,158,11,0.03);">
+                        <small style="color:var(--text-muted);">Response Rate</small>
+                        <div id="perf-response" style="font-size:1.4rem; font-weight:bold; color:#FFB300;">0%</div>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1fr 1.2fr; gap:20px;">
+                    <div class="admin-card" style="background:rgba(255,255,255,0.02); border:1px solid var(--border-soft);">
+                        <h4 style="margin-top:0; color:var(--primary); border-bottom:1px solid var(--border-soft); padding-bottom:8px;">Earnings Breakdown</h4>
+                        <div style="margin-bottom:12px; display:flex; justify-content:space-between; font-size:0.9rem;">
+                            <span style="color:var(--text-muted);">Slab Earning (L1-L5)</span>
+                            <span id="perf-slab-earning" style="font-weight:bold; color:var(--text-main);">₹0</span>
+                        </div>
+                        <div style="margin-bottom:12px; display:flex; justify-content:space-between; font-size:0.9rem;">
+                            <span style="color:var(--text-muted);">Unlimited Earnings</span>
+                            <span id="perf-unlimited-earning" style="font-weight:bold; color:var(--text-main);">₹0</span>
+                        </div>
+                        <div style="margin-bottom:12px; display:flex; justify-content:space-between; border-top:1px solid var(--border-soft); padding-top:10px; margin-top:10px;">
+                            <span style="color:var(--accent);">Admin Commission (Share)</span>
+                            <span id="perf-admin-share" style="color:var(--accent); font-weight:bold;">₹0</span>
+                        </div>
+                        <div style="margin-top:20px; font-size:0.75rem; color:var(--text-dim); line-height:1.4;">
+                            * Stats are calculated based on completed sessions in the last 30 days.
+                        </div>
+                    </div>
+                    <div class="admin-card" style="background:rgba(255,255,255,0.02); border:1px solid var(--border-soft);">
+                        <h4 style="margin-top:0; color:var(--primary); border-bottom:1px solid var(--border-soft); padding-bottom:8px;">Call Distribution</h4>
+                        <div style="height:210px; position:relative; margin-top:10px;">
+                            <canvas id="perfCallChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="modal-edit-user" class="admin-modal" style="display:none; position:fixed; inset:0; background:rgba(255,255,255,0.65); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); z-index:10000; overflow-y:auto; padding:20px;">
+            <div class="admin-card" style="max-width:600px; margin:40px auto; background: var(--bg-card); position:relative; box-shadow: 0 0 30px rgba(0,0,0,0.5);">
+                <span onclick="closeModal('modal-edit-user')" style="position:absolute; right:20px; top:20px; font-size:2rem; cursor:pointer; color:var(--text-muted);">&times;</span>
+                <h2 style="font-family: var(--font-heading); color: var(--primary); margin-bottom:20px;"><i class="fas fa-user-edit"></i> Edit Astrologer / User</h2>
+                
+                <input type="hidden" id="editUserId">
+                
+                <div class="grid-2">
+                    <div>
+                        <label class="app-label">Display Name</label>
+                        <input type="text" id="editName" class="app-input" placeholder="Display Name">
+                    </div>
+                    <div>
+                        <label class="app-label">Real Name</label>
+                        <input type="text" id="editRealName" class="app-input" placeholder="Real Name">
+                    </div>
+                </div>
+
+                <div class="grid-2" style="margin-top:15px;">
+                    <div>
+                        <label class="app-label">Phone</label>
+                        <input type="text" id="editPhone" class="app-input" disabled>
+                    </div>
+                    <div>
+                        <label class="app-label">Email</label>
+                        <input type="text" id="editEmail" class="app-input" placeholder="Email">
+                    </div>
+                </div>
+
+                <div style="margin-top:15px;">
+                    <label class="app-label">Profile Image URL</label>
+                    <div style="display:flex; gap:10px;">
+                        <input type="text" id="editImage" class="app-input" style="flex:1;">
+                        <input type="file" id="editImageFile" onchange="uploadProfileImage(this)" style="display:none;">
+                        <button class="btn-admin" onclick="document.getElementById('editImageFile').click()"><i class="fas fa-upload"></i></button>
+                    </div>
+                </div>
+
+                <div id="astroFields" style="margin-top:20px; padding-top:20px; border-top:1px solid var(--border-soft);">
+                    <h4 style="color:var(--primary); margin-bottom:15px;">Astrologer Information</h4>
+                    
+                    <div class="grid-3">
+                        <div>
+                            <label class="app-label">Base Price</label>
+                            <input type="number" id="editPrice" class="app-input">
+                        </div>
+                        <div>
+                            <label class="app-label">Experience (Years)</label>
+                            <input type="number" id="editExp" class="app-input">
+                        </div>
+                        <div>
+                            <label class="app-label">Profession / Bio</label>
+                            <input type="text" id="editProfession" class="app-input">
+                        </div>
+                    </div>
+
+                    <div style="margin-top:15px;">
+                        <label class="app-label">Skills (comma separated)</label>
+                        <input type="text" id="editSkills" class="app-input">
+                    </div>
+
+                    <div class="grid-2" style="margin-top:15px;">
+                        <div>
+                            <label class="app-label">Document Status</label>
+                            <select id="editDocStatus" class="app-input">
+                                <option value="none">None</option>
+                                <option value="pending">Pending</option>
+                                <option value="verified">Verified</option>
+                                <option value="rejected">Rejected</option>
+                            </select>
+                        </div>
+                        <div style="display:flex; align-items:flex-end; padding-bottom:12px;">
+                            <label class="app-label" style="margin:0; display:flex; align-items:center; cursor:pointer;">
+                                <input type="checkbox" id="editIsVerified" style="width:20px; height:20px; margin-right:10px; margin-top:0;">
+                                Verified Badge
+                            </label>
+                        </div>
+                    </div>
+
+                    <h4 style="color:var(--primary); margin-top:20px; margin-bottom:15px;">Bank & Identity</h4>
+                    <div class="grid-2">
+                        <div>
+                            <label class="app-label">Aadhar Number</label>
+                            <input type="text" id="editAadhar" class="app-input">
+                        </div>
+                        <div>
+                            <label class="app-label">PAN Number</label>
+                            <input type="text" id="editPan" class="app-input">
+                        </div>
+                    </div>
+                    <div style="margin-top:15px;">
+                        <label class="app-label">Bank Details (Acc/IFSC)</label>
+                        <input type="text" id="editBank" class="app-input">
+                    </div>
+                    <div class="grid-2" style="margin-top:15px;">
+                        <div>
+                            <label class="app-label">UPI ID</label>
+                            <input type="text" id="editUpiId" class="app-input">
+                        </div>
+                        <div>
+                            <label class="app-label">UPI Number</label>
+                            <input type="text" id="editUpiNum" class="app-input">
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top:30px; display:flex; gap:15px;">
+                    <button class="cosmic-btn" style="flex:1;" onclick="saveUserEdit()"><i class="fas fa-save"></i> Save Changes</button>
+                    <button class="btn-admin" style="background:var(--border-soft); color:var(--text-muted);" onclick="closeModal('modal-edit-user')">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+
+
+        <!-- Navigation -->
+        <div class="admin-nav">
+            <div class="admin-nav-item active" onclick="navAdmin('home', event)"><i
+                    class="fas fa-home"></i><span>Dash</span>
+            </div>
+            <!-- <div class="admin-nav-item" onclick="navAdmin('earnings', event)"><i
+                    class="fas fa-chart-pie"></i><span>Earnings</span></div> -->
+            <div class="admin-nav-item" onclick="navAdmin('performance', event)"><i
+                    class="fas fa-medal" style="color:#FFD700;"></i><span>Performance</span></div>
+            <div class="admin-nav-item" onclick="navAdmin('payouts', event)"><i
+                    class="fas fa-user-astronaut"></i><span>Astros <small id="nav-count-astros" style="color:#EF4444; font-weight:bold;"></small></span></div>
+            <div class="admin-nav-item" onclick="navAdmin('pending', event)"><i
+                    class="fas fa-user-clock"></i><span>Pending <small id="nav-count-pending" style="color:#EF4444; font-weight:bold;"></small></span></div>
+            <div class="admin-nav-item" onclick="navAdmin('users', event)"><i
+                    class="fas fa-users"></i><span>Users <small id="nav-count-users" style="color:#EF4444; font-weight:bold;"></small></span></div>
+            <div class="admin-nav-item" onclick="navAdmin('add-astro', event)"><i
+                    class="fas fa-user-plus"></i><span>Add Astro</span></div>
+            <div class="admin-nav-item" onclick="navAdmin('slab', event)"><i
+                    class="fas fa-layer-group"></i><span>Slabs</span></div>
+            <div class="admin-nav-item" onclick="navAdmin('offers', event)"><i
+                    class="fas fa-bullhorn"></i><span>Offers</span></div>
+            <div class="admin-nav-item" onclick="navAdmin('refunds', event)"><i
+                    class="fas fa-undo"></i><span>Refund</span></div>
+            <div class="admin-nav-item" onclick="navAdmin('academy', event)"><i
+                    class="fas fa-graduation-cap"></i><span>Academy</span></div>
+            <div class="admin-nav-item" onclick="navAdmin('notifications', event)"><i
+                    class="fas fa-bell"></i><span>Notifs <small id="nav-count-notifs" style="color:#EF4444; font-weight:bold;"></small></span></div>
+            <div class="admin-nav-item" onclick="navAdmin('slider', event)"><i
+                    class="fas fa-images"></i><span>Slider</span></div>
+            <div class="admin-nav-item" onclick="navAdmin('services', event)"><i
+                    class="fas fa-th-large"></i><span>Services</span></div>
+            <div class="admin-nav-item" onclick="navAdmin('rituals', event)"><i
+                    class="fas fa-magic"></i><span>Rituals</span></div>
+            <div class="admin-nav-item" onclick="navAdmin('feedback', event)"><i
+                    class="fas fa-comment-alt"></i><span>Feedback</span></div>
+            <div class="admin-nav-item" onclick="navAdmin('settings', event)"><i
+                    class="fas fa-cog"></i><span>Settings</span></div>
+            <div class="admin-nav-item" onclick="navAdmin('smtp', event)"><i
+                    class="fas fa-envelope"></i><span>SMTP Config</span></div>
+            <div class="admin-nav-item" onclick="navAdmin('workflow', event)"><i
+                    class="fas fa-microchip" style="color:#10B981;"></i><span>Workflow</span></div>
+            <div class="admin-nav-item" onclick="navAdmin('history', event)"><i
+                    class="fas fa-history" style="color:#FFB300;"></i><span>History</span></div>
+            <div class="admin-nav-item" onclick="logout()"
+                style="margin-top: auto; color: #EF4444; border-top: 1px solid #eee;">
+                <i class="fas fa-sign-out-alt"></i><span>Logout</span>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const socket = io();
+        let adminUsersCache = [];
+        let state = { me: null };
+        let roleChangeTargetId = null;
+        let tempAvatarUrl = null;
+
+        // Pagination State
+        let clientPage = 1, clientLimit = 10, clientTotal = 0, clientSearch = '';
+        let astroPage = 1, astroLimit = 10, astroTotal = 0, astroSearch = '';
+        let pendingPage = 1, pendingLimit = 10, pendingTotal = 0, pendingSearch = '';
+
+        // Boot
+        function init() {
+            console.log('Initializing Super Admin Dashboard...');
+            const saved = localStorage.getItem('astro_session');
+            if (!saved) {
+                console.log('No session found, redirecting to home.');
+                return location.href = '/';
+            }
+
+            let session;
+            try {
+                session = JSON.parse(saved);
+            } catch (e) {
+                console.error('Session parse error', e);
+                localStorage.removeItem('astro_session');
+                return location.href = '/';
+            }
+
+            if (session.role !== 'superadmin' && session.role !== 'admin') {
+                console.log('User is not superadmin, redirecting.');
+                return location.href = '/';
+            }
+
+            state.me = session;
+
+            console.log('Registering socket for Super Admin...');
+            socket.emit('register', { name: session.name, phone: session.phone, userId: session.userId }, (ack) => {
+                if (ack && ack.ok) {
+                    console.log('Super Admin Registered Successfully.');
+                    loadData();
+                    setInterval(updateTime, 60000);
+                    updateTime();
+                } else {
+                    console.error('Registration failed:', ack);
+                    alert('Session expired or invalid. Please login again.');
+                    localStorage.removeItem('astro_session');
+                    location.href = '/';
+                }
+            });
+        }
+
+        function loadData() {
+            fetchAdminStats();
+            fetchAllUsers();
+            fetchAcademyVideos();
+            fetchBanners();
+            loadWithdrawals();
+            loadPendingAstrologers();
+        }
+
+        function fetchAdminStats() {
+            socket.emit('admin-get-ledger-stats', {}, (res) => {
+                if (res.ok) {
+                    setText('quickRev', '₹' + res.stats.totalRevenue);
+                    setText('quickProfit', '₹' + res.stats.adminProfit);
+                    setText('quickPayout', '₹' + res.stats.astroPayout);
+                    setText('quickMins', Math.round(res.stats.totalDuration / 60));
+
+                    setText('liveCalls', res.stats.activeSessions || 0);
+                    setText('liveAstros', res.stats.onlineAstros || 0);
+                    setText('liveClients', res.stats.onlineClients || 0);
+
+                    // Sidebar Counts
+                    setText('nav-count-astros', '(' + (res.stats.totalAstros || 0) + ')');
+                    setText('nav-count-pending', '(' + (res.stats.pendingAstros || 0) + ')');
+                    setText('nav-count-users', '(' + (res.stats.totalUsers || 0) + ')');
+                    setText('nav-count-notifs', adminNotifications.length > 0 ? '(' + adminNotifications.length + ')' : '');
+
+                    setText('footerTotalUsers', res.stats.totalUsers);
+                    setText('footerRevenue', '₹' + res.stats.totalRevenue);
+
+                    renderLedger(res.fullLedger);
+                    renderChart(res.stats);
+                    renderLiveAstros(res.liveAstrologersData);
+                }
+            });
+        }
+
+        function getImageUrl(path) {
+            if (!path) return 'images/default-astro.png';
+            if (path.startsWith('http')) return path;
+            return path.startsWith('/') ? path : '/' + path;
+        }
+
+        function renderLiveAstros(liveAstros) {
+            const container = document.getElementById('liveVideoAstrosList');
+            const section = document.getElementById('liveVideoAstrosSection');
+            
+            if (!liveAstros || liveAstros.length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+            
+            section.style.display = 'block';
+            container.innerHTML = liveAstros.map(astro => `
+                <div class="live-astro-chip">
+                    <div class="live-badge">LIVE</div>
+                    <img src="${getImageUrl(astro.image)}" onerror="this.src='images/default-astro.png'" style="width:45px; height:45px; border-radius:12px; object-fit:cover; border:2px solid var(--border-soft);">
+                    <div style="flex:1; min-width:0;">
+                        <div style="font-weight:700; font-size:0.85rem; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${astro.name}</div>
+                        <div style="font-size:0.65rem; color:var(--text-muted); display:flex; align-items:center; gap:4px;">
+                            <span style="width:6px; height:6px; background:#10B981; border-radius:50%;"></span>
+                            Active Session
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function fetchAllUsers() {
+            // Fetch Clients
+            socket.emit('admin-get-users', { role: 'client', page: clientPage, limit: clientLimit, search: clientSearch }, (res) => {
+                if (res.ok) {
+                    clientTotal = res.total;
+                    renderClientsList(res.users);
+                    updatePaginationUI('client', res.page, res.pages, res.total);
+                    updateUsersCache(res.users);
+                }
+            });
+
+            // Fetch Astrologers
+            socket.emit('admin-get-users', { role: 'astrologer', page: astroPage, limit: astroLimit, search: astroSearch }, (res) => {
+                if (res.ok) {
+                    astroTotal = res.total;
+                    renderAstrosList(res.users);
+                    updatePaginationUI('astro', res.page, res.pages, res.total);
+                    updateUsersCache(res.users);
+                }
+            });
+        }
+
+        function updateUsersCache(users) {
+            users.forEach(user => {
+                const idx = adminUsersCache.findIndex(u => u.userId === user.userId);
+                if (idx > -1) {
+                    adminUsersCache[idx] = user;
+                } else {
+                    adminUsersCache.push(user);
+                }
+            });
+        }
+
+        function updatePaginationUI(prefix, page, totalPages, totalCount) {
+            const info = document.getElementById(`${prefix}PaginationInfo`);
+            const prevBtn = document.getElementById(`${prefix}PrevBtn`);
+            const nextBtn = document.getElementById(`${prefix}NextBtn`);
+            
+            if (!info || !prevBtn || !nextBtn) return;
+            
+            const limit = 10;
+            const start = totalCount === 0 ? 0 : (page - 1) * limit + 1;
+            const end = Math.min(page * limit, totalCount);
+            
+            info.textContent = `Showing ${start} to ${end} of ${totalCount} ${prefix === 'pending' ? 'Pending Requests' : (prefix === 'client' ? 'Clients' : 'Astrologers')}`;
+            
+            prevBtn.disabled = (page <= 1);
+            nextBtn.disabled = (page >= totalPages || totalPages === 0);
+        }
+
+        window.changeClientPage = (dir) => {
+            clientPage += dir;
+            fetchAllUsers();
+        };
+
+        window.changeAstroPage = (dir) => {
+            astroPage += dir;
+            fetchAllUsers();
+        };
+
+        window.changePendingPage = (dir) => {
+            pendingPage += dir;
+            loadPendingAstrologers();
+        };
+
+        function renderLedger(ledger) {
+            const body = document.getElementById('fullLedgerBody');
+            if (!body) return;
+            if (!ledger || ledger.length === 0) {
+                body.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:20px;">No records</td></tr>';
+                return;
+            }
+            const agg = {};
+            ledger.forEach(l => {
+                if (!agg[l.type]) agg[l.type] = { count: 0, amount: 0 };
+                agg[l.type].count++;
+                agg[l.type].amount += (l.amount || 0);
+            });
+            body.innerHTML = Object.keys(agg).map(k => `
+        <tr>
+          <td style="padding:15px; border-bottom:1px solid #eee;">${k.toUpperCase().replace('_', ' ')}</td>
+          <td style="padding:15px; border-bottom:1px solid #eee; text-align:center;">${agg[k].count}</td>
+          <td style="padding:15px; border-bottom:1px solid #eee; text-align:right; font-weight:700; color:#059669;">₹${agg[k].amount}</td>
+        </tr>
+      `).join('');
+        }
+
+        function renderClientsList(users) {
+            const clientList = document.getElementById('adminClientList');
+            if (users.length === 0) {
+                clientList.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding:50px; color:var(--text-dim);">No clients found.</div>';
+                return;
+            }
+            clientList.innerHTML = users.map(u => renderUserCard(u)).join('');
+        }
+
+        function renderAstrosList(users) {
+            const astroList = document.getElementById('adminAstroList');
+            if (users.length === 0) {
+                astroList.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding:50px; color:var(--text-dim);">No astrologers found.</div>';
+                return;
+            }
+            astroList.innerHTML = users.map(u => renderUserCard(u)).join('');
+        }
+
+        window.searchAstrologers = () => {
+            astroPage = 1;
+            astroSearch = document.getElementById('adminAstroSearch').value;
+            fetchAllUsers();
+        };
+
+        function renderUserCard(u) {
+            const isAstro = u.role === 'astrologer';
+            return `
+        <div class="admin-user-card">
+          <div class="admin-user-header" style="align-items: center; gap: 12px; display: flex;">
+            <img src="${u.image || 'https://ui-avatars.com/api/?name=' + u.name + '&background=random'}"
+                 style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid #eee;">
+            <div style="flex: 1;">
+              <div class="admin-user-name">${u.name} ${u.isVerified ? '<i class="fas fa-check-circle" style="color:#3B82F6;"></i>' : ''}</div>
+              <div style="font-size:0.8rem; color:#6B7280;">${u.phone} | ID: ${u.userId.slice(0, 6)}</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-weight:700; color:#059669;">₹${u.walletBalance || 0}</div>
+              <select onchange="changeUserRole('${u.userId}', this.value)" style="background: rgba(0,0,0,0.03); color: var(--text-main); border: 1px solid var(--border-soft); border-radius: 4px; font-size: 0.75rem; padding: 2px 4px; margin-top: 5px; outline: none; cursor: pointer;">
+                  <option value="client" ${u.role === 'client' ? 'selected' : ''}>CLIENT</option>
+                  <option value="astrologer" ${u.role === 'astrologer' ? 'selected' : ''}>ASTROLOGER</option>
+                  <option value="superadmin" ${u.role === 'superadmin' ? 'selected' : ''}>SUPER ADMIN</option>
+              </select>
+            </div>
+          </div>
+          <div class="admin-actions">
+            ${isAstro ? `<button class="btn-admin" style="background: #4F46E5; color: white;" onclick="showPerformance('${u.userId}')"><i class="fas fa-chart-line"></i> Stats</button>` : ''}
+            <button class="btn-admin btn-edit" style="background: var(--primary); color: #000;" onclick="editUser('${u.userId}')"><i class="fas fa-edit"></i> Edit</button>
+            <button class="btn-admin btn-wallet" onclick="adminWallet('${u.userId}')"><i class="fas fa-plus"></i> Wallet</button>
+            <button class="btn-admin btn-block" onclick="toggleBan('${u.userId}', ${!u.isBanned})" style="background:${u.isBanned ? '#EF4444' : '#eee'}; color:${u.isBanned ? 'white' : '#666'};">
+              <i class="fas fa-ban"></i> ${u.isBanned ? 'Unblock' : 'Block'}
+            </button>
+            <button class="btn-admin" style="background:#dc2626; color:white;" onclick="deleteUser('${u.userId}')"><i class="fas fa-trash"></i> Delete</button>
+          </div>
+        </div>
+      `;
+        }
+
+        // Tabs
+        window.navAdmin = (id, ev) => {
+            document.querySelectorAll('.admin-tab-section').forEach(s => s.classList.remove('active'));
+            const sect = document.getElementById('admin-sect-' + id);
+            if (sect) sect.classList.add('active');
+
+            if (id === 'withdrawals') loadAllWithdrawals();
+            if (id === 'slab') loadSlabRates();
+            if (id === 'offers') fetchOfferUsers();
+            if (id === 'performance') loadPerformanceLeaderboard();
+            if (id === 'pending') loadPendingAstrologers();
+            if (id === 'notifications') loadFullNotifications();
+            if (id === 'refunds') renderRefunds();
+            if (id === 'settings') fetchConfig();
+            if (id === 'smtp') fetchSmtpConfig();
+            if (id === 'services') fetchServices();
+            if (id === 'rituals') fetchRituals();
+            if (id === 'workflow') fetchWorkflowStatus();
+            if (id === 'feedback') fetchFeedback();
+            if (id === 'history') loadSessionsHistory();
+
+            document.querySelectorAll('.admin-nav-item').forEach(i => i.classList.remove('active'));
+            if (ev) ev.currentTarget.classList.add('active');
+            
+            // Close nav on mobile after selection
+            if (window.innerWidth < 1024) {
+                const nav = document.querySelector('.admin-nav');
+                const overlay = document.getElementById('nav-overlay');
+                if (nav.classList.contains('open')) {
+                    nav.classList.remove('open');
+                    overlay.classList.remove('active');
+                }
+            }
+        };
+        
+        window.toggleNav = () => {
+            const nav = document.querySelector('.admin-nav');
+            const overlay = document.getElementById('nav-overlay');
+            nav.classList.toggle('open');
+            overlay.classList.toggle('active');
+        };
+
+        // --- Slab Rates Logic ---
+        window.loadSlabRates = () => {
+            socket.emit('get-slab-rates', (res) => {
+                if (res.ok) {
+                    const container = document.getElementById('slab-inputs-container');
+                    const slabLabels = {
+                        1: '0 - 5 Mins',
+                        2: '6 - 10 Mins',
+                        3: '11 - 15 Mins',
+                        4: '16+ Mins'
+                    };
+
+                    container.innerHTML = Object.keys(res.rates).map(k => `
+                        <div style="margin-bottom:15px;">
+                            <label style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:0.9rem; font-weight:600;">
+                                <span>Slab ${k} (${slabLabels[k] || 'Unknown'})</span>
+                                <span style="color:#059669;">${(res.rates[k] * 100).toFixed(0)}%</span>
+                            </label>
+                            <input type="number" step="0.01" class="app-input slab-rate-input" data-key="${k}" value="${res.rates[k]}" style="margin:0;">
+                        </div>
+                    `).join('');
+                }
+            });
+        };
+
+        window.saveSlabRates = () => {
+            const inputs = document.querySelectorAll('.slab-rate-input');
+            const rates = {};
+            inputs.forEach(i => {
+                rates[i.dataset.key] = parseFloat(i.value);
+            });
+            socket.emit('update-slab-rates', rates, (res) => {
+                if (res.ok) alert('Slab Rates Updated Successfully');
+                else alert('Error: ' + res.error);
+            });
+        };
+
+        // --- Offers / FCM Logic ---
+        let allUsersForFcm = [];
+        window.fetchOfferUsers = () => {
+            socket.emit('get-all-users', (res) => {
+                if (res.ok && res.users) {
+                    allUsersForFcm = res.users;
+                    renderFcmUserList(allUsersForFcm);
+                }
+            });
+        };
+
+        function renderFcmUserList(list) {
+            const container = document.getElementById('fcmUserList');
+            if (list.length === 0) {
+                container.innerHTML = '<div style="padding:10px; color:#999; text-align:center;">No users found</div>';
+                return;
+            }
+            container.innerHTML = list.map(u => {
+                const hasFCM = !!u.fcmToken;
+                return `
+                <div style="display:flex; align-items:center; padding:8px; border-bottom:1px solid var(--border-soft); opacity: ${hasFCM ? '1' : '0.5'}">
+                    <input type="checkbox" class="fcm-user-checkbox" value="${u.userId}" style="margin-right:10px;" ${hasFCM ? '' : 'disabled'}>
+                    <div style="font-size:0.85rem; flex:1;">
+                        <b style="color: ${hasFCM ? 'var(--primary)' : 'inherit'}">${u.name}</b> 
+                        ${hasFCM ? '<i class="fas fa-check-circle" style="color:var(--accent); font-size:0.7rem;"></i>' : '<small>(No Token)</small>'}
+                        <br>
+                        <small style="color:var(--text-muted);">${u.phone || 'No Phone'} (${u.role})</small>
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        window.searchFcmUsers = () => {
+            const q = document.getElementById('fcmUserSearch').value.toLowerCase();
+            const filtered = allUsersForFcm.filter(u =>
+                u.name.toLowerCase().includes(q) || u.phone.includes(q)
+            );
+            renderFcmUserList(filtered);
+        };
+
+        window.toggleFcmUserSelection = () => {
+            const isAll = document.getElementById('fcmAllUsers').checked;
+            document.getElementById('fcmUserSearchContainer').style.opacity = isAll ? '0.5' : '1';
+            document.getElementById('fcmUserSearchContainer').style.pointerEvents = isAll ? 'none' : 'auto';
+        };
+
+        window.sendOfferFCM = () => {
+            const title = document.getElementById('fcmTitle').value;
+            const body = document.getElementById('fcmBody').value;
+            const allUsers = document.getElementById('fcmAllUsers').checked;
+
+            if (!title || !body) return alert('Please enter title and body');
+
+            let userIds = [];
+            if (!allUsers) {
+                const checked = document.querySelectorAll('.fcm-user-checkbox:checked');
+                userIds = Array.from(checked).map(i => i.value);
+                if (userIds.length === 0) return alert('Select at least one user');
+            }
+
+            if (!confirm(`Send this notification to ${allUsers ? 'ALL' : userIds.length} users?`)) return;
+
+            const btn = document.getElementById('btnSendBulkFcm');
+            const imageUrl = document.getElementById('fcmImageUrl').value;
+            btn.disabled = true;
+            btn.innerText = 'Sending...';
+
+            socket.emit('send-bulk-fcm', { userIds, title, body, allUsers, imageUrl }, (res) => {
+                btn.disabled = false;
+                btn.innerText = 'Send Notification';
+                if (res.ok) {
+                    alert(`Success! Sent: ${res.sentCount}, Failed: ${res.failCount}`);
+                    document.getElementById('fcmTitle').value = '';
+                    document.getElementById('fcmBody').value = '';
+                } else {
+                    alert('Error: ' + res.error);
+                }
+            });
+        };
+
+        // --- Refund Logic ---
+        window.renderRefunds = () => {
+            const q = document.getElementById('adminRefundSearch')?.value || '';
+            socket.emit('admin-get-users', { role: 'client', page: 1, limit: 20, search: q }, (res) => {
+                if (res.ok) {
+                    updateUsersCache(res.users);
+                    const container = document.getElementById('adminRefundList');
+                    if (container) {
+                        container.innerHTML = res.users.map(u => renderRefundCard(u)).join('');
+                    }
+                }
+            });
+        };
+
+        window.searchRefundUsers = () => {
+            renderRefunds();
+        };
+
+        function renderRefundCard(u) {
+            return `
+                <div class="admin-user-card" style="border-left: 4px solid #10B981;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <img src="${u.image || 'https://ui-avatars.com/api/?name=' + u.name}"
+                                 style="width:45px; height:45px; border-radius:50%; object-fit:cover;">
+                            <div>
+                                <div style="font-weight:700;">${u.name}</div>
+                                <div style="font-size:0.8rem; color:#666;">${u.phone}</div>
+                            </div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="font-size:0.8rem; color:#666;">Balance</div>
+                            <div style="font-weight:800; color:#059669; font-size:1.1rem;">₹${u.walletBalance || 0}</div>
+                        </div>
+                        <div>
+                            <button class="btn-admin btn-wallet" onclick="adminWallet('${u.userId}')" style="width:auto; padding:8px 20px;">
+                                <i class="fas fa-plus"></i> Add Amount
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Actions
+        window.changeUserRole = (uid, newRole) => {
+            if (confirm(`Change this user to ${newRole.toUpperCase()}?`)) {
+                socket.emit('admin-update-role', { userId: uid, role: newRole }, (res) => {
+                    if (res.ok) {
+                        alert('Role Updated Successfully');
+                        fetchAllUsers();
+                    } else {
+                        alert('Error: ' + (res.error || 'Failed to update'));
+                    }
+                });
+            } else {
+                fetchAllUsers(); // Re-render to reset dropdown
+            }
+        };
+
+        window.adminWallet = (uid) => {
+            const amt = prompt("Amount to ADD:");
+            if (amt) socket.emit('admin-add-wallet', { userId: uid, amount: parseInt(amt) }, (res) => { alert(res.ok ? `₹${amt} added successfully!` : (res.error || 'Failed to add wallet')); fetchAllUsers(); });
+        };
+
+        // Role change logic removed
+
+        window.toggleBan = (uid, status) => {
+            if (confirm(status ? 'Block?' : 'Unblock?')) {
+                socket.emit('admin-toggle-ban', { userId: uid, isBanned: status }, (res) => { fetchAllUsers(); });
+            }
+        };
+
+        window.deleteUser = (uid) => {
+            if (confirm('Are you ABSOLUTELY SURE you want to DELETE this user? This cannot be undone and will remove them from the database.')) {
+                socket.emit('admin-delete-user', { userId: uid }, (res) => {
+                    if (res.ok) {
+                        alert('User Deleted Successfully');
+                        fetchAllUsers();
+                    } else {
+                        alert('Error: ' + res.error);
+                    }
+                });
+            }
+        };
+
+        window.searchAdminUsers = () => {
+            clientPage = 1;
+            clientSearch = document.getElementById('adminUserSearch').value;
+            fetchAllUsers();
+        };
+
+        // Academy
+        async function fetchAcademyVideos() {
+            const res = await fetch('/api/academy/videos').then(r => r.json());
+            if (res.ok) renderAcademy(res.videos);
+        }
+        function renderAcademy(videos) {
+            document.getElementById('adminAcademyList').innerHTML = videos.map(v => `
+        <div class="admin-card" style="display:flex; gap:15px; align-items:center; margin-bottom:12px;">
+          <div style="width:50px; height:50px; border-radius:8px; background:rgba(255, 204, 0,0.1); display:flex; align-items:center; justify-content:center; color:var(--primary); overflow:hidden;">
+            ${v.thumbnail ? `<img src="${v.thumbnail}" style="width:100%; height:100%; object-fit:cover;">` : '<i class="fas fa-play"></i>'}
+          </div>
+          <div style="flex:1;">
+            <div style="font-weight:bold; color:var(--text-main);">${v.title}</div>
+            <div style="font-size:0.75rem; color:var(--text-dim);">${v.category}</div>
+          </div>
+          <button class="btn-admin btn-delete" style="flex:none; width:auto; padding:8px 12px;" onclick="deleteVideo('${v._id}')"><i class="fas fa-trash"></i></button>
+        </div>
+      `).join('');
+        }
+        window.addAcademyVideo = async () => {
+            const title = document.getElementById('academyTitle').value;
+            const youtubeUrl = document.getElementById('academyUrl').value;
+            const thumbnail = document.getElementById('academyThumbnail').value;
+            const category = document.getElementById('academyCategory').value;
+            if (!title || !youtubeUrl) return alert('Title and URL required');
+            await fetch('/api/admin/academy/videos', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, youtubeUrl, thumbnail, category })
+            });
+            document.getElementById('academyTitle').value = '';
+            document.getElementById('academyUrl').value = '';
+            document.getElementById('academyThumbnail').value = '';
+            document.getElementById('academyCategory').value = '';
+            fetchAcademyVideos();
+        };
+        window.deleteVideo = async (id) => {
+            if (confirm('Delete?')) { await fetch('/api/admin/academy/videos/' + id, { method: 'DELETE' }); fetchAcademyVideos(); }
+        };
+
+        // Banners
+        async function fetchBanners() {
+            const res = await fetch('/api/admin/banners').then(r => r.json());
+            if (res.ok) renderBanners(res.banners);
+        }
+        function renderBanners(banners) {
+            if (banners.length === 0) {
+                document.getElementById('adminBannerList').innerHTML = `<div style="grid-column:1/-1; text-align:center; color:var(--text-dim); padding:40px;"><i class="fas fa-images" style="font-size:2rem; margin-bottom:10px; display:block;"></i>No banners yet. Add your first banner above.</div>`;
+                return;
+            }
+            document.getElementById('adminBannerList').innerHTML = banners.map((b, i) => {
+                const img = b.imageUrl ? (b.imageUrl.startsWith('http') ? b.imageUrl : '/' + b.imageUrl) : '';
+                return `
+                    <div class="admin-card" style="padding:0; overflow:hidden;">
+                        ${img ? `<div style="position:relative;"><img src="${img}" style="width:100%; height:160px; object-fit:cover; display:block;" onerror="this.src='https://placehold.co/600x200/1a1a2e/FFD700?text=Banner+${i+1}'">
+                        <div style="position:absolute; top:8px; right:8px; display:flex; gap:6px;">
+                            ${b.isActive ? '<span style="background:rgba(16,185,129,0.9); color:#fff; padding:3px 8px; border-radius:12px; font-size:0.65rem;"><i class="fas fa-check-circle"></i> Active</span>' : '<span style="background:rgba(239,68,68,0.9); color:#fff; padding:3px 8px; border-radius:12px; font-size:0.65rem;"><i class="fas fa-times-circle"></i> Inactive</span>'}
+                            ${b.offerPercentage > 0 ? `<span style="background:rgba(239,68,68,0.9); color:#fff; padding:3px 8px; border-radius:12px; font-size:0.65rem;">${b.offerPercentage}% Off</span>` : ''}
+                        </div></div>` : `<div style="width:100%; height:80px; background:rgba(255,255,255,0.05); display:flex; align-items:center; justify-content:center; color:var(--text-dim);"><i class="fas fa-image" style="font-size:2rem;"></i></div>`}
+                        <div style="padding:14px;">
+                            <div style="font-weight:bold; color:var(--text-main); margin-bottom:4px;">${b.title || 'Untitled Banner'}</div>
+                            <div style="font-size:0.78rem; color:var(--text-dim); margin-bottom:10px;">${b.subtitle || ''}</div>
+                            <div style="display:flex; gap:8px; justify-content:space-between; align-items:center;">
+                                <span style="font-size:0.7rem; color:var(--text-dim);">Order: ${b.order || 0} &nbsp;|&nbsp; CTA: ${b.ctaText || '-'}</span>
+                                <div style="display:flex; gap:6px;">
+                                    <button class="btn-admin" style="min-width:auto; padding:5px 10px; font-size:0.75rem;" onclick="editBannerData('${b._id}')"><i class="fas fa-edit"></i> Edit</button>
+                                    <button class="btn-admin btn-delete" style="min-width:auto; padding:5px 10px; font-size:0.75rem;" onclick="deleteBanner('${b._id}')"><i class="fas fa-trash"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.editBannerData = async (id) => {
+            const res = await fetch('/api/admin/banners').then(r => r.json());
+            const b = res.banners.find(x => x._id === id);
+            if (!b) return;
+            
+            // Populate form
+            if (!document.getElementById('editBannerId')) {
+                const hidden = document.createElement('input');
+                hidden.type = 'hidden';
+                hidden.id = 'editBannerId';
+                document.getElementById('admin-sect-slider').appendChild(hidden);
+            }
+            document.getElementById('editBannerId').value = b._id;
+            document.getElementById('bannerTitle').value = b.title || '';
+            document.getElementById('bannerSubtitle').value = b.subtitle || '';
+            document.getElementById('bannerImageUrl').value = b.imageUrl || '';
+            document.getElementById('bannerCta').value = b.ctaText || '';
+            document.getElementById('bannerOrder').value = b.order || 0;
+            document.getElementById('bannerOffer').value = b.offerPercentage || 0;
+            document.getElementById('bannerExpiry').value = b.expiryDate ? b.expiryDate.split('T')[0] : '';
+            document.getElementById('bannerActive').checked = b.isActive;
+            document.getElementById('bannerBtnSize').value = b.ctaButtonSize || 'small';
+            document.getElementById('bannerFormTitle').textContent = 'Edit Banner';
+
+            // Show image preview
+            if (b.imageUrl) updateBannerPreview(b.imageUrl);
+            
+            // Scroll to form
+            document.getElementById('admin-sect-slider').querySelector('.admin-card').scrollIntoView({ behavior: 'smooth' });
+        };
+        window.saveBanner = async () => {
+            const formData = new FormData();
+            const id = document.getElementById('editBannerId')?.value;
+            if (id) formData.append('id', id);
+            
+            formData.append('title', document.getElementById('bannerTitle').value);
+            formData.append('subtitle', document.getElementById('bannerSubtitle').value);
+            formData.append('imageUrl', document.getElementById('bannerImageUrl').value);
+            formData.append('ctaText', document.getElementById('bannerCta').value);
+            formData.append('order', document.getElementById('bannerOrder').value || 0);
+            formData.append('offerPercentage', document.getElementById('bannerOffer').value || 0);
+            formData.append('expiryDate', document.getElementById('bannerExpiry').value);
+            formData.append('isActive', document.getElementById('bannerActive').checked);
+            formData.append('ctaButtonSize', document.getElementById('bannerBtnSize').value);
+
+            
+            const fileInput = document.getElementById('bannerImageFile');
+            if (fileInput.files[0]) {
+                formData.append('bannerImage', fileInput.files[0]);
+            }
+
+            const btn = event.target;
+            const oldText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/admin/banners', {
+                    method: 'POST',
+                    body: formData
+                }).then(r => r.json());
+
+                if (res.ok) {
+                    fetchBanners();
+                    resetBannerForm();
+                    // Show success toast
+                    const toast = document.createElement('div');
+                    toast.textContent = '✅ Banner saved successfully!';
+                    toast.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#10B981;color:#fff;padding:12px 20px;border-radius:10px;font-weight:bold;z-index:9999;box-shadow:0 4px 15px rgba(0,0,0,0.3);';
+                    document.body.appendChild(toast);
+                    setTimeout(() => toast.remove(), 3000);
+                } else {
+                    alert('Error: ' + (res.error || 'Unknown error'));
+                }
+            } catch (e) {
+                alert('Connection Error: ' + e.message);
+            } finally {
+                btn.innerHTML = oldText;
+                btn.disabled = false;
+            }
+        };
+
+        // Image preview helpers
+        window.updateBannerPreview = (url) => {
+            if (!url) { document.getElementById('bannerPreviewBox').style.display = 'none'; return; }
+            const fullUrl = url.startsWith('http') ? url : '/' + url;
+            document.getElementById('bannerPreviewImg').src = fullUrl;
+            document.getElementById('bannerPreviewBox').style.display = 'block';
+        };
+        window.handleBannerFileSelect = (input) => {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('bannerPreviewImg').src = e.target.result;
+                document.getElementById('bannerPreviewBox').style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+            document.getElementById('bannerImageUrl').value = file.name;
+        };
+        window.resetBannerForm = () => {
+            const editId = document.getElementById('editBannerId');
+            if (editId) editId.value = '';
+            document.getElementById('bannerTitle').value = '';
+            document.getElementById('bannerSubtitle').value = '';
+            document.getElementById('bannerImageUrl').value = '';
+            document.getElementById('bannerCta').value = '';
+            document.getElementById('bannerOrder').value = '';
+            document.getElementById('bannerOffer').value = '';
+            document.getElementById('bannerExpiry').value = '';
+            document.getElementById('bannerActive').checked = true;
+            document.getElementById('bannerBtnSize').value = 'small';
+            document.getElementById('bannerImageFile').value = '';
+            document.getElementById('bannerPreviewBox').style.display = 'none';
+            document.getElementById('bannerFormTitle').textContent = 'Add New Banner';
+        };
+        window.deleteBanner = async (id) => {
+            if (confirm('Delete this banner? It will be removed from the app immediately.')) {
+                const res = await fetch('/api/admin/banners/' + id, { method: 'DELETE' }).then(r => r.json());
+                if (res.ok) fetchBanners();
+                else alert('Delete failed: ' + res.error);
+            }
+        };
+
+        // Home Grid Services
+        window.fetchServices = async () => {
+            const container = document.getElementById('adminServicesList');
+            container.innerHTML = '<div class="loader"></div>';
+            try {
+                const res = await fetch('/api/admin/services').then(r => r.json());
+                if (res.ok) {
+                    renderServices(res.services);
+                } else {
+                    container.innerHTML = `<div style="color:#EF4444; padding:20px;">Error: ${res.error}</div>`;
+                }
+            } catch (e) {
+                container.innerHTML = `<div style="color:#EF4444; padding:20px;">Connection Error</div>`;
+            }
+        };
+
+        function renderServices(services) {
+            const container = document.getElementById('adminServicesList');
+            container.innerHTML = '';
+            
+            services.forEach(service => {
+                const card = document.createElement('div');
+                card.className = 'admin-card';
+                card.style.display = 'flex';
+                card.style.flexDirection = 'column';
+                card.style.gap = '12px';
+                
+                // Icon representation
+                let iconHtml = '';
+                if (service.icon && (service.icon.startsWith('http') || service.icon.startsWith('uploads/'))) {
+                    const fullUrl = service.icon.startsWith('http') ? service.icon : '/' + service.icon;
+                    iconHtml = `<img src="${fullUrl}" style="width: 50px; height: 50px; border-radius: 8px; object-fit: contain; background: rgba(255,255,255,0.05); padding: 5px; border: 1px solid var(--border-soft);" alt="Service Icon">`;
+                } else {
+                    iconHtml = `<div style="width: 50px; height: 50px; border-radius: 8px; background: rgba(255, 204, 0,0.1); display:flex; align-items:center; justify-content:center; color: var(--primary); font-size: 1.2rem; font-weight: bold; border: 1px solid var(--border-soft);"><i class="fas fa-star"></i></div>`;
+                }
+
+                card.innerHTML = `
+                    <div style="display:flex; align-items:center; gap:15px; border-bottom:1px solid var(--border-soft); padding-bottom:10px; margin-bottom:5px;">
+                        ${iconHtml}
+                        <div>
+                            <h4 style="margin:0; color:var(--text-main); font-family:var(--font-heading);">${service.title}</h4>
+                            <small style="color:var(--text-dim); font-size:0.7rem;">ID: ${service.id} | Route: ${service.route}</small>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="app-label" style="font-size:0.75rem;">Title (English)</label>
+                        <input type="text" id="service-title-${service.id}" class="app-input" value="${service.title}">
+                    </div>
+                    <div>
+                        <label class="app-label" style="font-size:0.75rem;">Title (Tamil)</label>
+                        <input type="text" id="service-title-tamil-${service.id}" class="app-input" value="${service.title_tamil || ''}">
+                    </div>
+                    <div>
+                        <label class="app-label" style="font-size:0.75rem;">Upload Custom Icon</label>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <input type="text" id="service-icon-url-${service.id}" class="app-input" value="${service.icon}" readonly style="flex:1; background: var(--bg-body); cursor: default;">
+                            <input type="file" id="service-icon-file-${service.id}" style="display:none;" onchange="document.getElementById('service-icon-url-${service.id}').value = this.files[0].name">
+                            <button class="btn-admin" onclick="document.getElementById('service-icon-file-${service.id}').click()"><i class="fas fa-upload"></i></button>
+                        </div>
+                        <small style="color:var(--text-dim); font-size:0.65rem;">Recommended: PNG/SVG with transparent background</small>
+                    </div>
+                    <button class="cosmic-btn" style="margin-top:10px; width:100%;" onclick="saveService('${service.id}', this)"><i class="fas fa-save"></i> Save Changes</button>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+
+        window.saveService = async (id, btn) => {
+            const title = document.getElementById(`service-title-${id}`).value;
+            const titleTamil = document.getElementById(`service-title-tamil-${id}`).value;
+            const currentIcon = document.getElementById(`service-icon-url-${id}`).value;
+            const fileInput = document.getElementById(`service-icon-file-${id}`);
+            
+            const formData = new FormData();
+            formData.append('id', id);
+            formData.append('title', title);
+            formData.append('title_tamil', titleTamil);
+            formData.append('iconUrl', currentIcon);
+            
+            if (fileInput.files[0]) {
+                formData.append('serviceIcon', fileInput.files[0]);
+            }
+            
+            const oldText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            btn.disabled = true;
+            
+            try {
+                const res = await fetch('/api/admin/services/update', {
+                    method: 'POST',
+                    body: formData
+                }).then(r => r.json());
+                
+                if (res.ok) {
+                    alert('Service updated successfully!');
+                    fetchServices();
+                } else {
+                    alert('Error: ' + res.error);
+                }
+            } catch (e) {
+                alert('Connection Error');
+            } finally {
+                btn.innerHTML = oldText;
+                btn.disabled = false;
+            }
+        };
+
+        // Withdrawals
+        let fullWithdrawalsCache = [];
+        window.loadAllWithdrawals = () => {
+            socket.emit('get-withdrawals', {}, (res) => {
+                if (res.ok) {
+                    fullWithdrawalsCache = res.list || [];
+                    renderWithdrawals(fullWithdrawalsCache);
+                }
+            });
+        };
+
+        window.editUser = (uid) => {
+            const u = adminUsersCache.find(x => x.userId === uid);
+            if (!u) return;
+            
+            document.getElementById('editUserId').value = u.userId;
+            document.getElementById('editName').value = u.name || '';
+            document.getElementById('editRealName').value = u.realName || '';
+            document.getElementById('editPhone').value = u.phone || '';
+            document.getElementById('editEmail').value = u.email || '';
+            document.getElementById('editImage').value = u.image || '';
+            
+            const isAstro = u.role === 'astrologer';
+            document.getElementById('astroFields').style.display = isAstro ? 'block' : 'none';
+            
+            if (isAstro) {
+                document.getElementById('editPrice').value = u.price || 0;
+                document.getElementById('editExp').value = u.experience || u.astrologyExperience || 0;
+                document.getElementById('editProfession').value = u.profession || '';
+                document.getElementById('editSkills').value = Array.isArray(u.skills) ? u.skills.join(', ') : (u.skills || '');
+                document.getElementById('editDocStatus').value = u.documentStatus || 'none';
+                document.getElementById('editIsVerified').checked = !!u.isVerified;
+                
+                document.getElementById('editAadhar').value = u.aadharNumber || '';
+                document.getElementById('editPan').value = u.panNumber || '';
+                document.getElementById('editBank').value = u.bankDetails || '';
+                document.getElementById('editUpiId').value = u.upiId || '';
+                document.getElementById('editUpiNum').value = u.upiNumber || '';
+            }
+            
+            document.getElementById('modal-edit-user').style.display = 'block';
+        };
+
+        window.closeModal = (id) => {
+            document.getElementById(id).style.display = 'none';
+        };
+
+        window.saveUserEdit = () => {
+            const userId = document.getElementById('editUserId').value;
+            const u = adminUsersCache.find(x => x.userId === userId);
+            const isAstro = u && u.role === 'astrologer';
+            
+            const updates = {
+                name: document.getElementById('editName').value,
+                realName: document.getElementById('editRealName').value,
+                email: document.getElementById('editEmail').value,
+                image: document.getElementById('editImage').value
+            };
+            
+            if (isAstro) {
+                updates.price = parseInt(document.getElementById('editPrice').value);
+                updates.experience = parseInt(document.getElementById('editExp').value);
+                updates.astrologyExperience = updates.experience;
+                updates.profession = document.getElementById('editProfession').value;
+                updates.skills = document.getElementById('editSkills').value.split(',').map(s => s.trim()).filter(s => s);
+                updates.documentStatus = document.getElementById('editDocStatus').value;
+                updates.isVerified = document.getElementById('editIsVerified').checked;
+                
+                updates.aadharNumber = document.getElementById('editAadhar').value;
+                updates.panNumber = document.getElementById('editPan').value;
+                updates.bankDetails = document.getElementById('editBank').value;
+                updates.upiId = document.getElementById('editUpiId').value;
+                updates.upiNumber = document.getElementById('editUpiNum').value;
+            }
+            
+            socket.emit('admin-update-user-details', { userId, updates }, (res) => {
+                if (res.ok) {
+                    alert('Details Updated Successfully');
+                    closeModal('modal-edit-user');
+                    fetchAllUsers();
+                } else {
+                    alert('Error: ' + res.error);
+                }
+            });
+        };
+
+        async function uploadProfileImage(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('file', file);
+            try {
+                const res = await fetch('/upload', { method: 'POST', body: formData }).then(r => r.json());
+                if (res.ok) {
+                    document.getElementById('editImage').value = res.url;
+                    alert('Image Uploaded');
+                } else alert('Upload failed');
+            } catch (e) { alert('Upload error'); }
+        }
+
+        window.filterWithdrawals = (status, btn) => {
+            $(btn).siblings().removeClass('active');
+            $(btn).addClass('active');
+            if (status === 'all') {
+                renderWithdrawals(fullWithdrawalsCache);
+            } else {
+                renderWithdrawals(fullWithdrawalsCache.filter(w => w.status === status));
+            }
+        };
+
+        function renderWithdrawals(list) {
+            const container = document.getElementById('adminFullWithdrawalsList');
+            if (list.length === 0) {
+                container.innerHTML = '<div style="padding:20px; text-align:center; color:#666;">No requests found.</div>';
+                return;
+            }
+            container.innerHTML = list.map(w => `
+                <div class="admin-card" style="margin-bottom:12px; border-left:4px solid ${w.status === 'pending' ? '#FFB300' : (w.status === 'approved' ? '#059669' : '#DC2626')};">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                    <div style="font-weight:bold; font-size:1.05rem;">${w.astroName || 'Astrologer'}</div>
+                    <div style="font-size:0.85rem; color:#666;">Requested: ${new Date(w.requestedAt).toLocaleString()}</div>
+                    ${w.processedAt ? `<div style="font-size:0.85rem; color:#059669;">Processed: ${new Date(w.processedAt).toLocaleString()}</div>` : ''}
+
+                    ${w.bankingDetails ? `
+                    <div style="margin-top:8px; padding:8px; background:#F9FAFB; border-radius:6px; font-size:0.8rem; border:1px solid #E5E7EB;">
+                        <div style="margin-bottom:2px;"><b>Bank:</b> ${w.bankingDetails.bankName || 'N/A'}</div>
+                        <div style="margin-bottom:2px;"><b>A/C:</b> ${w.bankingDetails.accountNumber || 'N/A'} (${w.bankingDetails.accountHolderName || 'N/A'})</div>
+                        <div style="margin-bottom:2px;"><b>IFSC:</b> ${w.bankingDetails.ifscCode || 'N/A'}</div>
+                        <div style="margin-bottom:2px;"><b>UPI:</b> ${w.bankingDetails.upiId || 'N/A'}</div>
+                    </div>
+                    ` : '<div style="font-size:0.8rem; color:#991B1B; margin-top:5px;">⚠️ No Banking Details Found</div>'}
+
+                    <span style="display:inline-block; padding:2px 8px; border-radius:12px; font-size:0.75rem; margin-top:5px; font-weight:600;
+                          background:${w.status === 'pending' ? '#FEF3C7' : (w.status === 'approved' ? '#D1FAE5' : '#FEE2E2')};
+                          color:${w.status === 'pending' ? '#92400E' : (w.status === 'approved' ? '#065F46' : '#991B1B')};">
+                        ${w.status.toUpperCase()}
+                    </span>
+                </div>
+                <div style="text-align:right;">
+                            <div style="font-weight:bold; font-size:1.2rem; color:#111; margin-bottom:8px;">₹${w.amount}</div>
+                            ${w.status === 'pending' ? `
+                                <button onclick="approveW('${w._id}')" style="background:#059669; color:white; border:none; padding:6px 12px; border-radius:6px; font-weight:600; cursor:pointer; margin-right:5px;">Approve</button>
+                                <button onclick="rejectW('${w._id}')" style="background:#DC2626; color:white; border:none; padding:6px 12px; border-radius:6px; font-weight:600; cursor:pointer;">Reject</button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function loadWithdrawals() {
+            socket.emit('get-withdrawals', {}, (res) => {
+                const sect = document.getElementById('adminWithdrawalsSection');
+                const listContainer = document.getElementById('adminWithdrawalsList');
+                if (!listContainer) return;
+
+                if (res.ok && res.list) {
+                    const pending = res.list.filter(x => x.status === 'pending');
+                    if (pending.length > 0) {
+                        sect.style.display = 'block';
+                        listContainer.innerHTML = pending.map(w => `
+                            <div class="admin-card" style="border:1px solid #FCD34D; background:rgba(251, 191, 36, 0.03); display:flex; flex-direction:column; gap:12px; transition: transform 0.2s; position:relative; overflow:hidden;">
+                                <div style="position:absolute; left:0; top:0; height:100%; width:4px; background:#FFB300;"></div>
+                                <div style="display:flex; justify-content:space-between; align-items:start;">
+                                    <div>
+                                        <b style="color:var(--text-main); font-size:1.15rem;">${w.astroName || 'Unknown Astro'}</b>
+                                        <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-top:3px;">
+                                            <i class="far fa-clock"></i> ${new Date(w.requestedAt).toLocaleString()}
+                                        </div>
+                                    </div>
+                                    <div style="background:rgba(239,68,68,0.1); padding:4px 10px; border-radius:8px; border:1px solid rgba(239,68,68,0.2);">
+                                        <b style="color:#EF4444; font-size:1.3rem;">₹${w.amount}</b>
+                                    </div>
+                                </div>
+                                
+                                <div style="padding:12px; background:rgba(255, 127, 0, 0.04); border-radius:8px; border:1px solid var(--border-soft); font-size:0.85rem;">
+                                    <div style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                                        <span style="color:var(--text-dim);">A/C NO:</span>
+                                        <div style="display:flex; align-items:center; gap:8px;">
+                                            <span style="color:var(--primary); font-family:monospace; font-weight:bold; letter-spacing:1px;">${w.bankingDetails?.accountNumber || 'MISSING'}</span>
+                                            ${w.bankingDetails?.accountNumber ? `<i class="far fa-copy" style="cursor:pointer; color:var(--text-muted);" onclick="navigator.clipboard.writeText('${w.bankingDetails.accountNumber}'); showToast('Account Number Copied')"></i>` : ''}
+                                        </div>
+                                    </div>
+                                    <div style="margin-bottom:8px; display:flex; justify-content:space-between;">
+                                        <span style="color:var(--text-dim);">IFSC:</span>
+                                        <span style="color:var(--text-main); font-weight:600;">${w.bankingDetails?.ifscCode || '---'}</span>
+                                    </div>
+                                    <div style="margin-bottom:8px; display:flex; justify-content:space-between;">
+                                        <span style="color:var(--text-dim);">UPI ID:</span>
+                                        <span style="color:var(--accent); font-weight:600;">${w.bankingDetails?.upiId || '---'}</span>
+                                    </div>
+                                    <div style="border-top:1px solid rgba(255,255,255,0.05); padding-top:8px; margin-top:5px; font-size:0.75rem;">
+                                        <div style="display:flex; justify-content:space-between;">
+                                            <span style="color:var(--text-dim);">Bank:</span>
+                                            <span style="color:var(--text-muted);">${w.bankingDetails?.bankName || '---'}</span>
+                                        </div>
+                                        <div style="display:flex; justify-content:space-between; margin-top:2px;">
+                                            <span style="color:var(--text-dim);">Holder:</span>
+                                            <span style="color:var(--text-muted);">${w.bankingDetails?.accountHolderName || '---'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style="display:flex; gap:10px; margin-top:5px;">
+                                    <button onclick="approveW('${w._id}')" class="btn-admin" style="background:#10B981; color:#000; flex:1.2; font-weight:bold; height:38px;">APPROVE & PAY</button>
+                                    <button onclick="rejectW('${w._id}')" class="btn-admin" style="background:rgba(239,68,68,0.1); color:#EF4444; border:1px solid #EF4444; flex:0.8; height:38px;">REJECT</button>
+                                </div>
+                            </div>
+                        `).join('');
+                    } else {
+                        sect.style.display = 'none';
+                        listContainer.innerHTML = '';
+                    }
+                }
+            });
+        }
+
+        // Auto Refresh Dashboard every 30 seconds
+        setInterval(() => {
+            if(document.getElementById('admin-sect-home').classList.contains('active')) {
+                loadWithdrawals();
+                loadPendingAstrologers();
+                fetchAdminStats();
+            }
+        }, 30000);
+
+        function showToast(msg) {
+            const t = document.createElement('div');
+            t.style = "position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--primary); color:#000; padding:10px 20px; border-radius:20px; font-weight:bold; z-index:99999; box-shadow:0 10px 30px rgba(0,0,0,0.5);";
+            t.innerText = msg;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 2000);
+        }
+        window.approveW = (id) => {
+            if (confirm('Are you sure you want to APPROVE this withdrawal and deduct from the wallet?')) {
+                socket.emit('approve-withdrawal', { withdrawalId: id }, (res) => {
+                    loadWithdrawals();
+                    loadAllWithdrawals();
+                    fetchAdminStats();
+                });
+            }
+        };
+        window.rejectW = (id) => {
+            if (confirm('Are you sure you want to REJECT this withdrawal?')) {
+                socket.emit('reject-withdrawal', { withdrawalId: id }, (res) => {
+                    loadWithdrawals();
+                    loadAllWithdrawals();
+                    fetchAdminStats();
+                });
+            }
+        };
+
+        window.createNewAstrologer = () => {
+            const name = document.getElementById('addAstroName').value.trim();
+            const phone = document.getElementById('addAstroPhone').value.trim();
+            const email = document.getElementById('addAstroEmail').value.trim();
+            const image = document.getElementById('addAstroImage').value.trim();
+            const price = parseInt(document.getElementById('addAstroPrice').value) || 0;
+            const experience = parseInt(document.getElementById('addAstroExp').value) || 0;
+            const skills = document.getElementById('addAstroSkills').value.split(',').map(s => s.trim()).filter(s => s);
+            const profession = document.getElementById('addAstroProfession').value.trim();
+            const aadhar = document.getElementById('addAstroAadhar').value.trim();
+            const pan = document.getElementById('addAstroPan').value.trim();
+            const bank = document.getElementById('addAstroBank').value.trim();
+            const upi = document.getElementById('addAstroUpi').value.trim();
+
+            if (!name || !phone) return alert('Name and Phone are required');
+
+            if (!confirm(`Create new astrologer account for ${name} (${phone})?`)) return;
+
+            const btn = event.target.closest('button');
+            const oldText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+            btn.disabled = true;
+
+            const payload = {
+                name, phone, email, image, price, experience, skills, profession,
+                aadharNumber: aadhar, panNumber: pan, bankDetails: bank, upiId: upi
+            };
+
+            socket.emit('admin-create-astrologer', payload, (res) => {
+                btn.innerHTML = oldText;
+                btn.disabled = false;
+
+                if (res.ok) {
+                    alert('Astrologer Created Successfully! They can now log in using their phone number.');
+                    // Clear form
+                    ['addAstroName', 'addAstroPhone', 'addAstroEmail', 'addAstroImage', 'addAstroProfession', 'addAstroAadhar', 'addAstroPan', 'addAstroBank', 'addAstroUpi'].forEach(id => {
+                        document.getElementById(id).value = '';
+                    });
+                    navAdmin('payouts'); // Go to astro list
+                    fetchAllUsers();
+                } else {
+                    alert('Error: ' + res.error);
+                }
+            });
+        };
+
+        let activePerfChart = null;
+        window.showPerformance = async (astrologerId) => {
+            document.getElementById('modal-performance').style.display = 'block';
+            
+            try {
+                const res = await fetch(`/api/admin/astrologer-performance/${astrologerId}`).then(r => r.json());
+                if(res.ok) {
+                    const m = res.metrics;
+                    document.getElementById('perf-avg-duration').innerText = m.workDepth.avgSessionDuration + 'm';
+                    document.getElementById('perf-retention').innerText = m.workDepth.retentionRate;
+                    document.getElementById('perf-earnings').innerText = '₹' + m.earnings.totalPayout;
+                    document.getElementById('perf-response').innerText = m.workDepth.responseRate;
+
+                    document.getElementById('perf-slab-earning').innerText = '₹' + m.earnings.slabEarnings;
+                    document.getElementById('perf-unlimited-earning').innerText = '₹' + m.earnings.unlimitedEarnings;
+                    document.getElementById('perf-admin-share').innerText = '₹' + m.earnings.adminShare;
+
+                    // Render Pie Chart for Call Status
+                    const ctx = document.getElementById('perfCallChart').getContext('2d');
+                    if (activePerfChart) activePerfChart.destroy();
+                    
+                    const labels = Object.keys(m.callBreakdown);
+                    const data = Object.values(m.callBreakdown);
+                    
+                    activePerfChart = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                data: data,
+                                backgroundColor: ['#10B981', '#FFB300', '#EF4444', '#3B82F6', '#8B5CF6']
+                            }]
+                        },
+                        options: {
+                            maintainAspectRatio: false,
+                            plugins: { legend: { position: 'bottom', labels: { color: '#2C251D', font: { size: 10 } } } }
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error("Performance Load Error:", e);
+            }
+        };
+
+
+        window.loadPerformanceLeaderboard = async () => {
+            const body = document.getElementById('performanceLeaderboardBody');
+            body.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:50px;"><div class="loader"></div></td></tr>';
+            
+            try {
+                const res = await fetch('/api/admin/astrologers-performance').then(r => r.json());
+                if (res.ok && res.list) {
+                    if (res.list.length === 0) {
+                        body.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--text-muted);">No data available for this period.</td></tr>';
+                        return;
+                    }
+
+                    body.innerHTML = res.list.map((a, idx) => `
+                        <tr style="border-bottom:1px solid var(--border-soft); transition:all 0.2s; cursor:default;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
+                            <td style="padding:15px; display:flex; align-items:center; gap:12px;">
+                                <span style="font-weight:bold; color:var(--primary); font-size:0.9rem; width:20px;">#${idx + 1}</span>
+                                <img src="${a.image || 'https://ui-avatars.com/api/?name=' + a.name}" style="width:35px; height:35px; border-radius:50%; border:1px solid var(--border-soft);">
+                                <div>
+                                    <div style="font-weight:600; font-size:0.9rem;">${a.name}</div>
+                                    <div style="font-size:0.7rem; color:var(--text-dim);">ID: ${a.userId.slice(0, 8)}</div>
+                                </div>
+                            </td>
+                            <td style="padding:15px; text-align:center; font-weight:600;">${a.sessionCount}</td>
+                            <td style="padding:15px; text-align:center; color:var(--accent);">${a.totalMinutes}m</td>
+                            <td style="padding:15px; text-align:center;">${a.clientCount}</td>
+                            <td style="padding:15px; text-align:right; font-weight:bold; color:var(--primary);">₹${a.totalEarned}</td>
+                            <td style="padding:15px; text-align:center;">
+                                <button onclick="showPerformance('${a.userId}')" style="background:rgba(255,255,255,0.05); border:1px solid var(--border-soft); color:var(--text-main); padding:4px 10px; border-radius:4px; font-size:0.75rem; cursor:pointer;">
+                                    <i class="fas fa-eye"></i> View
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    body.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:30px; color:#EF4444;">Error: ${res.error || 'Failed to load'}</td></tr>`;
+                }
+            } catch (e) {
+                body.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:30px; color:#EF4444;">Error connecting to server</td></tr>`;
+            }
+        };
+
+        window.loadFullNotifications = () => {
+            const container = document.getElementById('adminFullNotifList');
+            if (adminNotifications.length === 0) {
+                container.innerHTML = '<div class="admin-card" style="text-align:center; padding:50px; color:var(--text-dim);">No notification history found.</div>';
+                return;
+            }
+
+            container.innerHTML = adminNotifications.map(n => `
+                <div class="admin-card" style="border-left:4px solid ${n.type === 'missed_call' ? '#EF4444' : 'var(--primary)'}; background:rgba(255,255,255,0.01); display:flex; justify-content:space-between; align-items:center;">
+                    <div style="flex:1;">
+                        <div style="display:flex; gap:10px; align-items:center; margin-bottom:5px;">
+                            <span class="user-pill" style="font-size:0.65rem; background:rgba(255, 204, 0,0.1); color:var(--primary); font-weight:bold;">${n.type ? n.type.toUpperCase() : 'EVENT'}</span>
+                            <span style="font-size:0.75rem; color:var(--text-dim);"><i class="far fa-clock"></i> ${n.time}</span>
+                        </div>
+                        <div style="font-size:0.95rem; color:var(--text-main); line-height:1.4;">${n.text}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        ${n.data && n.data.withdrawalId ? `<button onclick="approveW('${n.data.withdrawalId}')" class="btn-admin" style="background:var(--primary); color:#000; height:32px; font-size:0.8rem;">Approve</button>` : ''}
+                        ${n.type === 'missed_call' ? `<i class="fas fa-phone-slash" style="color:#EF4444; font-size:1.2rem; opacity:0.5;"></i>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        };
+
+        window.uploadAvatar = async (input) => {
+            if (!input.files[0]) return;
+            const formData = new FormData();
+            formData.append('file', input.files[0]);
+
+            const btn = input.nextElementSibling;
+            const oldText = btn.textContent;
+            btn.textContent = 'Uploading...';
+
+            try {
+                const res = await fetch('/upload', { method: 'POST', body: formData }).then(r => r.json());
+                if (res.ok) {
+                    tempAvatarUrl = res.url;
+                    document.getElementById('adminEditAvatar').src = res.url;
+                    btn.textContent = 'Uploaded';
+                    setTimeout(() => btn.textContent = 'Change Photo', 2000);
+                } else {
+                    alert('Upload Failed');
+                    btn.textContent = oldText;
+                }
+            } catch (e) {
+                alert('Error uploading');
+                btn.textContent = oldText;
+            }
+        };
+
+        // Pending Registrations
+        function loadPendingAstrologers() {
+            socket.emit('admin-get-pending-requests', { page: pendingPage, limit: pendingLimit, search: pendingSearch }, (res) => {
+                const sectHome = document.getElementById('adminPendingAstrologersSection');
+                const listHome = document.getElementById('adminPendingAstrologersList');
+                const listTab = document.getElementById('tabPendingList');
+
+                if (res.ok && res.requests && res.requests.length > 0) {
+                    if(sectHome) sectHome.style.display = 'block';
+                    const html = res.requests.map(u => `
+                        <div class="admin-card" style="margin-bottom:10px; background:rgba(255,255,255,0.01); border-left:4px solid var(--primary);">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                                <div>
+                                    <div style="font-weight:bold; font-size:1.1rem; color:var(--text-main);">${u.name}</div>
+                                    <div style="font-size:0.9rem; color:var(--text-muted);">📱 ${u.phone}</div>
+                                    <div style="font-size:0.8rem; margin-top:5px; color:var(--text-dim);">
+                                        Exp: ${u.astrologyExperience} | Profession: ${u.profession}
+                                    </div>
+                                </div>
+                                <div style="text-align:right;">
+                                    <button onclick="approveRegistration('${u.userId}', 'approve')" class="btn-admin" style="background:#059669; color:white; margin-bottom:5px; width:90px; height:32px; font-size:0.8rem;">Approve</button><br>
+                                    <button onclick="approveRegistration('${u.userId}', 'reject')" class="btn-admin" style="background:#DC2626; color:white; margin-bottom:5px; width:90px; height:32px; font-size:0.8rem;">Reject</button><br>
+                                    <button onclick="deleteUser('${u.userId}')" class="btn-admin" style="background:#6B7280; color:white; width:90px; height:32px; font-size:0.8rem;">Delete</button>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+
+                    if(listHome) listHome.innerHTML = html;
+                    if(listTab) listTab.innerHTML = html;
+
+                    updatePaginationUI('pending', res.page, res.pages, res.total);
+                    updateUsersCache(res.requests);
+                } else {
+                    if(sectHome) sectHome.style.display = 'none';
+                    if(listTab) listTab.innerHTML = '<div class="admin-card" style="text-align:center; padding:50px; color:var(--text-dim);">No pending astrologer requests.</div>';
+                    updatePaginationUI('pending', pendingPage, 0, 0);
+                }
+            });
+        }
+
+        window.searchPendingAstrologers = () => {
+            pendingPage = 1;
+            pendingSearch = document.getElementById('adminPendingSearch').value;
+            loadPendingAstrologers();
+        };
+
+        window.approveRegistration = (uid, action) => {
+            if (confirm(`Are you sure you want to ${action.toUpperCase()} this request?`)) {
+                socket.emit('admin-approve-astrologer', { userId: uid, action }, (res) => {
+                    if (res.ok) {
+                        alert('Success');
+                        loadPendingAstrologers();
+                        fetchAllUsers(); // Refresh main list too
+                    }
+                });
+            }
+        };
+
+
+
+        // Utils
+        function setText(id, val) { const el = document.getElementById(id); if (el) el.innerText = val; }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+        function updateTime() { const timeEl = document.getElementById('footerTime'); if (timeEl) timeEl.innerText = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
+
+        function logout() { localStorage.removeItem('astro_session'); location.href = '/'; }
+
+        function renderChart(stats) {
+            const ctx = document.getElementById('revenueChart')?.getContext('2d');
+            if (!ctx) return;
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{ label: 'Revenue', data: [0, 0, 0, 0, 0, stats.totalRevenue], borderColor: '#10B981', tension: 0.4 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+        }
+
+        let adminNotifications = JSON.parse(localStorage.getItem('admin_notifs') || '[]');
+        updateNotifUI();
+
+        socket.on('admin-notification', (msg) => {
+            // Add to History
+            msg.id = Date.now();
+            msg.time = new Date().toLocaleTimeString();
+            adminNotifications.unshift(msg);
+            if (adminNotifications.length > 50) adminNotifications.pop();
+            localStorage.setItem('admin_notifs', JSON.stringify(adminNotifications));
+            updateNotifUI();
+
+            // Create Visual Popup (existing behavior)
+            const div = document.createElement('div');
+            div.className = 'admin-notification-popup';
+            div.id = `notif-popup-${msg.id}`;
+            div.innerHTML = `
+                 <div style="font-family: var(--font-heading); font-weight: bold; margin-bottom: 10px; color: var(--primary); display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-bell"></i> ALERT
+                    <small style="margin-left:auto; opacity:0.6; font-weight:normal;">${msg.time}</small>
+                 </div>
+                 <div style="margin-bottom: 20px; color: var(--text-main); font-size: 0.95rem; line-height: 1.4;">${msg.text}</div>
+                 <div style="display: flex; flex-direction: column; gap: 10px;">
+                    ${msg.data && msg.data.withdrawalId ?
+                    `<button class="approve" onclick="approveW('${msg.data.withdrawalId}'); this.parentElement.parentElement.remove();">Process Withdrawal</button>` : ''}
+                    <button class="close" onclick="this.parentElement.parentElement.remove()">Dismiss</button>
+                 </div>
+              `;
+            document.body.appendChild(div);
+            
+            // Auto remove visual popup after 10s
+            setTimeout(() => { if(div.parentElement) div.remove(); }, 10000);
+            
+            // Sound Effect
+            try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch (e) { }
+        });
+
+        window.toggleNotifDropdown = () => {
+            const list = document.getElementById('notif-dropdown');
+            list.style.display = list.style.display === 'none' ? 'block' : 'none';
+            if (list.style.display === 'block') {
+                resetNotifBadge();
+            }
+        };
+
+        function updateNotifUI() {
+            const container = document.getElementById('notif-history-list');
+            const unreadCount = adminNotifications.filter(n => !n.read).length;
+            const badge = document.getElementById('notif-badge');
+            
+            if (unreadCount > 0) {
+                badge.innerText = unreadCount > 9 ? '9+' : unreadCount;
+                badge.style.display = 'block';
+            } else {
+                badge.style.display = 'none';
+            }
+
+            if (adminNotifications.length === 0) {
+                container.innerHTML = '<div style="padding:30px; text-align:center; color:var(--text-dim); font-size:0.9rem;"><i class="fas fa-ghost" style="font-size:2rem; display:block; margin-bottom:10px; opacity:0.3;"></i>No notifications found</div>';
+                return;
+            }
+
+            container.innerHTML = adminNotifications.map(n => `
+                <div style="padding:15px; border-bottom:1px solid var(--border-soft); ${!n.read ? 'background:rgba(255, 204, 0,0.05);' : ''} transition: all 0.2s; position:relative;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:6px; align-items:center;">
+                        <span class="user-pill" style="font-size:0.6rem; background:rgba(255, 204, 0,0.1); color:var(--primary); border:1px solid rgba(255, 204, 0,0.2);">${n.type ? n.type.toUpperCase() : 'EVENT'}</span>
+                        <span style="font-size:0.65rem; color:var(--text-dim);"><i class="far fa-clock"></i> ${n.time}</span>
+                    </div>
+                    <div style="font-size:0.88rem; color:var(--text-secondary); line-height:1.5; padding-right:10px;">${n.text}</div>
+                    ${n.data && n.data.withdrawalId ? `
+                        <div style="margin-top:10px; display:flex; gap:10px;">
+                            <button onclick="navAdmin('withdrawals'); toggleNotifDropdown()" class="btn-admin" style="height:26px; font-size:0.7rem; border:1px solid var(--primary); background:none; color:var(--primary); transition:all 0.2s;">View Details</button>
+                            <button onclick="approveW('${n.data.withdrawalId}'); event.stopPropagation()" class="btn-admin" style="height:26px; font-size:0.7rem; background:var(--primary); color:#000;">Approve Now</button>
+                        </div>
+                    ` : ''}
+                    ${!n.read ? '<div style="position:absolute; right:10px; top:15px; width:6px; height:6px; background:var(--primary); border-radius:50%;"></div>' : ''}
+                </div>
+            `).join('');
+        }
+
+        function resetNotifBadge() {
+            adminNotifications.forEach(n => n.read = true);
+            localStorage.setItem('admin_notifs', JSON.stringify(adminNotifications));
+            updateNotifUI();
+        }
+
+        window.clearNotifs = () => {
+            adminNotifications = [];
+            localStorage.removeItem('admin_notifs');
+            updateNotifUI();
+        };
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!document.getElementById('admin-notif-container').contains(e.target)) {
+                document.getElementById('notif-dropdown').style.display = 'none';
+            }
+        });
+
+        // Settings (.env) Logic
+        window.uploadReferralBannerImage = async function(input, targetInputId) {
+            const file = input.files[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('file', file);
+            try {
+                const res = await fetch('/upload', { method: 'POST', body: formData }).then(r => r.json());
+                if (res.ok) {
+                    document.getElementById(targetInputId).value = res.url;
+                    alert('Image Uploaded');
+                } else alert('Upload failed');
+            } catch (e) { alert('Upload error'); }
+        };
+
+        window.fetchConfig = async () => {
+            const container = document.getElementById('config-inputs-container');
+            container.innerHTML = '<div class="loader"></div>';
+            try {
+                const res = await fetch('/api/admin/config').then(r => r.json());
+                if (res.ok) {
+                    const keys = Object.keys(res.config);
+                    container.innerHTML = keys.map(key => {
+                        if (key === 'REFERRAL_BANNER_IMAGE') {
+                            return `
+                                <div>
+                                    <label class="app-label" style="font-size:0.75rem; color:var(--primary);">${key.replace(/_/g, ' ')}</label>
+                                    <div style="display:flex; gap:10px; align-items:center;">
+                                        <input type="text" id="referral-banner-img-input" class="app-input env-input" data-key="${key}" value="${res.config[key]}" placeholder="${key}" style="flex:1;">
+                                        <input type="file" id="referral-banner-img-file" style="display:none;" onchange="uploadReferralBannerImage(this, 'referral-banner-img-input')">
+                                        <button class="app-btn-outline" type="button" onclick="document.getElementById('referral-banner-img-file').click()" style="padding:6px 12px; font-size:0.75rem; border-radius:4px; border:1px solid var(--primary); background:transparent; color:var(--primary); cursor:pointer;">Upload</button>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        return `
+                            <div>
+                                <label class="app-label" style="font-size:0.75rem; color:var(--primary);">${key.replace(/_/g, ' ')}</label>
+                                <input type="text" class="app-input env-input" data-key="${key}" value="${res.config[key]}" placeholder="${key}">
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    container.innerHTML = `<div style="color:#EF4444; padding:20px;">Error: ${res.error}</div>`;
+                }
+            } catch (e) {
+                container.innerHTML = `<div style="color:#EF4444; padding:20px;">Failed to connect to server</div>`;
+            }
+        };
+
+        window.saveConfig = async () => {
+            const inputs = document.querySelectorAll('.env-input');
+            const config = {};
+            inputs.forEach(input => {
+                config[input.getAttribute('data-key')] = input.value;
+            });
+
+            if (!confirm('Are you sure you want to update the system configuration? This will modify the .env file.')) return;
+
+            try {
+                const res = await fetch('/api/admin/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ config })
+                }).then(r => r.json());
+
+                if (res.ok) {
+                    alert('Configuration updated successfully!');
+                } else {
+                    alert('Error: ' + res.error);
+                }
+            } catch (e) {
+                alert('Connection error');
+            }
+        };
+
+        // SMTP Config Logic
+        window.fetchSmtpConfig = async () => {
+            try {
+                const res = await fetch('/api/admin/smtp-config').then(r => r.json());
+                if (res.ok) {
+                    document.getElementById('smtpHost').value = res.config.SMTP_HOST || '';
+                    document.getElementById('smtpPort').value = res.config.SMTP_PORT || '587';
+                    document.getElementById('smtpSecure').value = String(res.config.SMTP_SECURE || 'false');
+                    document.getElementById('smtpUser').value = res.config.SMTP_USER || '';
+                    document.getElementById('smtpPass').value = res.config.SMTP_PASS || '';
+                    document.getElementById('emailFrom').value = res.config.EMAIL_FROM || '';
+                    document.getElementById('emailTo').value = res.config.EMAIL_TO || '';
+                } else {
+                    alert('Error loading SMTP Config: ' + res.error);
+                }
+            } catch (e) {
+                alert('Failed to connect to server for SMTP config');
+            }
+        };
+
+        window.saveSmtpConfig = async () => {
+            const config = {
+                SMTP_HOST: document.getElementById('smtpHost').value.trim(),
+                SMTP_PORT: document.getElementById('smtpPort').value.trim(),
+                SMTP_SECURE: document.getElementById('smtpSecure').value.trim(),
+                SMTP_USER: document.getElementById('smtpUser').value.trim(),
+                SMTP_PASS: document.getElementById('smtpPass').value.trim(),
+                EMAIL_FROM: document.getElementById('emailFrom').value.trim(),
+                EMAIL_TO: document.getElementById('emailTo').value.trim()
+            };
+
+            if (!confirm('Are you sure you want to update the SMTP Configuration?')) return;
+
+            try {
+                const res = await fetch('/api/admin/smtp-config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ config })
+                }).then(r => r.json());
+
+                if (res.ok) {
+                    alert('SMTP Configuration updated successfully!');
+                } else {
+                    alert('Error: ' + res.error);
+                }
+            } catch (e) {
+                alert('Connection error');
+            }
+        };
+
+        // --- Ritual Management JS ---
+        window.fetchRituals = async () => {
+            const container = document.getElementById('adminRitualList');
+            container.innerHTML = '<div class="loader"></div>';
+            try {
+                const res = await fetch('/api/admin/rituals').then(r => r.json());
+                if (res.ok) {
+                    if (res.rituals.length === 0) {
+                        container.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-dim);">No rituals found. add one above.</div>';
+                        return;
+                    }
+                    container.innerHTML = res.rituals.map(r => `
+                        <div class="admin-card" style="display:flex; flex-direction:column; gap:12px; transition:all 0.3s; border-left: 4px solid ${r.isActive ? '#10B981' : '#EF4444'};">
+                            <div style="display:flex; gap:15px;">
+                                <img src="${r.imageUrl}" style="width:70px; height:70px; border-radius:10px; object-fit:cover; background:#f0f0f0;">
+                                <div style="flex:1;">
+                                    <h4 style="margin:0; color:var(--text-main);">${r.title} <span style="font-size:0.7rem; color:var(--text-dim);">#${r.order || 0}</span></h4>
+                                    <p style="margin:5px 0; font-size:0.75rem; color:var(--text-dim); line-height:1.3;">${r.subtitle}</p>
+                                    <div style="display:flex; gap:10px; align-items:center;">
+                                        <span style="font-weight:bold; color:var(--primary); font-size:0.9rem;">₹${r.price || 0}</span>
+                                        <span class="status-pill" style="padding:2px 8px; font-size:0.6rem;">${r.isActive ? 'Active' : 'Inactive'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="display:flex; gap:10px; border-top:1px solid var(--border-soft); padding-top:10px;">
+                                <button class="btn-admin" style="flex:1; background:rgba(255,255,255,0.05);" onclick="editRitual('${encodeURIComponent(JSON.stringify(r))}')"><i class="fas fa-edit"></i> Edit</button>
+                                <button class="btn-admin" style="flex:1; background:rgba(239,68,68,0.1); color:#EF4444;" onclick="deleteRitual('${r._id}')"><i class="fas fa-trash"></i> Delete</button>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    container.innerHTML = `<div style="color:#EF4444;">Error: ${res.error}</div>`;
+                }
+            } catch (e) {
+                container.innerHTML = `<div style="color:#EF4444;">Failed to load rituals</div>`;
+            }
+        };
+
+        window.resetRitualForm = () => {
+            document.getElementById('ritualId').value = '';
+            document.getElementById('ritualTitle').value = '';
+            document.getElementById('ritualTitle_ta').value = '';
+            document.getElementById('ritualSubtitle').value = '';
+            document.getElementById('ritualSubtitle_ta').value = '';
+            document.getElementById('ritualDesc').value = '';
+            document.getElementById('ritualDesc_ta').value = '';
+            document.getElementById('ritualPrice').value = '0';
+            document.getElementById('ritualOrder').value = '0';
+            document.getElementById('ritualImageUrl').value = '';
+            document.getElementById('ritualImageFile').value = '';
+            document.getElementById('ritualActive').checked = true;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        window.editRitual = (encoded) => {
+            const r = JSON.parse(decodeURIComponent(encoded));
+            document.getElementById('ritualId').value = r._id;
+            document.getElementById('ritualTitle').value = r.title || '';
+            document.getElementById('ritualTitle_ta').value = r.title_ta || '';
+            document.getElementById('ritualSubtitle').value = r.subtitle || '';
+            document.getElementById('ritualSubtitle_ta').value = r.subtitle_ta || '';
+            document.getElementById('ritualDesc').value = r.description || '';
+            document.getElementById('ritualDesc_ta').value = r.description_ta || '';
+            document.getElementById('ritualPrice').value = r.price || 0;
+            document.getElementById('ritualOrder').value = r.order || 0;
+            document.getElementById('ritualImageUrl').value = r.imageUrl || '';
+            document.getElementById('ritualActive').checked = r.isActive;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        window.saveRitual = async () => {
+            const formData = new FormData();
+            formData.append('id', document.getElementById('ritualId').value);
+            formData.append('title', document.getElementById('ritualTitle').value);
+            formData.append('title_ta', document.getElementById('ritualTitle_ta').value);
+            formData.append('subtitle', document.getElementById('ritualSubtitle').value);
+            formData.append('subtitle_ta', document.getElementById('ritualSubtitle_ta').value);
+            formData.append('description', document.getElementById('ritualDesc').value);
+            formData.append('description_ta', document.getElementById('ritualDesc_ta').value);
+            formData.append('price', document.getElementById('ritualPrice').value);
+            formData.append('order', document.getElementById('ritualOrder').value);
+            formData.append('isActive', document.getElementById('ritualActive').checked);
+            formData.append('imageUrl', document.getElementById('ritualImageUrl').value);
+
+            const file = document.getElementById('ritualImageFile').files[0];
+            if (file) formData.append('ritualImage', file);
+
+            if (!document.getElementById('ritualTitle').value) return alert('Title is required');
+
+            try {
+                const res = await fetch('/api/admin/rituals', {
+                    method: 'POST',
+                    body: formData
+                }).then(r => r.json());
+
+                if (res.ok) {
+                    alert('Ritual saved successfully');
+                    resetRitualForm();
+                    fetchRituals();
+                } else {
+                    alert('Error: ' + res.error);
+                }
+            } catch (e) {
+                alert('Connection error');
+            }
+        };
+
+        window.deleteRitual = async (id) => {
+            if (!confirm('Are you sure? This cannot be undone.')) return;
+            try {
+                const res = await fetch(`/api/admin/rituals/${id}`, { method: 'DELETE' }).then(r => r.json());
+                if (res.ok) {
+                    fetchRituals();
+                } else {
+                    alert('Error deleting');
+                }
+            } catch (e) {
+                alert('Connection error');
+            }
+        };
+
+        async function fetchWorkflowStatus() {
+            const setStatus = (id, status) => {
+                const card = document.getElementById(id);
+                if (!card) return;
+                const statusIcon = card.querySelector('.wf-status');
+                card.classList.remove('wf-healthy', 'wf-warning', 'wf-error');
+                
+                if (status === 'healthy') {
+                    card.classList.add('wf-healthy');
+                    statusIcon.innerHTML = '<i class="fas fa-check-circle" style="color:#10B981;"></i>';
+                } else if (status === 'warning') {
+                    card.classList.add('wf-warning');
+                    statusIcon.innerHTML = '<i class="fas fa-exclamation-triangle" style="color:#FFB300;"></i>';
+                } else {
+                    card.classList.add('wf-error');
+                    statusIcon.innerHTML = '<i class="fas fa-times-circle" style="color:#EF4444;"></i>';
+                }
+            };
+
+            // Set loading
+            ['wf-server', 'wf-db', 'wf-socket', 'wf-fcm', 'wf-webrtc'].forEach(id => {
+                const card = document.getElementById(id);
+                if(card) card.querySelector('.wf-status').innerHTML = '<i class="fas fa-spinner fa-spin" style="color:var(--text-dim);"></i>';
+            });
+
+            try {
+                const response = await fetch('/api/admin/system/status');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const s = data.status;
+                    setStatus('wf-server', s.server === 'Online' ? 'healthy' : 'error');
+                    setStatus('wf-db', s.database === 'Connected' ? 'healthy' : 'error');
+                    setStatus('wf-socket', s.socket === 'Healthy' ? 'healthy' : 'warning');
+                    setStatus('wf-fcm', s.fcm === 'Ready' ? 'healthy' : 'warning');
+                    setStatus('wf-webrtc', 'healthy');
+                }
+            } catch (e) {
+                console.error('Workflow fetch error', e);
+                ['wf-server', 'wf-db', 'wf-socket', 'wf-fcm', 'wf-webrtc'].forEach(id => setStatus(id, 'error'));
+            }
+        }
+
+        // --- Feedback Logic ---
+        window.fetchFeedback = () => {
+            const container = document.getElementById('adminFeedbackList');
+            container.innerHTML = '<div class="loader"></div>';
+            socket.emit('admin-get-feedback', {}, (res) => {
+                if (res.ok) {
+                    if (!res.feedback || res.feedback.length === 0) {
+                        container.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-dim);">No user feedback found yet.</div>';
+                        return;
+                    }
+                    container.innerHTML = res.feedback.map(f => `
+                        <div class="admin-card" style="position:relative; padding:20px; border-left: 4px solid ${f.rating >= 4 ? '#10B981' : (f.rating >= 2 ? '#FFB300' : '#EF4444')};">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+                                <div style="display:flex; align-items:center; gap:12px;">
+                                    <div style="width:40px; height:40px; border-radius:50%; background:rgba(255, 204, 0,0.1); display:flex; align-items:center; justify-content:center; color:var(--primary); font-weight:bold;">
+                                        ${f.userName ? f.userName.charAt(0).toUpperCase() : 'U'}
+                                    </div>
+                                    <div>
+                                        <div style="font-weight:bold; color:var(--text-main);">${f.userName || 'Unknown User'}</div>
+                                        <div style="font-size:0.75rem; color:var(--text-dim);">${new Date(f.createdAt).toLocaleDateString()}</div>
+                                    </div>
+                                </div>
+                                <div style="text-align:right;">
+                                    <div style="color:#FFB300; font-size:0.9rem;">
+                                        ${Array(5).fill(0).map((_, i) => `<i class="${i < f.rating ? 'fas' : 'far'} fa-star"></i>`).join('')}
+                                    </div>
+                                    <div style="font-size:0.7rem; color:var(--text-dim); margin-top:4px;">Rating: ${f.rating}/5</div>
+                                </div>
+                            </div>
+                            <div style="font-size:0.9rem; color:var(--text-secondary); line-height:1.6; font-style:italic; background:rgba(255,255,255,0.02); padding:10px; border-radius:8px;">
+                                "${f.comment || 'No comment provided.'}"
+                            </div>
+                            <div style="margin-top:15px; font-size:0.75rem; color:var(--text-muted); display:flex; justify-content:space-between;">
+                                <span>Astro: <b>${f.astrologerName || 'N/A'}</b></span>
+                                <span>${f.sessionType || 'Session'}</span>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    container.innerHTML = `<div style="color:#EF4444; padding:20px;">Error: ${res.error}</div>`;
+                }
+            });
+        };
+
+        let adminSessionsCache = [];
+        let top3AstrologersCache = [];
+
+        window.loadSessionsHistory = () => {
+            const tableBody = document.getElementById('sessionsHistoryTableBody');
+            const topList = document.getElementById('topAstrologersHistoryList');
+            tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:30px;"><div class="loader"></div></td></tr>';
+            topList.innerHTML = '<div class="loader"></div>';
+
+            socket.emit('admin-get-sessions-history', (res) => {
+                if (res.ok) {
+                    adminSessionsCache = res.sessions || [];
+                    top3AstrologersCache = res.top3AstroIds || [];
+                    renderHistory();
+                    renderTopAstrologers();
+                } else {
+                    tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#EF4444; padding:20px;">Error: ${res.error || 'Failed to load'}</td></tr>`;
+                    topList.innerHTML = `<div style="color:#EF4444; padding:10px;">Error: ${res.error || 'Failed to load'}</div>`;
+                }
+            });
+        };
+
+        function formatDuration(sec) {
+            if (!sec) return '0s';
+            const h = Math.floor(sec / 3600);
+            const m = Math.floor((sec % 3600) / 60);
+            const s = sec % 60;
+            let res = '';
+            if (h > 0) res += h + 'h ';
+            if (m > 0) res += m + 'm ';
+            if (s > 0 || res === '') res += s + 's';
+            return res.trim();
+        }
+
+        function renderHistory() {
+            const tableBody = document.getElementById('sessionsHistoryTableBody');
+            const searchVal = document.getElementById('adminHistorySearch').value.toLowerCase();
+            const typeFilter = document.getElementById('adminHistoryTypeFilter').value;
+
+            const filtered = adminSessionsCache.filter(s => {
+                const matchesSearch = s.clientName.toLowerCase().includes(searchVal) || 
+                                      s.astrologerName.toLowerCase().includes(searchVal);
+                const matchesType = typeFilter === 'all' || (s.type && s.type.toLowerCase() === typeFilter);
+                return matchesSearch && matchesType;
+            });
+
+            if (filtered.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--text-dim);">No matching history logs found</td></tr>';
+                return;
+            }
+
+            tableBody.innerHTML = filtered.map(s => {
+                const dateStr = s.startTime ? new Date(s.startTime).toLocaleString() : (s.actualBillingStart ? new Date(s.actualBillingStart).toLocaleString() : 'N/A');
+                const isTopAstro = top3AstrologersCache.includes(s.astrologerId || s.toUserId);
+                
+                const astroId = s.astrologerId || s.toUserId;
+                const totalAstroSessions = adminSessionsCache.filter(x => (x.astrologerId || x.toUserId) === astroId).length;
+                const hasMoreHistory = totalAstroSessions >= 5;
+
+                let badge = '';
+                if (isTopAstro) {
+                    badge = '<span style="background:#FFB300; color:#000; font-size:0.65rem; font-weight:800; padding:2px 6px; border-radius:4px; margin-left:8px;"><i class="fas fa-crown"></i> Top Astro</span>';
+                } else if (hasMoreHistory) {
+                    badge = '<span style="background:#10B981; color:#fff; font-size:0.65rem; font-weight:600; padding:2px 6px; border-radius:4px; margin-left:8px;"><i class="fas fa-history"></i> Active</span>';
+                }
+
+                return `
+                    <tr style="border-bottom: 1px solid var(--border-soft);">
+                        <td style="padding:15px; font-size:0.8rem; color:var(--text-dim);">${s.sessionId ? s.sessionId.slice(0, 8) : 'N/A'}</td>
+                        <td style="padding:15px; font-weight:600; color:var(--text-main);">${s.clientName}</td>
+                        <td style="padding:15px; font-weight:600; color:var(--text-main);">${s.astrologerName}${badge}</td>
+                        <td style="padding:15px; text-align:center;"><span style="background:rgba(255, 204, 0,0.1); color:var(--primary); font-size:0.75rem; padding:4px 8px; border-radius:50px; text-transform:uppercase; font-weight:600;">${s.type || 'Chat'}</span></td>
+                        <td style="padding:15px; text-align:center; font-weight:bold; color:var(--text-main);">${formatDuration(s.duration)}</td>
+                        <td style="padding:15px; text-align:right; font-weight:700; color:#10B981;">₹${s.totalCharged || 0}</td>
+                        <td style="padding:15px; text-align:center; font-size:0.8rem; color:var(--text-dim);">${dateStr}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderTopAstrologers() {
+            const topList = document.getElementById('topAstrologersHistoryList');
+            const stats = {};
+            adminSessionsCache.forEach(s => {
+                const aId = s.astrologerId || s.toUserId;
+                if (!aId) return;
+                if (!stats[aId]) {
+                    stats[aId] = {
+                        astrologerId: aId,
+                        name: s.astrologerName,
+                        sessions: 0,
+                        duration: 0
+                    };
+                }
+                stats[aId].sessions++;
+                stats[aId].duration += (s.duration || 0);
+            });
+
+            const sorted = Object.values(stats).sort((a, b) => b.sessions - a.sessions).slice(0, 3);
+
+            if (sorted.length === 0) {
+                topList.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-dim);">No top astrologers data available.</div>';
+                return;
+            }
+
+            const medals = [
+                { color: '#FFD700', icon: 'fa-trophy', label: '1st Place' },
+                { color: '#C0C0C0', icon: 'fa-medal', label: '2nd Place' },
+                { color: '#CD7F32', icon: 'fa-award', label: '3rd Place' }
+            ];
+
+            topList.innerHTML = sorted.map((ast, idx) => `
+                <div class="admin-card" style="border-top: 4px solid ${medals[idx].color}; display:flex; align-items:center; gap:15px; padding:20px;">
+                    <div style="width:45px; height:45px; border-radius:50%; background:${medals[idx].color}20; display:flex; align-items:center; justify-content:center; color:${medals[idx].color}; font-size:1.4rem;">
+                        <i class="fas ${medals[idx].icon}"></i>
+                    </div>
+                    <div style="flex:1;">
+                        <div style="font-weight:800; color:var(--text-main); font-size:1.05rem;">${ast.name}</div>
+                        <div style="font-size:0.75rem; color:${medals[idx].color}; font-weight:700; text-transform:uppercase;">${medals[idx].label}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:1.3rem; font-weight:bold; color:var(--text-main);">${ast.sessions}</div>
+                        <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase;">Sessions</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        window.searchHistory = () => {
+            renderHistory();
+        };
+
+        init();
+    </script>
+</body>
+
+</html>

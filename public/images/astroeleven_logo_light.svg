@@ -1,0 +1,43 @@
+<svg width="400" height="100" viewBox="0 0 400 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Rich gold gradient -->
+    <linearGradient id="goldGrad" x1="10" y1="10" x2="80" y2="80" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFF3A8"/>
+      <stop offset="30%" stop-color="#FFD700"/>
+      <stop offset="70%" stop-color="#FFA500"/>
+      <stop offset="100%" stop-color="#B8860B"/>
+    </linearGradient>
+    <linearGradient id="fireGrad" x1="0" y1="0" x2="0" y2="10" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FF4500"/>
+      <stop offset="100%" stop-color="#FFD700"/>
+    </linearGradient>
+  </defs>
+  <style>
+    .text-brand { font: bold 38px 'Poppins', sans-serif; fill: #FFA500; letter-spacing: 1px; }
+    .text-main-light { font: bold 38px 'Poppins', sans-serif; fill: #FFFFFF; letter-spacing: 1px; }
+    .text-sub { font: 600 10px 'Poppins', sans-serif; fill: #E0E0E0; letter-spacing: 4px; }
+  </style>
+
+  <!-- Golden Icon Group -->
+  <g transform="translate(20, 10)">
+    <!-- Outer dotted circle -->
+    <circle cx="40" cy="40" r="38" stroke="url(#goldGrad)" stroke-width="1.5" stroke-dasharray="3,3" fill="none"/>
+    
+    <!-- Crescent Moon -->
+    <path d="M 52,18 A 26,26 0 1,0 52,62 A 22,22 0 1,1 52,18 Z" fill="url(#goldGrad)"/>
+    
+    <!-- Sun / Star inside Moon -->
+    <path d="M 32,32 L 35,22 L 38,32 L 48,35 L 38,38 L 35,48 L 32,38 L 22,35 Z" fill="url(#goldGrad)"/>
+    
+    <!-- Diya / Oil Lamp at the bottom -->
+    <path d="M 24,58 C 24,66 56,66 56,58 C 48,58 32,58 24,58 Z" fill="url(#goldGrad)"/>
+    <!-- Flame of the Diya -->
+    <path d="M 40,48 C 37,53 40,58 40,58 C 40,58 43,53 40,48 Z" fill="url(#fireGrad)"/>
+  </g>
+
+  <!-- Brand Typography -->
+  <!-- Horizontal layout -->
+  <text x="120" y="50" class="text-main-light">ASTRO</text>
+  <text x="265" y="50" class="text-brand">ELEVEN</text>
+  <text x="122" y="70" class="text-sub">GUIDING YOUR DESTINY</text>
+</svg>

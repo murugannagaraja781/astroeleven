@@ -1,0 +1,23 @@
+<svg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="goldGrad" x1="10" y1="10" x2="90" y2="90" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFF3A8"/>
+      <stop offset="30%" stop-color="#FFD700"/>
+      <stop offset="70%" stop-color="#FFA500"/>
+      <stop offset="100%" stop-color="#B8860B"/>
+    </linearGradient>
+    <linearGradient id="fireGrad" x1="0" y1="0" x2="0" y2="10" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FF4500"/>
+      <stop offset="100%" stop-color="#FFD700"/>
+    </linearGradient>
+  </defs>
+  <!-- Golden Circle -->
+  <circle cx="50" cy="50" r="45" stroke="url(#goldGrad)" stroke-width="2.5" stroke-dasharray="3,3" fill="none"/>
+  <!-- Crescent Moon -->
+  <path d="M 62,28 A 28,28 0 1,0 62,72 A 24,24 0 1,1 62,28 Z" fill="url(#goldGrad)"/>
+  <!-- Star -->
+  <path d="M 42,42 L 45,32 L 48,42 L 58,45 L 48,48 L 45,58 L 42,48 L 32,45 Z" fill="url(#goldGrad)"/>
+  <!-- Diya -->
+  <path d="M 34,68 C 34,76 66,76 66,68 Z" fill="url(#goldGrad)"/>
+  <path d="M 50,58 C 47,63 50,68 50,68 C 50,68 53,63 50,58 Z" fill="url(#fireGrad)"/>
+</svg>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Network Security Configuration for Production
+    Only HTTPS is allowed by default.
+    Cleartext HTTP allowed only for astroeleven.com domain.
+-->
+<network-security-config>
+    <!-- Allow cleartext traffic to our server (for backward compatibility) -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">astroeleven.com</domain>
+        <domain includeSubdomains="true">139.59.0.107</domain>
+        <domain includeSubdomains="true">167.71.226.248</domain>
+        <domain includeSubdomains="true">159.89.167.222</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain> <!-- Android Emulator Loopback -->
+        <domain includeSubdomains="true">192.168.1.1</domain> <!-- Common local subnet -->
+        <domain includeSubdomains="true">localhost</domain>
+    </domain-config>
+</network-security-config>

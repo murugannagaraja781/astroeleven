@@ -1,0 +1,663 @@
+:root {
+    /* Premium Celestial Light Theme - White, Yellow, Orange Architecture */
+    --bg-body: #FFFFFF;
+    /* Pure White background */
+    --bg-card: #FFFDF7;
+    /* Premium celestial warm cream card */
+    --bg-card-hover: #FFF7E6;
+    /* Soft warm light orange hover */
+    --bg-glass: rgba(255, 255, 255, 0.9);
+    --bg-glass-heavy: rgba(255, 254, 250, 0.98);
+
+    --primary: #FF7F00;
+    /* Vibrant Brand Orange */
+    --primary-rgb: 255, 127, 0;
+    --primary-glow: rgba(255, 127, 0, 0.15);
+
+    --accent: #E5A900;
+    /* Rich Golden Yellow */
+    --accent-rgb: 229, 169, 0;
+    --accent-glow: rgba(229, 169, 0, 0.15);
+
+    --text-main: #2C251D;
+    /* Premium soft cocoa dark charcoal */
+    --text-secondary: #5C5248;
+    /* Medium warm gray text */
+    --text-muted: #8E7C6E;
+    /* Elegant warm muted text */
+    --text-dim: #A89687;
+
+    --border-soft: rgba(255, 127, 0, 0.12);
+    --border-medium: rgba(255, 127, 0, 0.22);
+    --border-accent: rgba(255, 127, 0, 0.45);
+
+    --radius-lg: 16px;
+    --radius-md: 12px;
+    --radius-sm: 8px;
+
+    --glass-blur: blur(12px);
+    --shadow-glow: 0 4px 20px rgba(255, 127, 0, 0.08);
+    --shadow-elevation: 0 10px 40px -10px rgba(255, 127, 0, 0.12);
+
+    --font-heading: 'Cinzel', serif;
+    --font-body: 'Outfit', sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    margin: 0;
+    font-family: var(--font-body);
+    height: 100vh;
+    overflow: hidden;
+    background: var(--bg-body);
+    color: var(--text-main);
+    background-image:
+        radial-gradient(circle at 10% 20%, rgba(255, 204, 0, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 90% 80%, rgba(255, 127, 0, 0.04) 0%, transparent 50%);
+    -webkit-font-smoothing: antialiased;
+}
+
+.dashboard-container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    max-width: 100%;
+    /* Admin wants full width usually */
+    margin: 0 auto;
+    background: var(--bg-body);
+    position: relative;
+}
+
+.app-header {
+    background: var(--bg-glass);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-bottom: 1px solid var(--border-soft);
+    padding: 15px 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--primary);
+    z-index: 1000;
+}
+
+.admin-content-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    padding-bottom: 100px;
+}
+
+.admin-tab-section {
+    display: none;
+}
+
+.admin-tab-section.active {
+    display: block;
+}
+
+.admin-card,
+.admin-user-card {
+    background: var(--bg-card);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-elevation);
+    border: 1px solid var(--border-soft);
+}
+
+.admin-user-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.admin-user-name {
+    font-weight: 700;
+    color: var(--text-main);
+    font-size: 1rem;
+}
+
+.admin-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+.btn-admin {
+    padding: 10px 16px;
+    border-radius: var(--radius-sm);
+    border: none;
+    color: rgb(242, 0, 0);
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    flex: 1;
+    min-width: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.btn-block {
+    background: #EF4444;
+}
+
+.btn-wallet {
+    background: #10B981;
+}
+
+.btn-role {
+    background: #3B82F6;
+}
+
+.btn-delete {
+    background: #EF4444;
+}
+
+.btn-admin:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    filter: brightness(1.1);
+    border: #10B981;
+}
+
+.user-pill {
+    background: #F3F4F6;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    color: #555;
+}
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.app-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.03);
+    transition: all 0.3s ease;
+}
+
+.app-input:focus {
+    border-color: var(--primary);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.cosmic-btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: linear-gradient(135deg, var(--primary) 0%, #C49B0F 100%);
+    color: #000;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.95rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 15px rgba(255, 204, 0, 0.2);
+}
+
+.cosmic-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(255, 204, 0, 0.4);
+}
+
+/* Admin Navigation Sidebar/Drawer */
+.admin-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 280px;
+    background: var(--bg-glass-heavy);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border-soft);
+    z-index: 2000;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    padding-top: 0;
+    overflow-y: auto;
+}
+
+.admin-nav.open {
+    transform: translateX(0);
+}
+
+/* Sidebar Overlay */
+.nav-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 1999;
+    display: none;
+    animation: fadeIn 0.3s ease;
+}
+
+.nav-overlay.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.admin-nav-item {
+    display: flex;
+    align-items: center;
+    padding: 14px 24px;
+    gap: 15px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    border-left: 4px solid transparent;
+}
+
+.admin-nav-item.active {
+    color: var(--primary);
+    background: rgba(255, 204, 0, 0.05);
+    border-left-color: var(--primary);
+    font-weight: 600;
+}
+
+.admin-nav-item.active::after {
+    content: '';
+    position: absolute;
+    top: -12px;
+    width: 30px;
+    height: 3px;
+    background: var(--primary);
+    border-radius: 0 0 4px 4px;
+}
+
+.admin-card,
+.stat-card,
+.admin-user-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stat-card:hover,
+.admin-user-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+}
+
+.admin-nav-item i {
+    font-size: 1.2rem;
+}
+
+.admin-footer {
+    background: #FAF5F0;
+    color: var(--text-main);
+    padding: 20px;
+    font-size: 0.8rem;
+    border-top: 1px solid var(--border-soft);
+}
+
+.admin-footer-content {
+    max-width: 100%;
+    margin: 0;
+}
+
+.admin-footer-section {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.admin-footer-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.admin-footer-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+    margin: 15px 0;
+}
+
+/* Dashboard Specific */
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.dashboard-title {
+    margin: 0;
+    color: var(--text-main);
+    font-size: 1.5rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: var(--bg-card);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-radius: 20px;
+    padding: 24px;
+    border: 1px solid var(--border-soft);
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-elevation);
+}
+
+.card-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    margin-bottom: 20px;
+}
+
+.revenue-icon {
+    background: #D1FAE5;
+    color: #007bff;
+}
+
+.profit-icon {
+    background: #DBEAFE;
+    color: #1D4ED8;
+}
+
+.payout-icon {
+    background: #FEE2E2;
+    color: #DC2626;
+}
+
+.activity-icon {
+    background: #F3F4F6;
+    color: #4B5563;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 8px;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.chart-container {
+    background: var(--bg-card);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-radius: 20px;
+    padding: 24px;
+    border: 1px solid var(--border-soft);
+    box-shadow: var(--shadow-elevation);
+}
+
+.admin-notification-popup {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 300px;
+    background: var(--bg-glass-heavy);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--border-accent);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    box-shadow: var(--shadow-elevation);
+    z-index: 10001;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    animation: slideInRight 0.5s forwards;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(110%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.admin-notification-popup button {
+    width: 100%;
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: var(--radius-sm);
+    border: none;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+}
+
+.admin-notification-popup button.approve {
+    background: var(--primary);
+    color: #000;
+}
+
+.admin-notification-popup button.close {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-muted);
+}
+
+/* Sidebar Logo (Mobile & Desktop) */
+.admin-nav::before {
+    content: 'ASTROELEVEN';
+    display: block;
+    padding: 25px;
+    font-family: var(--font-heading);
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: var(--primary);
+    border-bottom: 1px solid var(--border-soft);
+    margin-bottom: 10px;
+    letter-spacing: 2px;
+}
+
+/* Mobile Menu Trigger */
+.menu-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-sm);
+    color: var(--text-main);
+    cursor: pointer;
+    font-size: 1.2rem;
+}
+
+@media (max-width: 1023px) {
+    .admin-content-area {
+        padding: 15px;
+        padding-bottom: 40px;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    .stat-card {
+        padding: 15px;
+    }
+
+    .stat-value {
+        font-size: 1.4rem;
+    }
+
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .status-pill {
+        font-size: 0.65rem;
+        padding: 4px 8px;
+    }
+
+    .grid-2,
+    .grid-3 {
+        grid-template-columns: 1fr;
+    }
+
+    #config-inputs-container {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+@media (min-width: 1024px) {
+
+    /* Main Layout Grid */
+    .dashboard-container {
+        display: grid;
+        height: 100vh;
+        grid-template-rows: 1fr;
+        grid-template-columns: 280px 1fr;
+        grid-template-areas:
+            "sidebar content";
+    }
+
+    /* Hide Mobile Header on Desktop */
+    .app-header {
+        display: none;
+    }
+
+    /* Persistent Sidebar on Desktop */
+    .admin-nav {
+        grid-area: sidebar;
+        position: static;
+        width: 100%;
+        transform: translateX(0);
+        background: var(--bg-glass-heavy);
+        border-right: 1px solid var(--border-soft);
+        padding-top: 0;
+        z-index: 50;
+    }
+
+    .menu-trigger {
+        display: none;
+    }
+
+    /* Content Area Adjustment */
+    .admin-content-area {
+        grid-area: content;
+        padding: 40px;
+        background: var(--bg-body);
+        background-image:
+            radial-gradient(circle at 50% 50%, rgba(255, 204, 0, 0.02) 0%, transparent 50%);
+    }
+
+    /* Add Desktop Header inside content area if needed, or rely on page titles */
+    .dashboard-header {
+        margin-bottom: 30px;
+    }
+
+    .dashboard-title {
+        font-size: 2rem;
+        color: var(--primary);
+    }
+
+    /* Enhanced Admin Cards for Desktop */
+    .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    .grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+    }
+
+    /* Better Stats Grid */
+    .stats-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 24px;
+    }
+}
+
+/* Slab Rules */
+.slab-rule-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px;
+    background: white;
+    border: 1px solid #eee;
+    margin-bottom: 10px;
+    border-radius: 8px;
+}
+
+.slab-badge {
+    background: #1e3a8a;
+    color: white;
+    font-size: 0.8rem;
+    font-weight: bold;
+    padding: 4px 8px;
+    border-radius: 4px;
+    min-width: 60px;
+    text-align: center;
+}

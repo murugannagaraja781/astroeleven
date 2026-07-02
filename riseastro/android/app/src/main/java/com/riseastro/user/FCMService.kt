@@ -1,0 +1,538 @@
+package com.astroeleven.app
+
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Intent
+import android.media.AudioAttributes
+import android.media.RingtoneManager
+import android.os.Build
+import android.os.PowerManager
+import android.util.Log
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import com.astroeleven.app.receiver.ChatActionReceiver
+import com.astroeleven.app.data.api.ApiService
+import com.astroeleven.app.data.local.AppDatabase
+import com.astroeleven.app.data.local.entity.ChatMessageEntity
+import com.astroeleven.app.utils.Constants
+import com.google.firebase.messaging.FirebaseMessagingService
+import com.google.firebase.messaging.RemoteMessage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+
+/**
+ * FCMService - The heart of incoming call handling
+ *
+ * THIS IS THE MOST CRITICAL COMPONENT FOR MAKING CALLS WORK WHEN APP IS KILLED.
+ *
+ * HOW IT WORKS:
+ * 1. Firebase Cloud Messaging has special system-level permission on Android
+ * 2. When a high-priority data message arrives, Android wakes up this service
+ * 3. onMessageReceived() is called even if app was killed
+ * 4. We explicitly start IncomingCallActivity to show the full-screen call UI
+ *
+ * KEY REQUIREMENTS:
+ * - FCM message must be DATA-ONLY (no 'notification' key in payload)
+ * - Message must have priority: 'high' (not 'normal')
+ * - This service must be declared in AndroidManifest with MESSAGING_EVENT filter
+ *
+ * COMMON MISTAKES THAT BREAK THIS:
+ * 1. Including 'notification' key in FCM payload - Android handles it differently
+ * 2. Using normal priority - message gets batched and delayed
+ * 3. Not using explicit Intent with proper flags
+ * 4. Forgetting NEW_TASK flag when starting activity from service
+ */
+class FCMService : FirebaseMessagingService() {
+
+    companion object {
+        private const val TAG = "FCMService"
+        private const val CALL_CHANNEL_ID = "incoming_calls_v3"
+        private const val CALL_CHANNEL_NAME = "Incoming Calls"
+        private const val CHAT_CHANNEL_ID = "chat_messages_v1"
+        private const val CHAT_CHANNEL_NAME = "Chat Messages"
+        private const val CHAT_CALL_CHANNEL_ID = "incoming_chats_v2"
+        private const val CHAT_CALL_CHANNEL_NAME = "Incoming Chat Requests"
+        private const val CALL_NOTIFICATION_ID = 9999
+        private const val GENERIC_NOTIFICATION_ID = 1002
+    }
+
+    // Coroutine scope for async operations within service lifecycle
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    /**
+     * Check if app is in foreground (visible to user)
+     */
+    private fun isAppInForeground(): Boolean {
+        val activityManager = getSystemService(android.content.Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+        val appProcesses = activityManager.runningAppProcesses ?: return false
+        val packageName = packageName
+        for (appProcess in appProcesses) {
+            if (appProcess.importance == android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
+                && appProcess.processName == packageName) {
+                return true
+            }
+        }
+        return false
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        createNotificationChannels()
+    }
+
+    /**
+     * Called when FCM token is refreshed
+     *
+     * WHEN THIS HAPPENS:
+     * - App is installed for the first time
+     * - App data is cleared
+     * - App is restored on a new device
+     * - Firebase SDK decides token needs refresh (security)
+     *
+     * WE MUST re-register with server because old token is now invalid.
+     */
+    override fun onNewToken(token: String) {
+        super.onNewToken(token)
+        Log.d(TAG, "New FCM token: $token")
+
+        // FIX: Use TokenManager to get the correct User ID
+        val tokenManager = com.astroeleven.app.data.local.TokenManager(this)
+        val session = tokenManager.getUserSession()
+        val userId = session?.userId
+
+        if (userId != null) {
+            serviceScope.launch {
+                try {
+                    val result = ApiService.register(Constants.SERVER_URL, userId, token)
+                    if (result.success) {
+                        Log.d(TAG, "Token refresh: re-registered successfully")
+                    } else {
+                        Log.e(TAG, "Token refresh: registration failed - ${result.error}")
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Token refresh: network error", e)
+                }
+            }
+        } else {
+            Log.w(TAG, "Token refreshed but no userId stored (TokenManager) - user needs to register/login again")
+        }
+    }
+
+    /**
+     * Called when a message is received from FCM
+     *
+     * THIS IS WHERE THE MAGIC HAPPENS:
+     * - Even if app is killed, this method is called for data-only messages
+     * - We parse the call data and start the full-screen incoming call UI
+     *
+     * IMPORTANT: This runs in a background thread, but we have ~20 seconds
+     * to complete our work before Android may kill the service.
+     */
+    override fun onMessageReceived(message: RemoteMessage) {
+        super.onMessageReceived(message)
+        Log.d(TAG, "FCM message received from: ${message.from}")
+
+        // Check if message contains a data payload.
+        if (message.data.isNotEmpty()) {
+            val data = message.data
+            val messageType = data["type"] ?: "UNKNOWN"
+
+            Log.d(TAG, "Data Payload: $data, Type: $messageType")
+
+            when (messageType) {
+                "INCOMING_CALL" -> handleIncomingCall(data)
+                "CANCEL_CALL", "CALL_CANCELLED", "CALL_ENDED", "SESSION_ENDED" -> {
+                    Log.d(TAG, "Call cancelled/ended via FCM: $data")
+                    val notificationManager = getSystemService(NotificationManager::class.java)
+                    notificationManager.cancel(CALL_NOTIFICATION_ID)
+                    
+                    // Broadcast to IncomingCallActivity if it's open
+                    val cancelIntent = Intent("com.astroeleven.app.ACTION_CANCEL_CALL")
+                    sendBroadcast(cancelIntent)
+                }
+                "INCOMING_CHAT" -> {
+                    val callerId = data["callerId"] ?: data["fromUserId"] ?: ""
+                    val callerName = data["callerName"] ?: data["userName"] ?: data["name"] ?: "Unknown"
+                    val sessionId = data["sessionId"] ?: ""
+                    val birthDataStr = data["birthData"]
+                    handleIncomingChat(callerName, callerId, sessionId, birthDataStr)
+                }
+                "CHAT_MESSAGE" -> {
+                    val text = data["text"] ?: "New message"
+                    val senderName = data["callerName"] ?: "Astrologer"
+                    val senderId = data["callerId"] ?: "unknown"
+                    val sessionId = data["sessionId"] ?: ""
+                    val messageId = data["messageId"] ?: System.currentTimeMillis().toString()
+                    val type = data["messageType"] ?: "text"
+                    val fileUrl = data["fileUrl"] ?: ""
+
+                    // Save to Room DB directly
+                    serviceScope.launch {
+                        try {
+                            val db = AppDatabase.getDatabase(this@FCMService)
+                            val entity = ChatMessageEntity(
+                                messageId = messageId,
+                                sessionId = sessionId,
+                                text = text,
+                                senderId = senderId,
+                                timestamp = System.currentTimeMillis(),
+                                status = "delivered",
+                                isSentByMe = false,
+                                type = type,
+                                fileUrl = fileUrl
+                            )
+                            db.chatDao().insertMessage(entity)
+                            Log.d(TAG, "Saved background message to Room: $messageId, type: $type")
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Failed to save background message", e)
+                        }
+                    }
+
+                    // Only show notification if app is in background
+                    if (!isAppInForeground()) {
+                        showChatMessageNotification(senderName, text, senderId, sessionId)
+                    } else {
+                        Log.d(TAG, "App in foreground - skipping notification for $messageId")
+                    }
+                }
+                else -> {
+                    // Handle generic data messages or unknown types by showing a simple notification
+                    val title = data["title"] ?: message.notification?.title ?: "astroeleven"
+                    val body = data["body"] ?: message.notification?.body ?: "New Message"
+                    showGenericNotification(title, body)
+                }
+            }
+        }
+
+        // Check if message contains a notification payload.
+        message.notification?.let {
+            Log.d(TAG, "Message Notification Body: ${it.body}")
+            // If we haven't processed it as data already (data payload usually takes precedence for functionality)
+            if (message.data.isEmpty()) {
+                 showGenericNotification(it.title ?: "astroeleven", it.body ?: "New Notification")
+            }
+        }
+    }
+
+    private fun showGenericNotification(title: String, body: String) {
+        val notification = NotificationCompat.Builder(this, CHAT_CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setAutoCancel(true)
+            .build()
+
+        val notificationManager = getSystemService(NotificationManager::class.java)
+        notificationManager.notify(GENERIC_NOTIFICATION_ID, notification)
+    }
+
+    /**
+     * Handle incoming call FCM message
+     *
+     * KEY STEPS:
+     * 1. Wake up the device screen (using WakeLock)
+     * 2. Show HIGH-PRIORITY notification with full-screen intent
+     * 3. The full-screen intent launches IncomingCallActivity
+     *
+     * WHY WE USE NOTIFICATION WITH FULL-SCREEN INTENT:
+     * - On locked devices, Android 10+ REQUIRES a notification with fullScreenIntent
+     * - Direct startActivity() may not work reliably on locked screens
+     * - The notification with fullScreenIntent IS the official way to do this
+     */
+    private fun handleIncomingCall(data: Map<String, String>) {
+        // --- GHOST CALL PROTECTION: Validate Timestamp ---
+        val timestampStr = data["timestamp"]
+        if (timestampStr != null) {
+            try {
+                val timestamp = timestampStr.toLong()
+                val now = System.currentTimeMillis()
+                if (now - timestamp > 45000) { // Discard if more than 45 seconds old
+                    Log.w(TAG, "Discarding GHOST CALL: Message is too old (${(now - timestamp) / 1000}s)")
+                    return
+                }
+            } catch (e: Exception) { /* Ignore parsing error */ }
+        }
+
+        // --- GHOST CALL PROTECTION: Check Active State ---
+        if (com.astroeleven.app.utils.CallState.isCallActive) {
+            Log.w(TAG, "Ignoring INCOMING_CALL: A call session is already active or ringing.")
+            return
+        }
+
+        val callerId = data["callerId"] ?: data["fromUserId"] ?: "Unknown"
+        val callerName = data["callerName"] ?: data["userName"] ?: data["name"] ?: callerId
+        val callId = data["sessionId"] ?: data["callId"] ?: System.currentTimeMillis().toString()
+        val callType = data["callType"] ?: "audio"
+
+        Log.d(TAG, "=== INCOMING $callType (via SERVICE) ===")
+        Log.d(TAG, "From: $callerName ($callerId), callId: $callId")
+
+        // Wake up the screen
+        wakeUpDevice()
+
+        // WhatsApp style: ALWAYS use FullScreenIntent, completely bypass TelecomManager
+        // TelecomManager addNewIncomingCall is highly unreliable on OEM devices (silently fails)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            try {
+                val notificationIntent = Intent(this, IncomingCallActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or 
+                            Intent.FLAG_ACTIVITY_CLEAR_TOP or 
+                            Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    putExtra("callerId", callerId)
+                    putExtra("callerName", callerName)
+                    putExtra("callId", callId)
+                    putExtra("callType", callType)
+                    if (data["birthData"] != null) {
+                        putExtra("birthData", data["birthData"])
+                    }
+                }
+                val pendingIntentFlags = PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+                val pendingIntent = PendingIntent.getActivity(
+                    this, System.currentTimeMillis().toInt(), notificationIntent, pendingIntentFlags
+                )
+                val notification = NotificationCompat.Builder(this, CALL_CHANNEL_ID)
+                    .setContentTitle("Incoming $callType Call")
+                    .setContentText("$callerName is calling...")
+                    .setSmallIcon(android.R.drawable.ic_menu_call)
+                    .setPriority(NotificationCompat.PRIORITY_MAX)
+                    .setCategory(NotificationCompat.CATEGORY_CALL)
+                    .setFullScreenIntent(pendingIntent, true)
+                    .setContentIntent(pendingIntent)
+                    .setAutoCancel(false)
+                    .setOngoing(true)
+                    .build()
+                val notificationManager = getSystemService(NotificationManager::class.java)
+                notificationManager.notify(callId.hashCode(), notification)
+                try {
+                    startActivity(notificationIntent)
+                } catch (e2: Exception) {
+                    Log.w(TAG, "Direct startActivity failed, relying on fullScreenIntent", e2)
+                }
+                Log.d(TAG, "Direct fullScreenIntent Notification fired from FCM (WhatsApp Style)")
+            } catch (ex: Exception) {
+                Log.e(TAG, "Failed to show fullScreenIntent Notification", ex)
+            }
+        } else {
+            // Legacy fallback for Android API < 21: start activity directly without notification
+            try {
+                val intent = Intent(this, IncomingCallActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    putExtra("callerId", callerId)
+                    putExtra("callerName", callerName)
+                    putExtra("callId", callId)
+                    putExtra("callType", callType)
+                    if (data["birthData"] != null) {
+                        putExtra("birthData", data["birthData"])
+                    }
+                }
+                startActivity(intent)
+                Log.d(TAG, "Started IncomingCallActivity directly for legacy API level")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to start IncomingCallActivity on legacy device", e)
+            }
+        }
+    }
+
+    /**
+     * Wake up the device screen
+     *
+     * WHY THIS IS NEEDED:
+     * If phone is in deep sleep with screen off, the activity might not
+     * properly turn on the screen on some devices. This ensures the
+     * screen turns on so user can see the incoming call.
+     *
+     * The WakeLock is released after a short timeout - we just need
+     * enough time for the activity to start and take over.
+     */
+    private fun wakeUpDevice() {
+        try {
+            val powerManager = getSystemService(POWER_SERVICE) as PowerManager
+            val wakeLock = powerManager.newWakeLock(
+                PowerManager.FULL_WAKE_LOCK or
+                        PowerManager.ACQUIRE_CAUSES_WAKEUP or
+                        PowerManager.ON_AFTER_RELEASE,
+                "FCMCallApp:IncomingCallWakeLock"
+            )
+            // Hold wake lock for 10 seconds - enough time for activity to start
+            wakeLock.acquire(10 * 1000L)
+            Log.d(TAG, "Device wake lock acquired")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to acquire wake lock", e)
+        }
+    }
+
+    /**
+     * Create notification channel for incoming calls
+     *
+     * WHY CHANNELS MATTER (Android 8+):
+     * - All notifications must be assigned to a channel
+     * - Channels control importance, sound, vibration at OS level
+     * - HIGH importance allows heads-up notifications
+     * - User can customize each channel independently
+     */
+    private fun createNotificationChannels() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val notificationManager = getSystemService(NotificationManager::class.java)
+
+            // 1. Call Channel (High Importance)
+            val callChannel = NotificationChannel(
+                CALL_CHANNEL_ID,
+                CALL_CHANNEL_NAME,
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Notifications for incoming calls"
+                enableVibration(true)
+                enableLights(true)
+                val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+                setSound(soundUri, AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build())
+                setShowBadge(true)
+                lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
+            }
+            notificationManager.createNotificationChannel(callChannel)
+
+            // 2. Chat Channel (Default Importance - less intrusive)
+            val chatChannel = NotificationChannel(
+                CHAT_CHANNEL_ID,
+                CHAT_CHANNEL_NAME,
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Notifications for chat messages"
+                enableVibration(true)
+                setShowBadge(true)
+            }
+            notificationManager.createNotificationChannel(chatChannel)
+
+            // 3. Chat Call Channel (High Importance for incoming chat requests)
+            val chatCallChannel = NotificationChannel(
+                CHAT_CALL_CHANNEL_ID,
+                CHAT_CALL_CHANNEL_NAME,
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Notifications for incoming chat requests"
+                enableVibration(true)
+                enableLights(true)
+                val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+                setSound(soundUri, AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build())
+                setShowBadge(true)
+                lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
+            }
+            notificationManager.createNotificationChannel(chatCallChannel)
+
+            Log.d(TAG, "Notification channels created")
+        }
+    }
+
+    private fun handleIncomingChat(callerName: String, callerId: String, sessionId: String, birthDataStr: String? = null) {
+        Log.d(TAG, "=== INCOMING CHAT (via SERVICE) ===")
+        Log.d(TAG, "From: $callerName ($callerId), sessionId: $sessionId")
+
+        // Wake up the screen
+        wakeUpDevice()
+
+        // Build full‑screen intent that launches IncomingCallActivity in a WhatsApp-like ringing UI
+        val fullScreenIntent = Intent(this, com.astroeleven.app.IncomingCallActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            putExtra("callerId", callerId)
+            putExtra("callerName", callerName)
+            putExtra("callId", sessionId)
+            putExtra("callType", "chat")
+            if (birthDataStr != null) {
+                putExtra("birthData", birthDataStr)
+            }
+        }
+        val fullScreenPending = PendingIntent.getActivity(
+            this,
+            System.currentTimeMillis().toInt(),
+            fullScreenIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        // Action intents for Accept and Reject (keeps notification buttons functional)
+        val acceptIntent = Intent(this, com.astroeleven.app.receiver.ChatActionReceiver::class.java).apply {
+            action = ChatActionReceiver.ACTION_ACCEPT_CHAT
+            putExtra("callerId", callerId)
+            putExtra("sessionId", sessionId)
+            if (birthDataStr != null) {
+                putExtra("birthData", birthDataStr)
+            }
+        }
+        val rejectIntent = Intent(this, com.astroeleven.app.receiver.ChatActionReceiver::class.java).apply {
+            action = ChatActionReceiver.ACTION_REJECT_CHAT
+            putExtra("callerId", callerId)
+            putExtra("sessionId", sessionId)
+        }
+        val acceptPending = PendingIntent.getBroadcast(
+            this,
+            System.currentTimeMillis().toInt(),
+            acceptIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val rejectPending = PendingIntent.getBroadcast(
+            this,
+            System.currentTimeMillis().toInt() + 1,
+            rejectIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = NotificationCompat.Builder(this, CHAT_CALL_CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_menu_agenda)
+            .setContentTitle("Chat Request")
+            .setContentText("$callerName wants to chat")
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setCategory(NotificationCompat.CATEGORY_CALL) // use CALL category for full‑screen behaviour
+            .setFullScreenIntent(fullScreenPending, true)
+            .setContentIntent(fullScreenPending)
+            .addAction(android.R.drawable.sym_action_call, "Accept", acceptPending)
+            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Reject", rejectPending)
+            .setAutoCancel(false)
+            .setOngoing(true)
+            .build()
+
+        val notificationManager = getSystemService(NotificationManager::class.java)
+        notificationManager.notify(callerId.hashCode(), notification)
+
+        try {
+            startActivity(fullScreenIntent)
+        } catch (e2: Exception) {
+            Log.w(TAG, "Direct IncomingCallActivity startActivity for Chat failed, relying on fullScreenIntent", e2)
+        }
+    }
+
+    private fun showChatMessageNotification(senderName: String, text: String, senderId: String, sessionId: String) {
+        val intent = Intent(this, com.astroeleven.app.ui.chat.ChatActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("toUserId", senderId)
+            putExtra("sessionId", sessionId)
+        }
+
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            System.currentTimeMillis().toInt(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = NotificationCompat.Builder(this, CHAT_CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_menu_agenda)
+            .setContentTitle(senderName)
+            .setContentText(text)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .build()
+
+        val notificationManager = getSystemService(NotificationManager::class.java)
+        notificationManager.notify(senderId.hashCode(), notification)
+    }
+}
