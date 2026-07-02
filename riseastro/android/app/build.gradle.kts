@@ -23,6 +23,16 @@ android {
         ndk {
             abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64"))
         }
+
+        // Load environment variables from the root .env file
+        val env = Properties().apply {
+            val envFile = rootProject.file("../../.env")
+            if (envFile.exists()) {
+                envFile.inputStream().use { load(it) }
+            }
+        }
+        val serverUrl = env.getProperty("SERVER_URL") ?: "https://socket.astroeleven.com"
+        buildConfigField("String", "SERVER_URL", "\"$serverUrl\"")
     }
 
     signingConfigs {
@@ -71,6 +81,7 @@ android {
     buildFeatures {
         viewBinding = true
         compose = true
+        buildConfig = true
     }
 
     packaging {

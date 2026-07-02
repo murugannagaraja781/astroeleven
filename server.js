@@ -3184,9 +3184,9 @@ app.post('/api/phonepe/init', async (req, res) => {
       merchantTransactionId: merchantTransactionId,
       merchantUserId: cleanUserId,
       amount: amount * 100, // Paise
-      redirectUrl: `https://astroeleven.com/api/payment/callback?isApp=true`,
+      redirectUrl: `${SERVER_URL || 'https://astroeleven.com'}/api/payment/callback?isApp=true`,
       redirectMode: "POST",
-      callbackUrl: `https://astroeleven.com/api/phonepe/callback`,
+      callbackUrl: `${SERVER_URL || 'https://astroeleven.com'}/api/phonepe/callback`,
       mobileNumber: userMobile,
       paymentInstrument: {
         type: "PAY_PAGE"
@@ -3258,7 +3258,7 @@ app.post('/api/phonepe/sign', async (req, res) => {
       merchantTransactionId: merchantTransactionId,
       merchantUserId: cleanUserId,
       amount: amount * 100,
-      callbackUrl: "https://astroeleven.com/api/phonepe/callback",
+      callbackUrl: `${SERVER_URL || 'https://astroeleven.com'}/api/phonepe/callback`,
       mobileNumber: userMobile,
       paymentInstrument: {
         type: "PAY_PAGE"
