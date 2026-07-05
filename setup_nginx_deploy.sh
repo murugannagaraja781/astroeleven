@@ -7,7 +7,7 @@ echo "=========================================="
 echo "    astroeleven Nginx Auto Setup"
 echo "=========================================="
 
-APP_DIR="/var/www/Astro Eleven"
+APP_DIR="/var/www/astroelevent"
 APP_NAME="astro-app"
 DEFAULT_PORT=3000
 
@@ -55,17 +55,17 @@ if [ ! -d "$APP_DIR" ]; then
     sudo mkdir -p /var/www
     sudo chown $USER:$USER /var/www
     cd /var/www
-    git clone https://github.com/murugannagaraja781/Astro Eleven.git $APP_DIR
+    git clone https://github.com/murugannagaraja781/astroelevent.git "$APP_DIR"
 else
     echo "Updating existing code in $APP_DIR..."
-    cd $APP_DIR
+    cd "$APP_DIR"
     git reset --hard
     git pull origin main
 fi
 
 # Step 5: Install App Dependencies & Handle .env
 echo "[5/7] Installing app dependencies..."
-cd $APP_DIR
+cd "$APP_DIR"
 
 # Determine PORT from .env if possible
 PORT=$DEFAULT_PORT
@@ -111,7 +111,7 @@ server {
 
     # Static uploads folder for profile pictures, etc.
     location /uploads/ {
-        alias $APP_DIR/uploads/;
+        alias "$APP_DIR/uploads/";
         expires 30d;
         add_header Cache-Control \"public, no-transform\";
     }
@@ -132,7 +132,7 @@ fi
 
 # Step 7: Start App with PM2
 echo "[7/7] Starting application with PM2..."
-cd $APP_DIR
+cd "$APP_DIR"
 pm2 delete $APP_NAME 2>/dev/null || true
 pm2 start server.js --name $APP_NAME
 pm2 save

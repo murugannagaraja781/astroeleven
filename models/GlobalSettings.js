@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require('../utils/mongoose-mysql');
 
 const GlobalSettingsSchema = new mongoose.Schema({
     key: { type: String, unique: true },

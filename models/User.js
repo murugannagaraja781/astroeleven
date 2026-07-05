@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require('../utils/mongoose-mysql');
 
 const UserSchema = new mongoose.Schema({
     userId: { type: String, unique: true },

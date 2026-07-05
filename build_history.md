@@ -118,25 +118,38 @@ A clean release App Bundle (versionName "3.1.7", versionCode 20) was compiled an
 
 ---
 
-## [2026-07-02] - Debug APK Build - Version 3.1.9 (Updated Launcher Icon)
+## [2026-07-02] - Debug APK Build - Version 3.1.9 (.env Integration & New Launcher Icon)
 
-A debug APK was built containing the latest code configuration and the new launcher icon logo.
+A debug APK was built containing the latest code configuration and the new launcher icon logo. The backend API URL is now dynamically configured through the root `.env` file (`SERVER_URL`) via `BuildConfig`.
 
-* **Date & Time:** July 02, 2026 - 08:06:53 PM (IST)
+* **Date & Time:** July 02, 2026 - 09:34:17 PM (IST)
 * **File Name:** `app-debug.apk`
-* **File Path:** `riseastro/android/app/build/outputs/apk/debug/app-debug.apk`
+* **File Path:** `astroeleven/android/app/build/outputs/apk/debug/app-debug.apk`
 * **Size:** 123,112,151 Bytes (~117.41 MB)
 * **Status:** Build Successful
 
 ---
 
-## [2026-07-02] - Release APK Build - Version 3.1.9 (Updated Launcher Icon)
+## [2026-07-02] - Release APK Build - Version 3.1.9 (.env Integration & New Launcher Icon)
 
-A release APK was compiled and signed using the configured release keystore, including the new launcher icon logo.
+A release APK was compiled and signed using the configured release keystore, including the new launcher icon logo. The backend API URL is now dynamically configured through the root `.env` file (`SERVER_URL`) via `BuildConfig`.
 
-* **Date & Time:** July 02, 2026 - 08:06:53 PM (IST)
+* **Date & Time:** July 02, 2026 - 09:34:17 PM (IST)
 * **File Name:** `app-release.apk`
-* **File Path:** `riseastro/android/app/build/outputs/apk/release/app-release.apk`
-* **Size:** 97,538,614 Bytes (~93.02 MB)
+* **File Path:** `astroeleven/android/app/build/outputs/apk/release/app-release.apk`
+* **Size:** 97,538,624 Bytes (~93.02 MB)
 * **Status:** Build Successful
+
+---
+
+## [2026-07-04] - Debug APK Build - Version 3.1.9 (Clean Rebuild with AstroEleven Branding)
+
+A debug APK was built containing the clean codebase after renaming all references from `riseastro` to `astroeleven`. The API URL is dynamically configured to point to the live server.
+
+* **Date & Time:** July 04, 2026 - 10:50 PM (IST)
+* **File Name:** `app-debug.apk`
+* **File Path:** `astroeleven/android/app/build/outputs/apk/debug/app-debug.apk`
+* **Size:** 119,671,311 Bytes (~114 MB)
+* **Status:** Build Successful
+
 

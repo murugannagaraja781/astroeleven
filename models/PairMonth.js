@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require('../utils/mongoose-mysql');
 
 const PairMonthSchema = new mongoose.Schema({
     pairId: { type: String, required: true, index: true }, // client_id + "_" + astrologer_id

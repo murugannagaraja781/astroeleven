@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require('../utils/mongoose-mysql');
 
 const AcademyVideoSchema = new mongoose.Schema({
     title: String,

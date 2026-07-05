@@ -1,43 +1,43 @@
 :root {
-    /* Premium Celestial Light Theme - White, Yellow, Orange Architecture */
-    --bg-body: #FFFFFF;
-    /* Pure White background */
-    --bg-card: #FFFDF7;
-    /* Premium celestial warm cream card */
-    --bg-card-hover: #FFF7E6;
-    /* Soft warm light orange hover */
+    /* Premium Luxury Green Theme Config */
+    --bg-body: #F8FAFC;
+    /* Slate Ice White background */
+    --bg-card: #FFFFFF;
+    /* Clean White Card Surface */
+    --bg-card-hover: #F1F5F9;
+    /* Soft light hover */
     --bg-glass: rgba(255, 255, 255, 0.9);
-    --bg-glass-heavy: rgba(255, 254, 250, 0.98);
+    --bg-glass-heavy: rgba(255, 255, 255, 0.98);
 
-    --primary: #FF7F00;
-    /* Vibrant Brand Orange */
-    --primary-rgb: 255, 127, 0;
-    --primary-glow: rgba(255, 127, 0, 0.15);
+    --primary: #166534;
+    /* Deep Forest Green */
+    --primary-rgb: 22, 101, 52;
+    --primary-glow: rgba(22, 101, 52, 0.15);
 
-    --accent: #E5A900;
-    /* Rich Golden Yellow */
-    --accent-rgb: 229, 169, 0;
-    --accent-glow: rgba(229, 169, 0, 0.15);
+    --accent: #D4AF37;
+    /* Muted Luxury Gold */
+    --accent-rgb: 212, 175, 55;
+    --accent-glow: rgba(212, 175, 55, 0.15);
 
-    --text-main: #2C251D;
-    /* Premium soft cocoa dark charcoal */
-    --text-secondary: #5C5248;
-    /* Medium warm gray text */
-    --text-muted: #8E7C6E;
-    /* Elegant warm muted text */
-    --text-dim: #A89687;
+    --text-main: #0F172A;
+    /* Slate dark charcoal primary text */
+    --text-secondary: #475569;
+    /* Slate medium gray text */
+    --text-muted: #64748B;
+    /* Slate warm muted text */
+    --text-dim: #94A3B8;
 
-    --border-soft: rgba(255, 127, 0, 0.12);
-    --border-medium: rgba(255, 127, 0, 0.22);
-    --border-accent: rgba(255, 127, 0, 0.45);
+    --border-soft: #E5E7EB;
+    --border-medium: #CBD5E1;
+    --border-accent: #166534;
 
     --radius-lg: 16px;
     --radius-md: 12px;
     --radius-sm: 8px;
 
     --glass-blur: blur(12px);
-    --shadow-glow: 0 4px 20px rgba(255, 127, 0, 0.08);
-    --shadow-elevation: 0 10px 40px -10px rgba(255, 127, 0, 0.12);
+    --shadow-glow: 0 4px 20px rgba(15, 23, 42, 0.04);
+    --shadow-elevation: 0 10px 30px rgba(15, 23, 42, 0.04);
 
     --font-heading: 'Cinzel', serif;
     --font-body: 'Outfit', sans-serif;

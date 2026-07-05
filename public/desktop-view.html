@@ -46,7 +46,7 @@
           colors: {
             'cosmic-dark': '#140F0A',
             'cosmic-card': '#211912',
-            'cosmic-orange': '#FF7F00',
+            'cosmic-green': '#166534',
             'milk-green': '#00FF88',
             'cosmic-muted': '#A58B74',
           }
@@ -76,7 +76,7 @@
       --bg-glass: rgba(255, 253, 249, 0.85);
       --bg-glass-heavy: rgba(255, 255, 255, 0.95);
 
-      --primary: #FF7F00;
+      --primary: #166534;
       --primary-rgb: 255, 127, 0;
       --primary-glow: rgba(255, 127, 0, 0.1);
 
@@ -365,7 +365,7 @@
 
     /* Online: Green & Pulsing */
     .status-badge.online {
-      background: #FF7F00;
+      background: #166534;
       /* Darker Green as requested */
       box-shadow: 0 0 0 2px white;
       /* Clean separator */
@@ -373,7 +373,7 @@
 
     /* Active Profile Image Ring */
     .astro-img.online-active {
-      border: 2px solid #FF7F00;
+      border: 2px solid #166534;
       animation: pulse-border 2s infinite;
     }
 
@@ -441,7 +441,7 @@
       top: 16px;
       right: 16px;
       background: #EFF6FF;
-      color: #FF7F00;
+      color: #166534;
       font-weight: 700;
       font-size: 0.85rem;
       padding: 4px 10px;
@@ -492,7 +492,7 @@
     .cta-btn.active-audio {
       background: #EFF6FF;
       border-color: #D1D5DB;
-      color: #FF7F00;
+      color: #166534;
       cursor: pointer;
     }
 
@@ -769,7 +769,7 @@
 
     .countdown-circle-fg {
       fill: none;
-      stroke: #FF7F00;
+      stroke: #166534;
       stroke-width: 8;
       stroke-linecap: round;
       stroke-dasharray: 251;
@@ -785,7 +785,7 @@
       transform: translate(-50%, -50%);
       font-size: 1.5rem;
       font-weight: bold;
-      color: #FF7F00;
+      color: #166534;
     }
 
 
@@ -1073,7 +1073,7 @@
     .bal-amount {
       font-size: 1.5rem;
       font-weight: 700;
-      color: #FF7F00;
+      color: #166534;
     }
 
     .btn-recharge {
@@ -1549,7 +1549,7 @@
     }
 
     .download-card-banner {
-      background: linear-gradient(135deg, #B85A0A, #FF7F00);
+      background: linear-gradient(135deg, #0F766E, #166534);
       padding: 40px 20px;
       text-align: center;
       color: white;
@@ -1582,7 +1582,7 @@
     }
 
     .download-action-btn {
-      background: #FF7F00;
+      background: #166534;
       color: white;
       text-decoration: none;
       padding: 16px 24px;
@@ -1792,7 +1792,7 @@
     }
 
     .refer-header {
-      background: linear-gradient(135deg, #B85A0A, #FF7F00);
+      background: linear-gradient(135deg, #0F766E, #166534);
       padding: 30px 20px;
       color: white;
       position: relative;
@@ -1821,7 +1821,7 @@
 
     .refer-rule-icon {
       background: #EFF6FF;
-      color: #FF7F00;
+      color: #166534;
       width: 20px;
       height: 20px;
       border-radius: 50%;
@@ -1836,7 +1836,7 @@
 
     .refer-code-box {
       background: #F9FAFB;
-      border: 2px dashed #FF7F00;
+      border: 2px dashed #166534;
       padding: 16px;
       border-radius: 16px;
       margin: 20px 0;
@@ -1921,7 +1921,7 @@
     }
 
     .referral-input-glow {
-      border: 2px solid #FF7F00 !important;
+      border: 2px solid #166534 !important;
       box-shadow: 0 0 15px rgba(5, 150, 105, 0.2);
     }
   </style>
@@ -2318,9 +2318,9 @@
           <div id="dailyHoroscopeSection" class="mb-16">
             <!-- Section Header -->
             <div class="flex items-center gap-4 mb-8">
-              <div class="w-1 h-8 bg-gradient-to-b from-cosmic-orange to-milk-green rounded-full"></div>
+              <div class="w-1 h-8 bg-gradient-to-b from-cosmic-green to-milk-green rounded-full"></div>
               <h2 class="font-poppins text-2xl font-bold text-white tracking-tight">Daily Insights</h2>
-              <div class="flex-1 h-px bg-gradient-to-r from-cosmic-orange/30 to-transparent"></div>
+              <div class="flex-1 h-px bg-gradient-to-r from-cosmic-green/30 to-transparent"></div>
             </div>
 
             <!-- Horoscope Container -->
@@ -2330,7 +2330,7 @@
               <!-- Header Row -->
               <div class="flex items-center justify-between mb-6">
                 <div class="flex items-center gap-4">
-                  <span id="activeSignIcon" class="text-4xl text-cosmic-orange drop-shadow-lg animate-bounce"
+                  <span id="activeSignIcon" class="text-4xl text-cosmic-green drop-shadow-lg animate-bounce"
                     style="animation-duration: 3s;">♈</span>
                   <h3 id="activeSignName" class="font-playfair text-3xl font-bold text-white tracking-tight">மேஷம்</h3>
                 </div>
@@ -2346,7 +2346,7 @@
               <!-- Horoscope Content Card -->
               <div class="bg-black/20 rounded-xl p-6 relative">
                 <div id="horoscopeLoading" class="loading-spinner hidden">
-                  <i class="fas fa-circle-notch fa-spin text-cosmic-orange text-2xl"></i>
+                  <i class="fas fa-circle-notch fa-spin text-cosmic-green text-2xl"></i>
                 </div>
                 <div class="horoscope-content-box" id="horoscopeContent">
                   <div id="horoscopeText" class="font-inter text-base leading-relaxed text-gray-200"></div>
@@ -2390,7 +2390,7 @@
           </div>
           <div id="astroList">
             <div class="loading-spinner" style="padding: 40px; text-align: center;">
-              <i class="fas fa-circle-notch fa-spin" style="font-size: 2rem; color: #FF7F00;"></i>
+              <i class="fas fa-circle-notch fa-spin" style="font-size: 2rem; color: #166534;"></i>
               <p style="margin-top: 10px; color: #9CA3AF;">Loading Astrologers...</p>
             </div>
           </div>
@@ -2699,7 +2699,7 @@
           </div>
         </div>
         <button class="cosmic-btn" onclick="fetchDashboardChart()"
-          style="font-size:1.1rem; padding:15px; border-radius:12px; box-shadow:0 10px 15px -3px rgba(4,120,87,0.2); width:100%; border:none; background:linear-gradient(to right, #FF7F00, #D4700B); color:white; cursor:pointer; font-weight:600;">
+          style="font-size:1.1rem; padding:15px; border-radius:12px; box-shadow:0 10px 15px -3px rgba(4,120,87,0.2); width:100%; border:none; background:linear-gradient(to right, #166534, #0F766E); color:white; cursor:pointer; font-weight:600;">
           <i class="fas fa-calculator"></i> Get Birth Chart
         </button>
       </div>
@@ -2926,7 +2926,7 @@
 
       <!-- Astro Earnings Card -->
       <div class="progress-card"
-        style="margin-bottom: 0px; background: linear-gradient(135deg, #3B82F6 0%, #FF7F00 100%); color: white; border: none;">
+        style="margin-bottom: 0px; background: linear-gradient(135deg, #0F766E 0%, #166534 100%); color: white; border: none;">
         <div>
           <div style="font-weight: bold; font-size: 1.1rem;">Total Earnings</div>
 
@@ -2946,7 +2946,7 @@
         </div>
         <div style="text-align: right;">
           <button id="btnAstroWithdraw" onclick="astroRequestWithdrawal()"
-            style="background: var(--bg-card); color: #FF7F00; border: none; padding: 8px 12px; border-radius: 8px; font-weight: bold; font-size: 0.8rem; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            style="background: var(--bg-card); color: #166534; border: none; padding: 8px 12px; border-radius: 8px; font-weight: bold; font-size: 0.8rem; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
             Withdraw
           </button>
         </div>
@@ -3158,7 +3158,7 @@
                 id="mainWalletVal">0.00</span>
             </div>
           </div>
-          <i class="fas fa-wallet" style="color: #FF7F00; font-size: 1.5rem; opacity: 0.2;"></i>
+          <i class="fas fa-wallet" style="color: #166534; font-size: 1.5rem; opacity: 0.2;"></i>
         </div>
 
         <div
@@ -3178,7 +3178,7 @@
       </p>
 
       <button class="cosmic-btn" onclick="openRechargeFromMain()"
-        style="width: 100%; padding: 16px; border-radius: 12px; font-weight: bold; font-size: 1.1rem; border:none; background: #FF7F00; color:white;">
+        style="width: 100%; padding: 16px; border-radius: 12px; font-weight: bold; font-size: 1.1rem; border:none; background: #166534; color:white;">
         <i class="fas fa-plus-circle"></i> Add Money
       </button>
     </div>
@@ -4729,7 +4729,7 @@
               <div class="slide-cta" onclick="document.getElementById('astroList').scrollIntoView({behavior:'smooth'})">Book Now <i class="fas fa-arrow-right"></i></div>
             </div>
           </div>
-          <div class="home-slide" style="background: linear-gradient(135deg, #FF7F00 0%, #3B82F6 100%);">
+          <div class="home-slide" style="background: linear-gradient(135deg, #166534 0%, #0F766E 100%);">
             <div class="slide-content">
               <div class="slide-title">Find Your Soulmate</div>
               <div class="slide-subtitle">Vedic Compatibility</div>
@@ -5248,7 +5248,7 @@
               let statusLabel = `<span style="color:#F59E0B; font-weight:bold;">PENDING</span>`;
               let bgColor = '#FFFBEB';
               if (w.status === 'approved') {
-                statusLabel = `<span style="color:#FF7F00; font-weight:bold;">APPROVED</span>`;
+                statusLabel = `<span style="color:#166534; font-weight:bold;">APPROVED</span>`;
                 bgColor = '#EFF6FF';
               } else if (w.status === 'rejected') {
                 statusLabel = `<span style="color:#DC2626; font-weight:bold;">REJECTED</span>`;
@@ -5491,7 +5491,7 @@
                </div>
                <div style="display:flex; flex-direction:column; align-items:flex-end;">
                   <span style="font-size:0.7rem; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px;">${amountLabel}</span>
-                  <span style="font-size:1.1rem; font-weight:800; color:${isAstro ? '#FF7F00' : '#1e3a8a'};">₹${amount.toFixed(2)}</span>
+                  <span style="font-size:1.1rem; font-weight:800; color:${isAstro ? '#166534' : '#1e3a8a'};">₹${amount.toFixed(2)}</span>
                </div>
             </div>
           `;
@@ -7254,14 +7254,14 @@
         html += `
           <div class="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-white/10">
             <div class="flex items-start gap-2">
-              <i class="fas fa-briefcase text-cosmic-orange text-sm mt-1"></i>
+              <i class="fas fa-briefcase text-cosmic-green text-sm mt-1"></i>
               <div>
                 <span class="font-poppins text-xs font-semibold text-cosmic-muted uppercase tracking-wider block mb-0.5">தொழில்</span>
                 <span class="font-inter text-sm text-white/90">${data.details.career_ta}</span>
               </div>
             </div>
             <div class="flex items-start gap-2">
-              <i class="fas fa-coins text-cosmic-orange text-sm mt-1"></i>
+              <i class="fas fa-coins text-cosmic-green text-sm mt-1"></i>
               <div>
                 <span class="font-poppins text-xs font-semibold text-cosmic-muted uppercase tracking-wider block mb-0.5">நிதி</span>
                 <span class="font-inter text-sm text-white/90">${data.details.finance_ta}</span>
@@ -7444,7 +7444,7 @@
             </div>
           ` : ''}
           <!-- Lagna Section -->
-          <div style="background:linear-gradient(135deg, #D4700B 0%, #FF7F00 100%); color:white; padding:15px; border-radius:12px; margin-bottom:15px;">
+          <div style="background:linear-gradient(135deg, #0F766E 0%, #166534 100%); color:white; padding:15px; border-radius:12px; margin-bottom:15px;">
             <div style="font-size:0.8rem; opacity:0.9; margin-bottom:5px;">🌟 ${t('Ascendant')}</div>
             <div style="font-size:1.5rem; font-weight:bold;">${t(d.houses?.ascendantDetails?.signName) || 'N/A'}</div>
             <div style="font-size:0.8rem; margin-top:5px;">${t('Nakshatra')}: ${t(d.houses?.ascendantDetails?.nakshatra) || 'N/A'}</div>
@@ -7770,7 +7770,7 @@
 
       // 1. Lagna & Panchangam Header
       html += `
-        <div style="background:linear-gradient(135deg, #D4700B 0%, #FF7F00 100%); color:white; padding:15px; border-radius:12px; margin-bottom:15px; box-shadow:0 10px 15px -3px rgba(4,120,87,0.2);">
+        <div style="background:linear-gradient(135deg, #0F766E 0%, #166534 100%); color:white; padding:15px; border-radius:12px; margin-bottom:15px; box-shadow:0 10px 15px -3px rgba(4,120,87,0.2);">
           <div style="display:flex; justify-content:space-between; align-items:center;">
              <div>
                 <div style="font-size:0.8rem; opacity:0.9;">🌟 ${t('Ascendant')}</div>
@@ -8345,7 +8345,7 @@
 
           listEl.innerHTML = res.data.map(txn => {
             const date = new Date(txn.createdAt).toLocaleDateString() + ' ' + new Date(txn.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const statusColor = txn.status === 'success' ? '#FF7F00' : (txn.status === 'failed' ? '#DC2626' : '#D97706');
+            const statusColor = txn.status === 'success' ? '#166534' : (txn.status === 'failed' ? '#DC2626' : '#D97706');
             const icon = txn.status === 'success' ? 'fa-check-circle' : (txn.status === 'failed' ? 'fa-times-circle' : 'fa-clock');
 
             return `
@@ -8823,7 +8823,7 @@
       style="background: var(--bg-card); border-radius:15px; width:90%; max-width:350px; text-align:center; padding:30px; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
       <h2 style="color:#111; margin-bottom:10px;">Session Summary</h2>
       <!-- <div id="summaryText" style="font-size:1.2rem; color:var(--text-muted); margin-bottom:20px;"></div> -->
-      <div class="summary-amount" style="font-size:2rem; font-weight:bold; color: #FF7F00; margin-bottom:30px;"></div>
+      <div class="summary-amount" style="font-size:2rem; font-weight:bold; color: #166534; margin-bottom:30px;"></div>
       <button onclick="closeSummaryModal()" class="btn-primary"
         style="width:100%; padding: 12px; font-size:1rem; border-radius:10px; border:none; background:#2563EB; color:white; font-weight:bold;">Okay</button>
     </div>
@@ -8871,7 +8871,7 @@
             <input type="text" id="inputReferralCode" class="cosmic-input" placeholder="Enter Code"
               style="margin:0; text-align:center; flex:1; height:45px; border-radius:12px; font-weight:700; border: 1px solid #ddd;">
             <button class="cosmic-btn" onclick="applyReferral()"
-              style="width: auto; margin:0; padding: 0 20px; height:45px; border-radius:12px; border:none; background: #FF7F00; color:white; font-weight:bold;">Claim</button>
+              style="width: auto; margin:0; padding: 0 20px; height:45px; border-radius:12px; border:none; background: #166534; color:white; font-weight:bold;">Claim</button>
           </div>
         </div>
       </div>
@@ -9746,14 +9746,14 @@
       font-family: 'Playfair Display', serif;
       font-size: 1.4rem;
       font-weight: 700;
-      color: #FF7F00;
+      color: #166534;
       /* Gold Name */
       margin: 0;
       letter-spacing: 0.5px;
     }
 
     .verified-gold {
-      color: #FF7F00;
+      color: #166534;
       font-size: 1rem;
       filter: drop-shadow(0 0 5px rgba(212, 175, 55, 0.4));
     }
@@ -9946,7 +9946,7 @@
       display: block;
       width: 120px;
       padding: 8px 0;
-      background: linear-gradient(135deg, #FF7F00 0%, #B8860B 100%);
+      background: linear-gradient(135deg, #166534 0%, #D4AF37 100%);
       box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
       color: #000;
       font: 700 0.65rem 'Outfit', sans-serif;

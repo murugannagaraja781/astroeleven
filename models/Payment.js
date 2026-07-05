@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require('../utils/mongoose-mysql');
 
 const PaymentSchema = new mongoose.Schema({
     transactionId: { type: String, unique: true },

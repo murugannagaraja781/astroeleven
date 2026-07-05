@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require('../utils/mongoose-mysql');
 
 const WithdrawalSchema = new mongoose.Schema({
     astroId: String,

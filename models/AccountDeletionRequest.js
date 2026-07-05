@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require('../utils/mongoose-mysql');
 
 const AccountDeletionRequestSchema = new mongoose.Schema({
     requestId: { type: String, unique: true },

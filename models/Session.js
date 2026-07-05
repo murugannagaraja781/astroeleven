@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require('../utils/mongoose-mysql');
 
 const SessionSchema = new mongoose.Schema({
     sessionId: { type: String, unique: true },

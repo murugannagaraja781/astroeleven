@@ -7,7 +7,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
 const crypto = require('crypto');
-const mongoose = require('mongoose');
+const mongoose = require('./utils/mongoose-mysql');
 const multer = require('multer');
 
 const { DateTime } = require('luxon');
@@ -633,12 +633,13 @@ async function loadSettings() {
 
 // ===== Seed Data =====
 async function seedDatabase() {
-  const count = await User.countDocuments();
-  if (count > 0) return; // Already seeded
-
   console.log('--- Seeding Database ---');
 
-  const create = async (name, phone, role) => {
+  const checkAndCreate = async (name, phone, role) => {
+    const existing = await User.findOne({ phone });
+    if (existing) {
+      return;
+    }
     const userId = crypto.randomUUID();
     await User.create({
       userId, name, phone, role,
@@ -646,15 +647,22 @@ async function seedDatabase() {
       price: 20,
       walletBalance: 369,
       experience: role === 'astrologer' ? 5 : 0,
-      approvalStatus: role === 'astrologer' ? 'approved' : 'pending'
+      approvalStatus: role === 'astrologer' ? 'approved' : 'pending',
+      isNewUser: true
     });
+    console.log(`✅ Seeded ${role}: ${name} (${phone})`);
   };
 
-  await create('Test Astrologer', '8000000001', 'astrologer');
-  await create('Test Client', '9000000001', 'client');
-  await create('Super Admin', '9876543210', 'superadmin');
+  // Seed 9-digit test numbers requested by user
+  await checkAndCreate('Astrologer Test', '800000001', 'astrologer');
+  await checkAndCreate('Test User', '900000001', 'client');
 
-  console.log('--- Database Seeded ---');
+  // Seed standard 10-digit test numbers
+  await checkAndCreate('Test Astrologer', '8000000001', 'astrologer');
+  await checkAndCreate('Test Client', '9000000001', 'client');
+  await checkAndCreate('Super Admin', '9876543210', 'superadmin');
+
+  console.log('--- Database Seeding Complete ---');
 }
 // seedDatabase(); // Moved to DB connection success
 

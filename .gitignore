@@ -48,6 +48,10 @@ local.properties
 .cxx
 
 # Sensitive/Keys/Credentials
+firebase-service-account.json
+**/firebase-service-account.json
+*-firebase-service-account.json
+**/*firebase-service-account.json
 github_action_key
 github_action_key.pub
 TEST_CREDENTIALS.md

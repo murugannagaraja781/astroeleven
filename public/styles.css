@@ -1,21 +1,21 @@
 /* === Celestial Design System (Premium Astrology Edition) === */
  :root {
-    --bg-dark: #FFFDF9; /* Celestial Light Bg */
-    --bg-card: #FFFFFF; /* Celestial Light Surface */
-    --bg-glass: rgba(255, 253, 249, 0.85); /* Celestial Transparent Glass */
-    --primary: #FF7F00; /* Brand Orange */
-    --primary-glow: rgba(255, 127, 0, 0.1);
-    --accent: #E5A900; /* Rich Golden Yellow for contrast */
-    --gold: rgba(212, 175, 55, 0.1);
-    --gold-glow: rgba(255, 127, 0, 0.01);
-    --primary-yellow: #E5A900; /* Rich Golden Yellow */
-    --premium-yellow-glow: rgba(229, 169, 0, 0.2);
-    --text-main: #2C251D; /* Premium soft dark charcoal text */
-    --text-muted: #8E7C6E; /* Elegant warm muted text */
-    --success: #10B981;
-    --danger: #EF4444;
-    --astral-blue: #FF7F00;
-    --astral-purple: #D4700B;
+    --bg-dark: #F8FAFC; /* Slate Ice White Bg */
+    --bg-card: #FFFFFF; /* Slate Surface */
+    --bg-glass: rgba(248, 250, 252, 0.85); /* Transparent Glass */
+    --primary: #166534; /* Forest Green */
+    --primary-glow: rgba(22, 101, 52, 0.08);
+    --accent: #D4AF37; /* Gold Accent */
+    --gold: rgba(212, 175, 55, 0.08);
+    --gold-glow: rgba(212, 175, 55, 0.01);
+    --primary-yellow: #D4AF37;
+    --premium-yellow-glow: rgba(212, 175, 55, 0.15);
+    --text-main: #0F172A; /* Slate primary text */
+    --text-muted: #475569; /* Slate secondary text */
+    --success: #16A34A;
+    --danger: #DC2626;
+    --astral-blue: #0F766E; /* Teal */
+    --astral-purple: #15803D; /* Primary Hover Green */
     --font-family: 'Outfit', sans-serif;
     --nav-height-mobile: 80px;
     --header-height-desktop: 70px;
@@ -35,7 +35,7 @@
     font-family: var(--font-family);
     background-color: var(--bg-dark);
      color: var(--text-main);
-     background: linear-gradient(135deg, #FFFDF9 0%, #FFF9E6 100%) !important;
+     background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%) !important;
      min-height: 100vh;
      overflow-x: hidden;
    }
@@ -135,49 +135,43 @@
      padding: 0;
    }
 
-   /* Dashboard Cards Mobile */
+    /* Dashboard Cards Mobile */
     .stat-card-modern {
-      background: linear-gradient(180deg, #1C140E 0%, #140F0A 100%);
-      backdrop-filter: blur(10px);
-      border-radius: 20px;
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
       padding: 20px;
-      border: 1px solid rgba(255, 127, 0, 0.1);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2), 0 0 15px var(--gold-glow);
-     box-shadow:
-       0 10px 25px rgba(0, 0, 0, 0.2),
-       inset 0 1px 0 rgba(255, 255, 255, 0.1);
-     position: relative;
-     overflow: hidden;
-     transition: all 0.3s ease;
-     margin-bottom: 16px;
-   }
+      border: 1px solid var(--border-soft);
+      box-shadow: var(--shadow-md);
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      margin-bottom: 16px;
+    }
 
-   .stat-card-modern::before {
-     content: '';
-     position: absolute;
-     top: 0;
-     left: 0;
-     right: 0;
-     height: 1px;
-     background: linear-gradient(90deg, transparent, var(--primary), transparent);
-   }
+    .stat-card-modern::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--primary);
+    }
 
-   .stat-card-modern::after {
-     content: '✦';
-     position: absolute;
-     top: 10px;
-     right: 10px;
-     color: rgba(212, 175, 55, 0.1);
-     font-size: 20px;
-   }
+    .stat-card-modern::after {
+      content: '✦';
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      color: rgba(22, 101, 52, 0.15);
+      font-size: 20px;
+    }
 
-   .stat-card-modern:hover {
-     transform: translateY(-5px);
-     border-color: rgba(212, 175, 55, 0.3);
-     box-shadow:
-       0 15px 35px rgba(0, 0, 0, 0.3),
-       inset 0 1px 0 rgba(255, 255, 255, 0.15);
-   }
+    .stat-card-modern:hover {
+      transform: translateY(-4px);
+      border-color: var(--primary-glow);
+      box-shadow: 0 15px 35px rgba(15, 23, 42, 0.08);
+    }
 
    /* Dashboard Header Mobile */
    #admin-sect-home h2 {
@@ -465,38 +459,32 @@
      margin: 0 !important;
    }
 
-    .stat-card-modern {
-      background: linear-gradient(180deg, #1C140E 0%, #140F0A 100%);
-      backdrop-filter: blur(10px);
-      border-radius: 24px;
-      padding: 28px;
-      border: 1px solid rgba(255, 127, 0, 0.1);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2), 0 0 15px var(--gold-glow);
-     box-shadow:
-       0 15px 35px rgba(0, 0, 0, 0.2),
-       inset 0 1px 0 rgba(255, 255, 255, 0.1);
-     position: relative;
-     overflow: hidden;
-     transition: all 0.3s ease;
-   }
-
-   .stat-card-modern:hover {
-     transform: translateY(-8px);
-     border-color: rgba(212, 175, 55, 0.3);
-     box-shadow:
-       0 20px 40px rgba(0, 0, 0, 0.3),
-       0 0 30px rgba(212, 175, 55, 0.1);
-   }
-
-   .stat-card-modern::before {
-     content: '';
-     position: absolute;
-     top: 0;
-     left: 0;
-     right: 0;
-     height: 1px;
-     background: linear-gradient(90deg, transparent, var(--primary), transparent);
-   }
+     .stat-card-modern {
+       background: var(--bg-card);
+       border-radius: var(--radius-lg);
+       padding: 28px;
+       border: 1px solid var(--border-soft);
+       box-shadow: var(--shadow-md);
+       position: relative;
+       overflow: hidden;
+       transition: all 0.3s ease;
+     }
+ 
+     .stat-card-modern:hover {
+       transform: translateY(-8px);
+       border-color: var(--primary-glow);
+       box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+     }
+ 
+     .stat-card-modern::before {
+       content: '';
+       position: absolute;
+       top: 0;
+       left: 0;
+       right: 0;
+       height: 2px;
+       background: var(--primary);
+     }
 
    .stat-card-modern::after {
      content: '✦';
@@ -576,64 +564,61 @@
    .app-header {
      display: none;
    }
- }
+  /* Shared Components */
+   .card {
+     background: var(--bg-card);
+     border-radius: var(--radius-lg);
+     padding: 20px;
+     border: 1px solid var(--border-soft);
+     box-shadow: var(--shadow-md);
+   }
 
- /* Shared Components */
-  .card {
-    background: linear-gradient(180deg, #1C140E 0%, #140F0A 100%);
-    backdrop-filter: blur(10px);
-    border-radius: 20px;
-    padding: 20px;
-    border: 1px solid rgba(255, 127, 0, 0.1);
-    box-shadow:
-      0 10px 25px rgba(0, 0, 0, 0.2),
-      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+   .glass-panel {
+     background: var(--bg-glass);
+     backdrop-filter: blur(20px);
+     border: 1px solid var(--border-soft);
+   }
+
+  .btn {
+     background: var(--primary);
+     color: #FFFFFF;
+     border: none;
+     padding: 14px 28px;
+     border-radius: var(--radius-md);
+     font-weight: 600;
+     font-family: 'Outfit', sans-serif;
+     cursor: pointer;
+     transition: all 0.3s ease;
+     box-shadow: 0 4px 12px rgba(22, 101, 52, 0.15);
+     position: relative;
+     overflow: hidden;
   }
-
-  .glass-panel {
-    background: rgba(28, 20, 14, 0.7);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 127, 0, 0.1);
+ 
+  .btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.6s ease;
   }
-
- .btn {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
-    color: #1F2937;
-   border: none;
-   padding: 14px 28px;
-   border-radius: 12px;
-   font-weight: 600;
-   font-family: 'Outfit', sans-serif;
-   cursor: pointer;
-   transition: all 0.3s ease;
-   position: relative;
-   overflow: hidden;
- }
-
- .btn::before {
-   content: '';
-   position: absolute;
-   top: 0;
-   left: 0;
-   right: 0;
-   bottom: 0;
-   background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent);
-   transform: translateX(-100%);
-   transition: transform 0.6s ease;
- }
-
- .btn:hover::before {
-   transform: translateX(100%);
- }
-
- .btn:hover {
-   transform: translateY(-2px);
-   box-shadow: 0 10px 25px rgba(212, 175, 55, 0.3);
- }
-
- .btn:active {
-   transform: translateY(0);
- }
+ 
+  .btn:hover::before {
+    transform: translateX(100%);
+  }
+ 
+  .btn:hover {
+    background: var(--primary-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(22, 101, 52, 0.25);
+  }
+ 
+  .btn:active {
+    transform: translateY(0);
+  }
 
  /* Animations */
  @keyframes fadeIn {
