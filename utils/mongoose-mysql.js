@@ -79,8 +79,22 @@ function buildWhereClause(query) {
         // Map MongoDB _id to SQL auto-increment id
         const dbKey = (key === '_id') ? 'id' : key;
 
+        // Support for $or operator
+        if (key === '$or' && Array.isArray(val)) {
+            const orClauses = [];
+            for (const subQuery of val) {
+                const { clause: subClause, values: subValues } = buildWhereClause(subQuery);
+                orClauses.push(`(${subClause})`);
+                values.push(...subValues);
+            }
+            if (orClauses.length > 0) {
+                clauses.push(`(${orClauses.join(' OR ')})`);
+            }
+            continue;
+        }
+
         if (val && typeof val === 'object' && !Array.isArray(val) && !(val instanceof Date)) {
-            // Parse operators: $ne, $gte, $lte, $in, $gt, $lt
+            // Parse operators: $ne, $gte, $lte, $in, $gt, $lt, $exists
             const operators = Object.keys(val);
             for (const op of operators) {
                 const opVal = val[op];
@@ -110,6 +124,12 @@ function buildWhereClause(query) {
                         values.push(...opVal);
                     } else {
                         clauses.push('1=0'); // Match nothing if empty array
+                    }
+                } else if (op === '$exists') {
+                    if (opVal === true || opVal === 1 || opVal === 'true') {
+                        clauses.push(`\`${dbKey}\` IS NOT NULL`);
+                    } else {
+                        clauses.push(`\`${dbKey}\` IS NULL`);
                     }
                 } else if (op === '$regex') {
                     clauses.push(`\`${dbKey}\` LIKE ?`);
@@ -222,6 +242,9 @@ class WrappedDocument {
         const definition = model.schema.definition;
         for (const key in definition) {
             let val = rawData[key];
+            const fieldDef = definition[key];
+            const isBoolType = fieldDef === Boolean || (fieldDef && typeof fieldDef === 'object' && fieldDef.type === Boolean);
+
             if (typeof val === 'string' && (val.startsWith('{') || val.startsWith('['))) {
                 try {
                     val = JSON.parse(val);
@@ -232,15 +255,20 @@ class WrappedDocument {
 
             // Apply default value if null or undefined
             if (val === undefined || val === null) {
-                const fieldDef = definition[key];
                 if (Array.isArray(fieldDef)) {
                     val = [];
                 } else if (fieldDef && typeof fieldDef === 'object' && fieldDef.default !== undefined) {
                     val = (typeof fieldDef.default === 'function') ? fieldDef.default() : fieldDef.default;
                 } else {
-                    val = null;
+                    val = isBoolType ? false : null;
                 }
             }
+
+            // Cast to boolean if field type is Boolean in schema
+            if (isBoolType) {
+                val = (val === 1 || val === '1' || val === true || val === 'true');
+            }
+
             this[key] = val;
         }
 
@@ -512,6 +540,41 @@ class CustomModel {
         const [rows] = await pool.execute(sql, values);
         return rows[0].count;
     }
+
+    async aggregate(pipeline) {
+        if (this.modelName === 'BillingLedger') {
+            const sql = `
+                SELECT 
+                    IFNULL(SUM(chargedToClient), 0) AS usageRevenue,
+                    IFNULL(SUM(creditedToAstrologer), 0) AS totalAstroPayout,
+                    IFNULL(SUM(adminAmount), 0) AS totalAdminRevenue,
+                    COUNT(*) AS totalMinutes
+                FROM billing_ledgers
+            `;
+            const [rows] = await pool.execute(sql);
+            const r = rows[0] || {};
+            return [{
+                _id: null,
+                usageRevenue: Number(r.usageRevenue),
+                totalAstroPayout: Number(r.totalAstroPayout),
+                totalAdminRevenue: Number(r.totalAdminRevenue),
+                totalMinutes: Number(r.totalMinutes)
+            }];
+        } else if (this.modelName === 'Payment') {
+            const sql = `
+                SELECT IFNULL(SUM(amount), 0) AS totalCollected
+                FROM payments
+                WHERE status = 'success'
+            `;
+            const [rows] = await pool.execute(sql);
+            const r = rows[0] || {};
+            return [{
+                _id: null,
+                totalCollected: Number(r.totalCollected)
+            }];
+        }
+        return [];
+    }
 }
 
 // Mongoose-like Schema implementation
@@ -542,10 +605,28 @@ const mongooseEmulator = {
         return true;
     },
     connection: {
+        readyState: 1, // Always connected
         on: (event, cb) => {
             // Emulate connection event hooks
             if (event === 'connected') {
                 setTimeout(cb, 100);
+            }
+        },
+        close: async () => {
+            await pool.end();
+            console.log('📡 MySQL connection pool closed gracefully');
+            return true;
+        },
+        db: {
+            listCollections: () => {
+                return {
+                    toArray: async () => {
+                        const [rows] = await pool.execute("SHOW TABLES");
+                        const key = Object.keys(rows[0] || {})[0];
+                        if (!key) return [];
+                        return rows.map(r => ({ name: r[key] }));
+                    }
+                };
             }
         }
     },
