@@ -667,22 +667,23 @@ fun HomeScreen(
         Scaffold(
             containerColor = appBackgroundColor,
             topBar = {
-                HomeTopBar(
-                    balance = walletBalance,
-                    superBalance = superWalletBalance,
-                    onWalletClick = onWalletClick,
-                    onMenuClick = { scope.launch { drawerState.open() } },
-                    isGuest = isGuest,
-                    isTamil = isTamil,
-                    onToggleLanguage = { isTamil = !isTamil },
-                    onReferClick = { showReferralDialog = true },
-                    userName = userSession?.name ?: if (isTamil) "அன்பர்" else "User",
-                    shareLink = shareLink,
-                    referralCode = referralCode,
-                    searchQuery = searchQuery,
-                    onSearchQueryChange = { searchQuery = it }
-                )
-
+                if (selectedTab != 2) {
+                    HomeTopBar(
+                        balance = walletBalance,
+                        superBalance = superWalletBalance,
+                        onWalletClick = onWalletClick,
+                        onMenuClick = { scope.launch { drawerState.open() } },
+                        isGuest = isGuest,
+                        isTamil = isTamil,
+                        onToggleLanguage = { isTamil = !isTamil },
+                        onReferClick = { showReferralDialog = true },
+                        userName = userSession?.name ?: if (isTamil) "அன்பர்" else "User",
+                        shareLink = shareLink,
+                        referralCode = referralCode,
+                        searchQuery = searchQuery,
+                        onSearchQueryChange = { searchQuery = it }
+                    )
+                }
             },
             floatingActionButton = {},
             bottomBar = {
@@ -728,19 +729,63 @@ fun HomeScreen(
                 }
             }
     ) { padding ->
-            // Profile Action Sheet for Live Astrologers
-            if (selectedLiveAstro != null) {
-                LiveAstroActionSheet(
-                    astro = selectedLiveAstro!!,
-                    isTamil = isTamil,
-                    onChatClick = { onChatClick(it) },
-                    onCallClick = { a, t -> onCallClick(a, t) },
-                    onDismiss = { selectedLiveAstro = null }
-                )
-            }
+        // Profile Action Sheet for Live Astrologers
+        if (selectedLiveAstro != null) {
+            LiveAstroActionSheet(
+                astro = selectedLiveAstro!!,
+                isTamil = isTamil,
+                onChatClick = { onChatClick(it) },
+                onCallClick = { a, t -> onCallClick(a, t) },
+                onDismiss = { selectedLiveAstro = null }
+            )
+        }
 
-            Box(modifier = Modifier.padding(top = padding.calculateTopPadding()).fillMaxSize().background(appBackgroundColor)) {
-                // Content Layer
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .padding(top = padding.calculateTopPadding(), bottom = padding.calculateBottomPadding())
+            .background(appBackgroundColor)
+        ) {
+            if (selectedTab == 2) {
+                androidx.compose.ui.viewinterop.AndroidView(
+                    factory = { context ->
+                        android.webkit.WebView(context).apply {
+                            settings.javaScriptEnabled = true
+                            settings.domStorageEnabled = true
+                            settings.useWideViewPort = true
+                            settings.loadWithOverviewMode = true
+                            settings.builtInZoomControls = true
+                            settings.displayZoomControls = false
+                            settings.setSupportZoom(true)
+                            settings.allowFileAccess = true
+                            settings.databaseEnabled = true
+                            settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                            
+                            // Set mobile user agent to force mobile touch layout
+                            settings.userAgentString = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36 AstroApp"
+                            
+                            isVerticalScrollBarEnabled = true
+                            isHorizontalScrollBarEnabled = false
+                            
+                            // Enable focus on touch to ensure Compose does not intercept drag scroll gestures
+                            setOnTouchListener { v, event ->
+                                v.requestFocus()
+                                false
+                            }
+                            
+                            webViewClient = object : android.webkit.WebViewClient() {
+                                override fun shouldOverrideUrlLoading(
+                                    view: android.webkit.WebView?,
+                                    request: android.webkit.WebResourceRequest?
+                                ): Boolean {
+                                    return false // Keep navigation inside app webview
+                                }
+                            }
+                            loadUrl("https://astroeleven.in/")
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
                 LazyColumn(
                     state = listState,
                     contentPadding = PaddingValues(bottom = padding.calculateBottomPadding() + 16.dp),
@@ -772,7 +817,6 @@ fun HomeScreen(
                                 } else if (action == "referral_share") {
                                     showReferralDialog = true
                                 } else {
-
                                     if (action == "chat" || action == "call" || action == "video") {
                                         activeServiceView = action
                                         selectedFilter = action.replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.getDefault()) else it.toString() }
@@ -783,18 +827,16 @@ fun HomeScreen(
                                     }
                                 }
                             }
-
                         )
                         1 -> ConsultTab(filteredAstros, { astro -> checkBalanceAndProceed { onChatClick(astro) } }, { astro, type -> checkBalanceAndProceed { onCallClick(astro, type) } }, isTamil, searchQuery, { searchQuery = it }, selectedFilter, activeServiceView, onBack = { activeServiceView = null; selectedFilter = "All"; selectedTab = 0 })
-                        2 -> RitualsTab(rituals, isTamil)
                         3 -> ProfileTab(walletBalance, isTamil, onWalletClick, onDrawerItemClick, onLogoutClick)
                         4 -> ReferralTab(referralCode, shareLink, isTamil, isNewUser, onApplyReferral)
                     }
-
                 }
             }
         }
     }
+}
 }
 
 @Composable
@@ -1514,9 +1556,16 @@ fun LazyListScope.ProfileTab(
             Spacer(modifier = Modifier.height(20.dp))
             WalletDashboard(balance, isTamil) { onWalletClick() }
             Spacer(modifier = Modifier.height(24.dp))
+            val context = androidx.compose.ui.platform.LocalContext.current
             ProfileItem("Personal Profile", Icons.Rounded.Person) { onDrawerItemClick("profile") }
             ProfileItem("Transaction History", Icons.Rounded.AccountBalanceWallet) { onWalletClick() }
-            ProfileItem("Help & Support", Icons.Rounded.Help) { onDrawerItemClick("settings") }
+            ProfileItem(if (isTamil) "பரிகாரங்கள்" else "Remedies", androidx.compose.material.icons.Icons.Rounded.SelfImprovement) { 
+                val intent = Intent(context, com.astroeleven.app.ui.rituals.RemediesActivity::class.java).apply {
+                    putExtra("isTamil", isTamil)
+                }
+                context.startActivity(intent)
+            }
+            ProfileItem("Help & Support", Icons.Rounded.Help) { onDrawerItemClick("support") }
             ProfileItem("Logout", Icons.Rounded.Logout) { onLogoutClick() }
         }
     }
@@ -1622,7 +1671,7 @@ fun AppDrawer(onItemClick: (String) -> Unit, onClose: () -> Unit, session: AuthR
             Spacer(modifier = Modifier.height(8.dp))
 
         // Drawer Items
-        val items = listOf("home", "profile", "wallet", "join_as_astrologer", "Terms & Conditions", "Privacy Policy", "settings", "logout")
+        val items = listOf("home", "profile", "wallet", "remedies", "join_as_astrologer", "Terms & Conditions", "Privacy Policy", "logout")
         items.forEach { itemKey ->
             NavigationDrawerItem(
                 label = {
@@ -1642,6 +1691,13 @@ fun AppDrawer(onItemClick: (String) -> Unit, onClose: () -> Unit, session: AuthR
                         "Privacy Policy" -> {
                             onClose()
                             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://astroeleven.com/privacy-policy.html")))
+                        }
+                        "remedies" -> {
+                            onClose()
+                            val intent = Intent(context, com.astroeleven.app.ui.rituals.RemediesActivity::class.java).apply {
+                                putExtra("isTamil", isTamil)
+                            }
+                            context.startActivity(intent)
                         }
                         else -> onItemClick(itemKey)
                     }
@@ -2508,11 +2564,11 @@ fun HomeBottomBar(
                 onTabSelected(1, "call")
             }
 
-            val isRemediesSelected = selectedTab == 2
+            val isStoreSelected = selectedTab == 2
             BottomNavItem(
-                label = if (isTamil) "பரிகாரம்" else "Remedies",
-                icon = Icons.Rounded.SelfImprovement,
-                isSelected = isRemediesSelected,
+                label = if (isTamil) "ஸ்டோர்" else "Store",
+                icon = androidx.compose.material.icons.Icons.Rounded.Store,
+                isSelected = isStoreSelected,
                 modifier = Modifier.weight(1f)
             ) {
                 onTabSelected(2, null)

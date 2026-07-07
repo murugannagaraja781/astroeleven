@@ -109,11 +109,16 @@ server {
         proxy_send_timeout 3600s;
     }
 
-    # Static uploads folder for profile pictures, etc.
+    # Static uploads folder with partial content streaming and CORS support
     location /uploads/ {
         alias "$APP_DIR/uploads/";
         expires 30d;
         add_header Cache-Control \"public, no-transform\";
+        add_header Accept-Ranges bytes;
+        add_header 'Access-Control-Allow-Origin' '*';
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS';
+        add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range';
+        add_header 'Access-Control-Expose-Headers' 'Content-Length,Content-Range';
     }
 }
 EOF"

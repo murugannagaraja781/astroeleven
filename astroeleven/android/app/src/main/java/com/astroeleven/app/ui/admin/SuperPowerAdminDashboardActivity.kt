@@ -85,8 +85,8 @@ fun SuperPowerScreen(
     onThemeSelected: (AppTheme) -> Unit
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Approval", "Branding", "Workflow", "Profile")
-
+    val tabs = listOf("Approval", "Branding", "Workflow", "Profile", "Store")
+ 
     Scaffold(
         topBar = {
             Column(modifier = Modifier.background(MaterialTheme.colorScheme.background)) {
@@ -118,6 +118,7 @@ fun SuperPowerScreen(
                 1 -> BrandingTab(onThemeSelected)
                 2 -> WorkflowTab()
                 3 -> AdminProfileTab()
+                4 -> StoreTab()
                 else -> Box(Modifier.fillMaxSize()) { Text("More features coming soon", modifier = Modifier.align(Alignment.Center)) }
             }
         }
@@ -499,4 +500,21 @@ fun WorkflowItem(title: String, subtitle: String, isDone: Boolean) {
         }
     }
     Divider(color = Color.LightGray.copy(alpha = 0.3f), thickness = 0.5.dp)
+}
+
+@Composable
+fun StoreTab() {
+    androidx.compose.ui.viewinterop.AndroidView(
+        factory = { context ->
+            android.webkit.WebView(context).apply {
+                settings.javaScriptEnabled = true
+                settings.domStorageEnabled = true
+                settings.useWideViewPort = true
+                settings.loadWithOverviewMode = true
+                webViewClient = android.webkit.WebViewClient()
+                loadUrl("https://astroeleven.in/wp-admin/edit.php?post_type=product")
+            }
+        },
+        modifier = Modifier.fillMaxSize()
+    )
 }

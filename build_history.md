@@ -152,4 +152,172 @@ A debug APK was built containing the clean codebase after renaming all reference
 * **Size:** 119,671,311 Bytes (~114 MB)
 * **Status:** Build Successful
 
+---
+
+## [2026-07-06] - Debug APK Build - Version 3.1.9 (New Welcome Screen Logo)
+
+A debug APK was built containing the new logo image for the welcome splash screen. The APK compiled successfully.
+
+* **Date & Time:** July 06, 2026 - 08:21 PM (IST)
+* **File Name:** `app-debug.apk`
+* **File Path:** `astroeleven/android/app/build/outputs/apk/debug/app-debug.apk`
+* **Status:** Build Successful
+
+---
+
+## [2026-07-06] - Debug APK Build - Version 3.1.9 (Profile Pic, Settings/Themes Removal & Low Balance Redirection Fixes)
+
+A debug APK was built after applying the following fixes:
+- Resolved the database `findOneAndUpdate` method mapping error to allow successful astrologer profile picture updates.
+- Removed the "Settings/Themes" cards and drawer items from both the Astrologer and Client app dashboards.
+- Mapped "Help & Support" to launch the FeedbackSupportActivity instead of SettingsActivity.
+- Added automatic redirection to the WalletActivity on the home screen card clicks and intake form submit errors when the user has insufficient balance.
+
+* **Date & Time:** July 06, 2026 - 08:45 PM (IST)
+* **File Name:** `app-debug.apk`
+* **File Path:** `astroeleven/android/app/build/outputs/apk/debug/app-debug.apk`
+* **Status:** Build Successful
+
+---
+
+## [2026-07-06] - Debug APK Build - Version 3.1.9 (Socket Connection URL Correction)
+
+A debug APK was built after applying the following fix:
+- Replaced the hardcoded socket server connection URL `https://socket.astroeleven.com` with `Constants.SERVER_URL` to align client-server real-time WebRTC signaling and chat events with the live host.
+
+* **Date & Time:** July 06, 2026 - 09:00 PM (IST)
+* **File Name:** `app-debug.apk`
+* **File Path:** `astroeleven/android/app/build/outputs/apk/debug/app-debug.apk`
+* **Status:** Build Successful
+
+---
+
+## [2026-07-06] - Debug APK Build - Version 3.1.9 (Voice Message Playback Path Normalization)
+
+A debug APK was built after applying the following fix:
+- Updated `ChatAudioPlayer.kt` and `AudioPlayerBubble.kt` to normalize relative voice message server paths (like `uploads/...`) into full HTTP URLs using `Constants.SERVER_URL` before streaming.
+
+* **Date & Time:** July 06, 2026 - 09:12 PM (IST)
+* **File Name:** `app-debug.apk`
+* **File Path:** `astroeleven/android/app/build/outputs/apk/debug/app-debug.apk`
+* **Status:** Build Successful
+
+---
+
+## [2026-07-06] - Debug APK Build - Version 3.2.0 (Store WebView & Remedies Navigation Menu Adjustments)
+
+A debug APK was built after applying the following UI/UX modifications:
+- Replaced the bottom navigation "Remedies" tab with a new "Store" tab that opens the customer shop front `https://astroeleven.in/` in an embedded WebView.
+- Added a dedicated "Remedies" list entry to both the left navigation drawer and the customer Account tab options, launching a new `RemediesActivity` showing the spiritual rituals list.
+- Added a dedicated "Store" tab to the Super Admin Dashboard console, rendering an embedded WebView of the WordPress admin logout/login URL `https://astroeleven.in/wp-login.php?loggedout=true&wp_lang=en_US`.
+
+* **Date & Time:** July 06, 2026 - 09:50 PM (IST)
+* **File Name:** `app-debug.apk`
+* **File Path:** `astroeleven/android/app/build/outputs/apk/debug/app-debug.apk`
+* **Status:** Build Successful
+
+---
+
+## [2026-07-06] - Debug APK Build - Version 3.2.1 (Super Admin Store Tab Link Update)
+
+A debug APK was built after updating the following:
+- Updated the Super Admin Console's Store WebView target URL to `https://astroeleven.in/wp-admin/edit.php?post_type=product` for direct WordPress products management.
+
+* **Date & Time:** July 06, 2026 - 10:00 PM (IST)
+* **File Name:** `app-debug.apk`
+* **File Path:** `astroeleven/android/app/build/outputs/apk/debug/app-debug.apk`
+* **Status:** Build Successful
+
+---
+
+## [2026-07-06] - Debug APK Build - Version 3.2.2 (Store WebView Header Hide Fix)
+
+A debug APK was built after applying the following UI tweak:
+- Wrapped `HomeTopBar` header inside `HomeScreen.kt` in a conditional check `selectedTab != 2` to automatically hide it when the customer Store tab is active.
+
+* **Date & Time:** July 06, 2026 - 10:11 PM (IST)
+* **File Name:** `app-debug.apk`
+* **File Path:** `astroeleven/android/app/build/outputs/apk/debug/app-debug.apk`
+* **Status:** Build Successful
+
+---
+
+## [2026-07-06] - Debug APK Build - Version 3.2.3 (Media3 ExoPlayer Migration for Audio Voice Notes)
+
+A debug APK was built after applying the following fix:
+- Replaced the old Android `MediaPlayer` with the modern `androidx.media3:media3-exoplayer` in `ChatAudioPlayer.kt` to stream voice messages directly from server URLs with Google Chrome User-Agent header injection, avoiding media preparation/state errors.
+
+* **Date & Time:** July 06, 2026 - 10:45 PM (IST)
+* **File Name:** `app-debug.apk`
+* **File Path:** `astroeleven/android/app/build/outputs/apk/debug/app-debug.apk`
+* **Status:** Build Successful
+
+---
+
+## [2026-07-07] - Debug APK Build - Version 3.2.4 (Reverted Audio Player Changes)
+
+A debug APK was built after reverting the audio changes:
+- Restored `ChatAudioPlayer.kt` and `AudioPlayerBubble.kt` to their previous working states.
+
+* **Date & Time:** July 07, 2026 - 09:30 AM (IST)
+* **File Name:** `app-debug.apk`
+* **File Path:** `astroeleven/android/app/build/outputs/apk/debug/app-debug.apk`
+* **Status:** Build Successful
+
+---
+
+## [2026-07-07] - Debug APK Build - Version 3.2.5 (Store WebView Touch Scroll and Mobile User-Agent Fix)
+
+A debug APK was built after applying the following fixes:
+- Added a custom touch listener in `HomeScreen.kt` to call `v.requestFocus()` when a touch is received on the Store WebView to prevent Compose scroll state interception.
+- Injected a standard Mobile Chrome User-Agent to force WordPress WooCommerce to render the touch-optimized responsive layout.
+
+* **Date & Time:** July 07, 2026 - 03:20 PM (IST)
+* **File Name:** `app-debug.apk`
+* **File Path:** `astroeleven/android/app/build/outputs/apk/debug/app-debug.apk`
+* **Status:** Build Successful
+
+---
+
+## [2026-07-07] - Debug APK Build - Version 3.2.6 (Premium Consultation Intake Form and Outgoing Ring Tone)
+
+A debug APK was built after applying the following updates:
+- Completely redesigned `IntakeActivity.kt` to introduce a beautiful dark-cosmic glassmorphic layout, segmented touch gender tab selectors, switch toggles, and glowing gold outlines.
+- Integrated a native `ToneGenerator` in the wait session to synthesize a real phone call ringback tone (`TONE_SUP_RINGTONE`) through the media speaker when waiting for connection.
+
+* **Date & Time:** July 07, 2026 - 03:57 PM (IST)
+* **File Name:** `app-debug.apk`
+* **File Path:** `astroeleven/android/app/build/outputs/apk/debug/app-debug.apk`
+* **Status:** Build Successful
+
+---
+
+## [2026-07-07] - Debug APK Build - Version 3.2.7 (Telegram Chat UI Redesign)
+
+A debug APK was built after applying the following fixes:
+- Replaced the WhatsApp style green layout with a premium Telegram Dark Mode theme using a dark midnight space background and extremely subtle watermark overlays.
+- Redesigned message bubbles with Telegram-inspired shapes (asymmetric corner rounding tails) and soft violet gradient (for sent) vs dark slate (for received) backgrounds.
+- Converted quote blocks, text, status indicators, and typing status bubbles to fit seamlessly with the Telegram layout styles.
+
+* **Date & Time:** July 07, 2026 - 04:05 PM (IST)
+* **File Name:** `app-debug.apk`
+* **File Path:** `astroeleven/android/app/build/outputs/apk/debug/app-debug.apk`
+* **Status:** Build Successful
+
+---
+
+## [2026-07-07] - Debug APK Build - Version 3.2.8 (WhatsApp-Grade ExoPlayer Caching & Waveform UI)
+
+A debug APK was built after applying the following fixes:
+- Replaced Android MediaPlayer with Media3 ExoPlayer stream engine for zero-download voice note streaming.
+- Integrated a thread-safe static Singleton `ExoPlayer` instance to enforce global single-play playback across screens.
+- Set up a 250 MB LRU local cache using Media3 `SimpleCache` and optimized OkHttp media connection pool.
+- Redesigned `AudioPlayerBubble.kt` to render a custom Compose Canvas Waveform with 32 rounded lines, highlighting played progress and supporting tap/drag seeking.
+- Optimized Nginx configurations in `setup_nginx_deploy.sh` to support cross-origin streaming ranges.
+
+* **Date & Time:** July 07, 2026 - 04:20 PM (IST)
+* **File Name:** `app-debug.apk`
+* **File Path:** `astroeleven/android/app/build/outputs/apk/debug/app-debug.apk`
+* **Status:** Build Successful
+
 

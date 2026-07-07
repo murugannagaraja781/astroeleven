@@ -314,7 +314,7 @@ fun IntakeScreen(
 
         // Listen for astrologer response
         SocketManager.onSessionAnswered { response ->
-            val accepted = response.optBoolean("accept") // Server emits 'accept', not 'ok'
+            val accepted = response.optBoolean("accept")
             val sId = response.optString("sessionId")
             if (accepted && sId == waitingSessionId) {
                 isWaiting = false
@@ -399,33 +399,69 @@ fun IntakeScreen(
                     waitingSessionId = response.optString("sessionId")
                     scope.launch { isWaiting = true }
                 } else {
-                    scope.launch { Toast.makeText(context, response?.optString("error") ?: "Failed", Toast.LENGTH_SHORT).show() }
+                    scope.launch {
+                        val errMsg = response?.optString("error") ?: "Failed"
+                        Toast.makeText(context, errMsg, Toast.LENGTH_LONG).show()
+                        if (errMsg.contains("Balance") || errMsg.contains("Insufficient")) {
+                            val intent = Intent(context, com.astroeleven.app.ui.wallet.WalletActivity::class.java)
+                            context.startActivity(intent)
+                            (context as Activity).finish()
+                        }
+                    }
                 }
             }
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF140F0A), Color(0xFF0B0805))))) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        Color(0xFF0F0B18), // Deep Space Midnight
+                        Color(0xFF07040B)  // Almost Black
+                    )
+                )
+            )
+    ) {
         Scaffold(
             containerColor = Color.Transparent,
             topBar = {
                 TopAppBar(
-                    title = { Text(Localization.get("premium_consultation", isTamil), color = Color.White, fontWeight = FontWeight.Bold) },
+                    title = { 
+                        Text(
+                            text = Localization.get("premium_consultation", isTamil), 
+                            color = Color.White, 
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 20.sp,
+                            letterSpacing = 0.5.sp
+                        ) 
+                    },
                     navigationIcon = {
                         IconButton(onClick = onClose) {
                             Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                         }
                     },
                     actions = {
-                        TextButton(onClick = { isTamil = !isTamil }) {
-                            Text(if (isTamil) "English" else "தமிழ்", color = Color.White, fontWeight = FontWeight.Bold)
+                        Box(
+                            modifier = Modifier
+                                .padding(end = 12.dp)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(Color.White.copy(alpha = 0.1f))
+                                .clickable { isTamil = !isTamil }
+                                .padding(horizontal = 14.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = if (isTamil) "English" else "தமிழ்", 
+                                color = Color(0xFFFFB300), // Rich Gold
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp
+                            )
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
                 )
-            },
-            bottomBar = {
-                // Moved button into scrollable column for better organization as requested
             }
         ) { padding ->
             val scrollState = rememberScrollState()
@@ -435,230 +471,661 @@ fun IntakeScreen(
                     .padding(padding)
                     .imePadding()
                     .verticalScroll(scrollState)
-                    .padding(horizontal = AstroDimens.Small, vertical = 12.dp), 
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                    .padding(horizontal = 16.dp, vertical = 16.dp), 
+                verticalArrangement = Arrangement.spacedBy(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                // PREMIUM HEADER: If consulting with an Astrologer
+                if (partnerId != null) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(BorderStroke(1.dp, Color(0xFFFFB300).copy(alpha = 0.3f)), RoundedCornerShape(16.dp)),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1428).copy(alpha = 0.6f))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(60.dp)
+                                    .clip(CircleShape)
+                                    .border(2.dp, Color(0xFFFFB300), CircleShape)
+                                    .background(Color.White.copy(alpha = 0.1f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = partnerName.take(1).uppercase(),
+                                    color = Color(0xFFFFB300),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 24.sp
+                                )
+                            }
+                            Spacer(Modifier.width(16.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = partnerName,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 18.sp
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0xFF4CAF50))
+                                    )
+                                    Spacer(Modifier.width(6.dp))
+                                    Text(
+                                        text = if (isTamil) "இணைப்பில் உள்ளார்" else "Live Session",
+                                        color = Color.White.copy(alpha = 0.7f),
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFFFB300).copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                val icon = if (callType == "chat") Icons.Default.AutoAwesome else Icons.Default.AutoFixHigh
+                                Icon(icon, "Type", tint = Color(0xFFFFB300), modifier = Modifier.size(20.dp))
+                            }
+                        }
+                    }
+                }
+
+                // PERSONAL DETAILS SECTION CARD
                 Card(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                    shape = RoundedCornerShape(AstroDimens.RadiusMedium),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1C140E)),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)), RoundedCornerShape(20.dp)),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF161122).copy(alpha = 0.8f))
                 ) {
                     Column(
-                        modifier = Modifier.padding(horizontal = AstroDimens.Small, vertical = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         Text(
                             text = Localization.get("personal_details", isTamil),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = CosmicAppTheme.colors.accent
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFFFFB300),
+                            letterSpacing = 0.5.sp
                         )
-                        
+
                         val textFieldColors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White, 
                             unfocusedTextColor = Color.White,
                             disabledTextColor = Color.White,
-                            focusedBorderColor = CosmicAppTheme.colors.accent,
-                            unfocusedBorderColor = Color.White.copy(alpha = 0.3f),
-                            disabledBorderColor = Color.White.copy(alpha = 0.3f),
-                            cursorColor = CosmicAppTheme.colors.accent,
-                            focusedPlaceholderColor = Color.White.copy(alpha = 0.5f),
-                            unfocusedPlaceholderColor = Color.White.copy(alpha = 0.5f),
-                            disabledPlaceholderColor = Color.White.copy(alpha = 0.5f)
+                            focusedBorderColor = Color(0xFFFFB300),
+                            unfocusedBorderColor = Color.White.copy(alpha = 0.12f),
+                            disabledBorderColor = Color.White.copy(alpha = 0.12f),
+                            cursorColor = Color(0xFFFFB300),
+                            focusedContainerColor = Color(0xFF1E1830),
+                            unfocusedContainerColor = Color(0xFF1E1830),
+                            disabledContainerColor = Color(0xFF1E1830)
                         )
 
                         OutlinedTextField(
                             value = name,
                             onValueChange = { name = it },
-                            placeholder = { Text(Localization.get("full_name", isTamil), fontSize = 14.sp) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp), // Increased height for better interaction
+                            label = { Text(Localization.get("full_name", isTamil), color = Color.White.copy(alpha = 0.5f)) },
+                            modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(
                                 keyboardType = KeyboardType.Text,
                                 capitalization = KeyboardCapitalization.Words,
                                 imeAction = ImeAction.Next
                             ),
-                            shape = RoundedCornerShape(AstroDimens.RadiusSmall),
-                            colors = textFieldColors,
-                            enabled = true // Explicitly set to true
+                            shape = RoundedCornerShape(12.dp),
+                            colors = textFieldColors
                         )
 
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                            Text("${Localization.get("gender", isTamil)}:", style = MaterialTheme.typography.bodySmall, color = CosmicAppTheme.colors.textPrimary)
-                            Spacer(Modifier.width(8.dp))
-                            RadioButton(selected = gender == "Male", onClick = { gender = "Male" }, colors = RadioButtonDefaults.colors(selectedColor = CosmicAppTheme.colors.accent))
-                            Text(Localization.get("male", isTamil), style = MaterialTheme.typography.bodySmall, color = CosmicAppTheme.colors.textSecondary)
-                            Spacer(Modifier.width(12.dp))
-                            RadioButton(selected = gender == "Female", onClick = { gender = "Female" }, colors = RadioButtonDefaults.colors(selectedColor = CosmicAppTheme.colors.accent))
-                            Text(Localization.get("female", isTamil), style = MaterialTheme.typography.bodySmall, color = CosmicAppTheme.colors.textSecondary)
-                        }
-
-                        Text(Localization.get("dob", isTamil), style = MaterialTheme.typography.labelSmall, color = CosmicAppTheme.colors.accent)
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(AstroDimens.XSmall), verticalAlignment = Alignment.CenterVertically) {
-                            OutlinedTextField(value = day, onValueChange = { if(it.length <= 2) day = it }, placeholder = { Text("DD", fontSize = 12.sp) }, modifier = Modifier.weight(1f).height(50.dp), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next), shape = RoundedCornerShape(AstroDimens.RadiusSmall), colors = textFieldColors)
-                            OutlinedTextField(value = month, onValueChange = { if(it.length <= 2) month = it }, placeholder = { Text("MM", fontSize = 12.sp) }, modifier = Modifier.weight(1f).height(50.dp), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next), shape = RoundedCornerShape(AstroDimens.RadiusSmall), colors = textFieldColors)
-                            OutlinedTextField(value = year, onValueChange = { if(it.length <= 4) year = it }, placeholder = { Text("YYYY", fontSize = 12.sp) }, modifier = Modifier.weight(1.3f).height(50.dp), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next), shape = RoundedCornerShape(AstroDimens.RadiusSmall), colors = textFieldColors)
-                            IconButton(onClick = {
-                                val cal = Calendar.getInstance()
-                                DatePickerDialog(context, com.astroeleven.app.R.style.DialogPickerTheme, { _, py, pm, pd ->
-                                    year = py.toString(); month = (pm + 1).toString(); day = pd.toString()
-                                }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
-                            }, modifier = Modifier.size(40.dp)) {
-                                Icon(Icons.Default.AutoFixHigh, "Pick", tint = CosmicAppTheme.colors.accent, modifier = Modifier.size(24.dp))
-                            }
-                        }
-
-                        Text(Localization.get("tob", isTamil), style = MaterialTheme.typography.labelSmall, color = CosmicAppTheme.colors.accent)
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(AstroDimens.XSmall), verticalAlignment = Alignment.CenterVertically) {
-                            OutlinedTextField(value = hour, onValueChange = { if(it.length <= 2) hour = it }, placeholder = { Text("HH", fontSize = 12.sp) }, modifier = Modifier.weight(1f).height(50.dp), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), shape = RoundedCornerShape(AstroDimens.RadiusSmall), colors = textFieldColors)
-                            OutlinedTextField(value = minute, onValueChange = { if(it.length <= 2) minute = it }, placeholder = { Text("MM", fontSize = 12.sp) }, modifier = Modifier.weight(1f).height(50.dp), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), shape = RoundedCornerShape(AstroDimens.RadiusSmall), colors = textFieldColors)
-                            TextButton(onClick = { amPm = if (amPm == "AM") "PM" else "AM" }, modifier = Modifier.height(44.dp)) {
-                                Text(amPm, color = CosmicAppTheme.colors.accent, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                            }
-                            IconButton(onClick = {
-                                TimePickerDialog(context, com.astroeleven.app.R.style.DialogPickerTheme, { _, ph, pm ->
-                                    val hTyped = if (ph > 12) (ph - 12) else if (ph == 0) 12 else ph
-                                    hour = hTyped.toString(); minute = String.format("%02d", pm); amPm = if (ph >= 12) "PM" else "AM"
-                                }, 12, 0, false).show()
-                            }, modifier = Modifier.size(40.dp)) {
-                                Icon(Icons.Default.AutoAwesome, "Pick", tint = CosmicAppTheme.colors.accent, modifier = Modifier.size(24.dp))
-                            }
-                        }
-
-                        Text(Localization.get("pob", isTamil), style = MaterialTheme.typography.labelSmall, color = CosmicAppTheme.colors.accent)
-                        Box(modifier = Modifier.fillMaxWidth().clickable { launchLocationPicker("me") }) {
-                            OutlinedTextField(
-                                value = cityName,
-                                onValueChange = {},
-                                placeholder = { Text(Localization.get("city", isTamil), fontSize = 14.sp) },
-                                readOnly = true,
-                                enabled = false,
-                                modifier = Modifier.fillMaxWidth().height(50.dp),
-                                trailingIcon = { Icon(Icons.Default.LocationOn, "Pick", tint = CosmicAppTheme.colors.accent, modifier = Modifier.size(22.dp)) },
-                                shape = RoundedCornerShape(AstroDimens.RadiusSmall),
-                                colors = textFieldColors
+                        // Segmented Gender Selector
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                text = Localization.get("gender", isTamil),
+                                color = Color.White.copy(alpha = 0.6f),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
                             )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color(0xFF1E1830))
+                                    .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp)),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .run {
+                                            if (gender == "Male") {
+                                                background(Brush.horizontalGradient(listOf(Color(0xFFFF9800), Color(0xFFFF5722))))
+                                            } else {
+                                                this
+                                            }
+                                        }
+                                        .clickable { gender = "Male" },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = Localization.get("male", isTamil),
+                                        color = if (gender == "Male") Color.White else Color.White.copy(alpha = 0.5f),
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp
+                                    )
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .run {
+                                            if (gender == "Female") {
+                                                background(Brush.horizontalGradient(listOf(Color(0xFFFF9800), Color(0xFFFF5722))))
+                                            } else {
+                                                this
+                                            }
+                                        }
+                                        .clickable { gender = "Female" },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = Localization.get("female", isTamil),
+                                        color = if (gender == "Female") Color.White else Color.White.copy(alpha = 0.5f),
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp
+                                    )
+                                }
+                            }
                         }
 
+                        // Date of Birth
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                text = Localization.get("dob", isTamil),
+                                color = Color.White.copy(alpha = 0.6f),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                OutlinedTextField(
+                                    value = day,
+                                    onValueChange = { if(it.length <= 2) day = it },
+                                    placeholder = { Text("DD", color = Color.White.copy(alpha = 0.3f)) },
+                                    modifier = Modifier.weight(1f),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = textFieldColors,
+                                    singleLine = true
+                                )
+                                OutlinedTextField(
+                                    value = month,
+                                    onValueChange = { if(it.length <= 2) month = it },
+                                    placeholder = { Text("MM", color = Color.White.copy(alpha = 0.3f)) },
+                                    modifier = Modifier.weight(1f),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = textFieldColors,
+                                    singleLine = true
+                                )
+                                OutlinedTextField(
+                                    value = year,
+                                    onValueChange = { if(it.length <= 4) year = it },
+                                    placeholder = { Text("YYYY", color = Color.White.copy(alpha = 0.3f)) },
+                                    modifier = Modifier.weight(1.3f),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = textFieldColors,
+                                    singleLine = true
+                                )
+                                Button(
+                                    onClick = {
+                                        val cal = Calendar.getInstance()
+                                        DatePickerDialog(context, com.astroeleven.app.R.style.DialogPickerTheme, { _, py, pm, pd ->
+                                            year = py.toString(); month = (pm + 1).toString(); day = pd.toString()
+                                        }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
+                                    },
+                                    modifier = Modifier.size(54.dp),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFB300).copy(alpha = 0.15f)),
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    Icon(Icons.Default.AutoFixHigh, "Pick Date", tint = Color(0xFFFFB300), modifier = Modifier.size(22.dp))
+                                }
+                            }
+                        }
+
+                        // Time of Birth
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                text = Localization.get("tob", isTamil),
+                                color = Color.White.copy(alpha = 0.6f),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                OutlinedTextField(
+                                    value = hour,
+                                    onValueChange = { if(it.length <= 2) hour = it },
+                                    placeholder = { Text("HH", color = Color.White.copy(alpha = 0.3f)) },
+                                    modifier = Modifier.weight(1f),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = textFieldColors,
+                                    singleLine = true
+                                )
+                                OutlinedTextField(
+                                    value = minute,
+                                    onValueChange = { if(it.length <= 2) minute = it },
+                                    placeholder = { Text("MM", color = Color.White.copy(alpha = 0.3f)) },
+                                    modifier = Modifier.weight(1f),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = textFieldColors,
+                                    singleLine = true
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(54.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Color(0xFF1E1830))
+                                        .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(12.dp))
+                                        .clickable { amPm = if (amPm == "AM") "PM" else "AM" },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(amPm, color = Color(0xFFFFB300), fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
+                                }
+                                Button(
+                                    onClick = {
+                                        TimePickerDialog(context, com.astroeleven.app.R.style.DialogPickerTheme, { _, ph, pm ->
+                                            val hTyped = if (ph > 12) (ph - 12) else if (ph == 0) 12 else ph
+                                            hour = hTyped.toString(); minute = String.format("%02d", pm); amPm = if (ph >= 12) "PM" else "AM"
+                                        }, 12, 0, false).show()
+                                    },
+                                    modifier = Modifier.size(54.dp),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFB300).copy(alpha = 0.15f)),
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    Icon(Icons.Default.AutoAwesome, "Pick Time", tint = Color(0xFFFFB300), modifier = Modifier.size(22.dp))
+                                }
+                            }
+                        }
+
+                        // Place of Birth
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                text = Localization.get("pob", isTamil),
+                                color = Color.White.copy(alpha = 0.6f),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .clickable { launchLocationPicker("me") }
+                            ) {
+                                OutlinedTextField(
+                                    value = cityName,
+                                    onValueChange = {},
+                                    placeholder = { Text(Localization.get("city", isTamil), color = Color.White.copy(alpha = 0.4f)) },
+                                    readOnly = true,
+                                    enabled = false,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    trailingIcon = { Icon(Icons.Default.LocationOn, "Location", tint = Color(0xFFFFB300), modifier = Modifier.size(22.dp)) },
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = textFieldColors
+                                )
+                            }
+                        }
+
+                        Spacer(Modifier.height(4.dp))
+
+                        // Matchmaking Toggle
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Color.White.copy(alpha = 0.05f))
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color.White.copy(alpha = 0.04f))
+                                .border(1.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(12.dp))
                                 .clickable { isMatchingLocal = !isMatchingLocal }
-                                .padding(12.dp)
+                                .padding(14.dp)
                         ) {
-                            Checkbox(
-                                checked = isMatchingLocal,
-                                onCheckedChange = { isMatchingLocal = it },
-                                colors = CheckboxDefaults.colors(checkedColor = CosmicAppTheme.colors.accent)
-                            )
-                            Spacer(Modifier.width(8.dp))
                             Text(
                                 text = if (isTamil) "திருமணப் பொருத்தம் விவரங்களைச் சேர்க்க" else "Add Marriage Matching Details",
                                 color = Color.White,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 14.sp
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Switch(
+                                checked = isMatchingLocal,
+                                onCheckedChange = { isMatchingLocal = it },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color.White,
+                                    checkedTrackColor = Color(0xFFFF8C00),
+                                    uncheckedThumbColor = Color.White.copy(alpha = 0.6f),
+                                    uncheckedTrackColor = Color.White.copy(alpha = 0.15f)
+                                )
                             )
                         }
 
                         if (isMatchingLocal) {
-                            Spacer(Modifier.height(16.dp))
-                            Divider(color = CosmicAppTheme.colors.accent.copy(alpha = 0.2f), thickness = 1.dp)
-                            Spacer(Modifier.height(16.dp))
-                            
+                            Spacer(Modifier.height(8.dp))
+                            HorizontalDivider(color = Color.White.copy(alpha = 0.08f), thickness = 1.dp)
+                            Spacer(Modifier.height(8.dp))
+
                             Text(
                                 text = if (isTamil) "துணை விவரங்கள்" else "Partner Details",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = CosmicAppTheme.colors.accent
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color(0xFFFFB300),
+                                letterSpacing = 0.5.sp
                             )
 
                             OutlinedTextField(
                                 value = pName,
                                 onValueChange = { pName = it },
-                                placeholder = { Text(if (isTamil) "துணையின் பெயர்" else "Partner's Full Name", fontSize = 14.sp) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(56.dp),
+                                label = { Text(if (isTamil) "துணையின் பெயர்" else "Partner's Full Name", color = Color.White.copy(alpha = 0.5f)) },
+                                modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(
                                     keyboardType = KeyboardType.Text,
                                     capitalization = KeyboardCapitalization.Words,
                                     imeAction = ImeAction.Next
                                 ),
-                                shape = RoundedCornerShape(AstroDimens.RadiusSmall),
-                                colors = textFieldColors,
-                                enabled = true
+                                shape = RoundedCornerShape(12.dp),
+                                colors = textFieldColors
                             )
 
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                                Text("${Localization.get("gender", isTamil)}:", style = MaterialTheme.typography.bodySmall, color = CosmicAppTheme.colors.textPrimary)
-                                RadioButton(selected = pGender == "Male", onClick = { pGender = "Male" }, colors = RadioButtonDefaults.colors(selectedColor = CosmicAppTheme.colors.accent))
-                                Text(Localization.get("male", isTamil), style = MaterialTheme.typography.bodySmall, color = CosmicAppTheme.colors.textSecondary)
-                                RadioButton(selected = pGender == "Female", onClick = { pGender = "Female" }, colors = RadioButtonDefaults.colors(selectedColor = CosmicAppTheme.colors.accent))
-                                Text(Localization.get("female", isTamil), style = MaterialTheme.typography.bodySmall, color = CosmicAppTheme.colors.textSecondary)
-                            }
-
-                            Text(Localization.get("dob", isTamil), style = MaterialTheme.typography.labelSmall, color = CosmicAppTheme.colors.accent)
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(AstroDimens.XSmall), verticalAlignment = Alignment.CenterVertically) {
-                                OutlinedTextField(value = pDay, onValueChange = { if(it.length <= 2) pDay = it }, placeholder = { Text("DD", fontSize = 12.sp) }, modifier = Modifier.weight(1f).height(50.dp), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), shape = RoundedCornerShape(AstroDimens.RadiusSmall), colors = textFieldColors)
-                                OutlinedTextField(value = pMonth, onValueChange = { if(it.length <= 2) pMonth = it }, placeholder = { Text("MM", fontSize = 12.sp) }, modifier = Modifier.weight(1f).height(50.dp), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), shape = RoundedCornerShape(AstroDimens.RadiusSmall), colors = textFieldColors)
-                                OutlinedTextField(value = pYear, onValueChange = { if(it.length <= 4) pYear = it }, placeholder = { Text("YYYY", fontSize = 12.sp) }, modifier = Modifier.weight(1.3f).height(50.dp), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), shape = RoundedCornerShape(AstroDimens.RadiusSmall), colors = textFieldColors)
-                            }
-
-                            Text(Localization.get("tob", isTamil), style = MaterialTheme.typography.labelSmall, color = CosmicAppTheme.colors.accent)
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(AstroDimens.XSmall), verticalAlignment = Alignment.CenterVertically) {
-                                OutlinedTextField(value = pHour, onValueChange = { if(it.length <= 2) pHour = it }, placeholder = { Text("HH", fontSize = 12.sp) }, modifier = Modifier.weight(1f).height(50.dp), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), shape = RoundedCornerShape(AstroDimens.RadiusSmall), colors = textFieldColors)
-                                OutlinedTextField(value = pMinute, onValueChange = { if(it.length <= 2) pMinute = it }, placeholder = { Text("MM", fontSize = 12.sp) }, modifier = Modifier.weight(1f).height(50.dp), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), shape = RoundedCornerShape(AstroDimens.RadiusSmall), colors = textFieldColors)
-                                TextButton(onClick = { pAmPm = if (pAmPm == "AM") "PM" else "AM" }) {
-                                    Text(pAmPm, color = CosmicAppTheme.colors.accent, fontWeight = FontWeight.Bold)
+                            // Partner Gender Segmented Control
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(
+                                    text = Localization.get("gender", isTamil),
+                                    color = Color.White.copy(alpha = 0.6f),
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(48.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Color(0xFF1E1830))
+                                        .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp)),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                     Box(
+                                         modifier = Modifier
+                                             .weight(1f)
+                                             .fillMaxHeight()
+                                             .clip(RoundedCornerShape(12.dp))
+                                             .run {
+                                                 if (pGender == "Male") {
+                                                     background(Brush.horizontalGradient(listOf(Color(0xFFFF9800), Color(0xFFFF5722))))
+                                                 } else {
+                                                     this
+                                                 }
+                                             }
+                                             .clickable { pGender = "Male" },
+                                         contentAlignment = Alignment.Center
+                                     ) {
+                                         Text(
+                                             text = Localization.get("male", isTamil),
+                                             color = if (pGender == "Male") Color.White else Color.White.copy(alpha = 0.5f),
+                                             fontWeight = FontWeight.Bold,
+                                             fontSize = 14.sp
+                                         )
+                                     }
+                                     Box(
+                                         modifier = Modifier
+                                             .weight(1f)
+                                             .fillMaxHeight()
+                                             .clip(RoundedCornerShape(12.dp))
+                                             .run {
+                                                 if (pGender == "Female") {
+                                                     background(Brush.horizontalGradient(listOf(Color(0xFFFF9800), Color(0xFFFF5722))))
+                                                 } else {
+                                                     this
+                                                 }
+                                             }
+                                             .clickable { pGender = "Female" },
+                                         contentAlignment = Alignment.Center
+                                     ) {
+                                         Text(
+                                             text = Localization.get("female", isTamil),
+                                             color = if (pGender == "Female") Color.White else Color.White.copy(alpha = 0.5f),
+                                             fontWeight = FontWeight.Bold,
+                                             fontSize = 14.sp
+                                         )
+                                     }
                                 }
                             }
 
-                            Text(Localization.get("pob", isTamil), style = MaterialTheme.typography.labelSmall, color = CosmicAppTheme.colors.accent)
-                            Box(modifier = Modifier.fillMaxWidth().clickable { launchLocationPicker("partner") }) {
-                                OutlinedTextField(
-                                    value = pCityName,
-                                    onValueChange = {},
-                                    placeholder = { Text(Localization.get("city", isTamil), fontSize = 14.sp) },
-                                    readOnly = true,
-                                    enabled = false,
-                                    modifier = Modifier.fillMaxWidth().height(50.dp),
-                                    trailingIcon = { Icon(Icons.Default.LocationOn, "Pick", tint = CosmicAppTheme.colors.accent, modifier = Modifier.size(22.dp)) },
-                                    shape = RoundedCornerShape(AstroDimens.RadiusSmall),
-                                    colors = textFieldColors
+                            // Partner DOB
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(
+                                    text = Localization.get("dob", isTamil),
+                                    color = Color.White.copy(alpha = 0.6f),
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    OutlinedTextField(
+                                        value = pDay,
+                                        onValueChange = { if(it.length <= 2) pDay = it },
+                                        placeholder = { Text("DD", color = Color.White.copy(alpha = 0.3f)) },
+                                        modifier = Modifier.weight(1f),
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = textFieldColors,
+                                        singleLine = true
+                                    )
+                                    OutlinedTextField(
+                                        value = pMonth,
+                                        onValueChange = { if(it.length <= 2) pMonth = it },
+                                        placeholder = { Text("MM", color = Color.White.copy(alpha = 0.3f)) },
+                                        modifier = Modifier.weight(1f),
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = textFieldColors,
+                                        singleLine = true
+                                    )
+                                    OutlinedTextField(
+                                        value = pYear,
+                                        onValueChange = { if(it.length <= 4) pYear = it },
+                                        placeholder = { Text("YYYY", color = Color.White.copy(alpha = 0.3f)) },
+                                        modifier = Modifier.weight(1.3f),
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = textFieldColors,
+                                        singleLine = true
+                                    )
+                                    Button(
+                                        onClick = {
+                                            val cal = Calendar.getInstance()
+                                            DatePickerDialog(context, com.astroeleven.app.R.style.DialogPickerTheme, { _, py, pm, pd ->
+                                                pYear = py.toString(); pMonth = (pm + 1).toString(); pDay = pd.toString()
+                                            }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
+                                        },
+                                        modifier = Modifier.size(54.dp),
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFB300).copy(alpha = 0.15f)),
+                                        contentPadding = PaddingValues(0.dp)
+                                    ) {
+                                        Icon(Icons.Default.AutoFixHigh, "Pick Date", tint = Color(0xFFFFB300), modifier = Modifier.size(22.dp))
+                                    }
+                                }
+                            }
+
+                            // Partner TOB
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(
+                                    text = Localization.get("tob", isTamil),
+                                    color = Color.White.copy(alpha = 0.6f),
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    OutlinedTextField(
+                                        value = pHour,
+                                        onValueChange = { if(it.length <= 2) pHour = it },
+                                        placeholder = { Text("HH", color = Color.White.copy(alpha = 0.3f)) },
+                                        modifier = Modifier.weight(1f),
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = textFieldColors,
+                                        singleLine = true
+                                    )
+                                    OutlinedTextField(
+                                        value = pMinute,
+                                        onValueChange = { if(it.length <= 2) pMinute = it },
+                                        placeholder = { Text("MM", color = Color.White.copy(alpha = 0.3f)) },
+                                        modifier = Modifier.weight(1f),
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = textFieldColors,
+                                        singleLine = true
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(54.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(Color(0xFF1E1830))
+                                            .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(12.dp))
+                                            .clickable { pAmPm = if (pAmPm == "AM") "PM" else "AM" },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(pAmPm, color = Color(0xFFFFB300), fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
+                                    }
+                                    Button(
+                                        onClick = {
+                                            TimePickerDialog(context, com.astroeleven.app.R.style.DialogPickerTheme, { _, ph, pm ->
+                                                val hTyped = if (ph > 12) (ph - 12) else if (ph == 0) 12 else ph
+                                                pHour = hTyped.toString(); pMinute = String.format("%02d", pm); pAmPm = if (ph >= 12) "PM" else "AM"
+                                            }, 12, 0, false).show()
+                                        },
+                                        modifier = Modifier.size(54.dp),
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFB300).copy(alpha = 0.15f)),
+                                        contentPadding = PaddingValues(0.dp)
+                                    ) {
+                                        Icon(Icons.Default.AutoAwesome, "Pick Time", tint = Color(0xFFFFB300), modifier = Modifier.size(22.dp))
+                                    }
+                                }
+                            }
+
+                            // Partner Place of Birth
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(
+                                    text = Localization.get("pob", isTamil),
+                                    color = Color.White.copy(alpha = 0.6f),
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .clickable { launchLocationPicker("partner") }
+                                ) {
+                                    OutlinedTextField(
+                                        value = pCityName,
+                                        onValueChange = {},
+                                        placeholder = { Text(Localization.get("city", isTamil), color = Color.White.copy(alpha = 0.4f)) },
+                                        readOnly = true,
+                                        enabled = false,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        trailingIcon = { Icon(Icons.Default.LocationOn, "Location", tint = Color(0xFFFFB300), modifier = Modifier.size(22.dp)) },
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = textFieldColors
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(Modifier.height(16.dp))
+
+                        // Glowing Submit Button
+                        Button(
+                            onClick = { submit() },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp)
+                                .shadow(12.dp, RoundedCornerShape(16.dp)),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                            contentPadding = PaddingValues()
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        Brush.horizontalGradient(
+                                            listOf(
+                                                Color(0xFFFFB300), // Pure Gold
+                                                Color(0xFFFF7F00)  // Deep Orange
+                                            )
+                                        )
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                val btnText = if (isMatching) {
+                                    if (isTamil) "பொருத்தம் பார்க்க" else "START MATCHING"
+                                } else if (isEditMode) {
+                                    if (isTamil) "விவரங்களை புதுப்பிக்க" else "UPDATE DETAILS"
+                                } else {
+                                    if (isTamil) "ஆலோசனை தொடங்க" else "START CONSULTATION"
+                                }
+                                Text(
+                                    text = btnText, 
+                                    color = Color.White, 
+                                    fontWeight = FontWeight.Black, 
+                                    fontSize = 16.sp,
+                                    letterSpacing = 1.sp
                                 )
                             }
                         }
 
-                        Spacer(Modifier.height(12.dp))
-
-                        Button(
-                            onClick = { submit() },
-                            modifier = Modifier.fillMaxWidth().height(54.dp).shadow(8.dp, RoundedCornerShape(AstroDimens.RadiusMedium)),
-                            shape = RoundedCornerShape(AstroDimens.RadiusMedium),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF7F00))
-                        ) {
-                            val btnText = if (isMatching) {
-                                if (isTamil) "பொருத்தம் பார்க்க" else "START MATCHING"
-                            } else if (isEditMode) {
-                                if (isTamil) "விவரங்களை புதுப்பிக்க" else "UPDATE DETAILS"
-                            } else {
-                                if (isTamil) "ஆலோசனை தொடங்க" else "START CONSULTATION"
-                            }
-                            Text(btnText, color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
-                        }
-
                         Text(
-                            text = if (isTamil) "அனைத்து விவரங்களையும் சரிபார்க்கவும்" else "Please verify all details",
+                            text = if (isTamil) "அனைத்து விவரங்களையும் சரிபார்க்கவும்" else "Please verify all details before submitting",
                             style = MaterialTheme.typography.labelSmall,
-                            color = CosmicAppTheme.colors.textSecondary,
+                            color = Color.White.copy(alpha = 0.5f),
                             textAlign = TextAlign.Center,
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -667,7 +1134,28 @@ fun IntakeScreen(
             }
         }
 
+        // Wait / Connecting dialogue
         if (isWaiting) {
+            DisposableEffect(Unit) {
+                val toneGen = try {
+                    android.media.ToneGenerator(android.media.AudioManager.STREAM_MUSIC, 100).apply {
+                        startTone(android.media.ToneGenerator.TONE_SUP_RINGTONE, 30000)
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    null
+                }
+
+                onDispose {
+                    try {
+                        toneGen?.stopTone()
+                        toneGen?.release()
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
+
             LaunchedEffect(isWaiting) {
                 waitTimeLeft = 30
                 while (waitTimeLeft > 0 && isWaiting) {
@@ -690,47 +1178,56 @@ fun IntakeScreen(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp)
-                        .border(1.dp, Brush.linearGradient(listOf(Color(0xFFFFD700), Color(0xFFFF8C00))), RoundedCornerShape(24.dp)),
+                        .padding(horizontal = 16.dp)
+                        .border(
+                            1.dp, 
+                            Brush.linearGradient(listOf(Color(0xFFFFB300), Color(0xFFFF7F00))), 
+                            RoundedCornerShape(24.dp)
+                        ),
                     shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1C140E)),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF161122)),
                     elevation = CardDefaults.cardElevation(defaultElevation = 16.dp)
                 ) {
                     Column(
-                        modifier = Modifier.padding(32.dp),
+                        modifier = Modifier.padding(28.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(20.dp)
+                        verticalArrangement = Arrangement.spacedBy(24.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             CircularProgressIndicator(
                                 progress = { waitTimeLeft / 30f },
-                                modifier = Modifier.size(80.dp),
-                                color = Color(0xFFFFD700),
-                                strokeWidth = 6.dp,
-                                trackColor = Color(0xFF332211)
+                                modifier = Modifier.size(90.dp),
+                                color = Color(0xFFFFB300),
+                                strokeWidth = 5.dp,
+                                trackColor = Color(0xFF292040)
                             )
                             Text(
                                 text = waitTimeLeft.toString(),
                                 style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFFFFD700)
+                                fontWeight = FontWeight.Black,
+                                color = Color(0xFFFFB300),
+                                fontSize = 22.sp
                             )
                         }
                         
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
                             Text(
                                 text = Localization.get("connecting_title", isTamil),
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.ExtraBold,
+                                fontWeight = FontWeight.Black,
                                 color = Color.White,
-                                textAlign = TextAlign.Center
+                                textAlign = TextAlign.Center,
+                                fontSize = 18.sp
                             )
-                            Spacer(Modifier.height(4.dp))
                             Text(
                                 text = Localization.get("connecting_subtitle", isTamil),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color.White.copy(alpha = 0.6f),
-                                textAlign = TextAlign.Center
+                                textAlign = TextAlign.Center,
+                                fontSize = 13.sp
                             )
                         }
 
@@ -742,11 +1239,18 @@ fun IntakeScreen(
                                 }
                                 isWaiting = false 
                             },
-                            modifier = Modifier.fillMaxWidth().height(48.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFBD2C2C))
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
                         ) {
-                            Text(Localization.get("cancel_request", isTamil), color = Color.White, fontWeight = FontWeight.Bold)
+                            Text(
+                                text = Localization.get("cancel_request", isTamil), 
+                                color = Color.White, 
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
                         }
                     }
                 }

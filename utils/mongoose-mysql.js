@@ -133,9 +133,14 @@ function buildWhereClause(query) {
                     }
                 } else if (op === '$regex') {
                     clauses.push(`\`${dbKey}\` LIKE ?`);
-                    // convert simple regex or pattern to SQL LIKE
-                    const pattern = typeof opVal === 'string' ? opVal : String(opVal);
-                    values.push(`%${pattern.replace(/^\^|\$$/g, '')}%`);
+                    let pattern = '';
+                    if (opVal instanceof RegExp) {
+                        pattern = opVal.source;
+                    } else {
+                        pattern = String(opVal);
+                    }
+                    pattern = pattern.replace(/^\^|\$$/g, '');
+                    values.push(`%${pattern}%`);
                 }
             }
         } else {
@@ -529,6 +534,24 @@ class CustomModel {
             const sql = `DELETE FROM \`${this.tableName}\` WHERE id = ?`;
             const [result] = await pool.execute(sql, [id]);
             return result.affectedRows > 0 ? { id } : null;
+        })();
+        promise.exec = () => promise;
+        return promise;
+    }
+
+    findByIdAndUpdate(id, update, options = {}) {
+        return this.findOneAndUpdate({ id }, update, options);
+    }
+
+    findOneAndUpdate(query, update, options = {}) {
+        const promise = (async () => {
+            const doc = await this.findOne(query);
+            if (!doc) return null;
+            await this.updateOne(query, update);
+            if (options.new || options.returnDocument === 'after') {
+                return await this.findOne(query);
+            }
+            return doc;
         })();
         promise.exec = () => promise;
         return promise;

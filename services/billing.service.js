@@ -122,59 +122,50 @@ async function processBillingCharge(sessionId, durationSeconds, minuteIndex, typ
 
         const totalToDeduct = amountToCharge;
         
-        // Get balance - prefer MongoDB, use bridge only as a cross-check
-        const bridgeBalance = await syncWalletBalance(client.userId);
-        // Use bridge balance only if it's a valid positive number (not 0 which may indicate bridge failure)
-        let actualBalance;
-        if (bridgeBalance !== null && bridgeBalance > 0) {
-            actualBalance = bridgeBalance;
-        } else {
-            // Re-fetch from MongoDB to get latest value
-            const freshClient = await User.findOne({ userId: client.userId });
-            actualBalance = freshClient ? freshClient.walletBalance : client.walletBalance;
-            console.log(`[Billing] Using MongoDB balance: ${actualBalance} for ${client.userId}`);
-        }
+        // Re-fetch client from MySQL to get the most up-to-date local balance
+        const freshClient = await User.findOne({ userId: client.userId });
+        const actualBalance = freshClient ? freshClient.walletBalance : client.walletBalance;
+        console.log(`[Billing] Using local database balance: ${actualBalance} for user ${client.userId} (Required: ${totalToDeduct})`);
 
         if (actualBalance >= totalToDeduct) {
             let mainDeduct = totalToDeduct;
 
-            // --- API BRIDGE: Deduct from PHP MySQL ---
-            let deductionSuccess = false;
+            // Deduct locally first so the change is instantly reflected on the app and next tick
+            client.walletBalance = actualBalance - mainDeduct;
+            await client.save();
+            console.log(`[Billing] Deducted ${mainDeduct} locally from ${client.userId}. New balance: ${client.walletBalance}`);
+
+            // Propagate balance deduction to the PHP WordPress MySQL database asynchronously
             const isTestUser = client && (client.phone === '9000000000' || client.phone === '919000000000' || client.phone === '+919000000000');
-            if (isTestUser) {
-                client.walletBalance -= mainDeduct;
-                deductionSuccess = true;
-                console.log(`[Billing] Local deduction of ${mainDeduct} for test user ${client.phone}. New balance: ${client.walletBalance}`);
-            } else {
-                try {
-                    const response = await fetch(API_BRIDGE_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'x-bridge-secret': API_BRIDGE_SECRET },
-                        body: JSON.stringify({
-                            action: 'deduct',
-                            userId: client.userId,
-                            amount: mainDeduct,
-                            astrologerId: astro.userId,
-                            orderId: sessionId
-                        })
-                    });
+            if (!isTestUser) {
+                fetch(API_BRIDGE_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-bridge-secret': API_BRIDGE_SECRET },
+                    body: JSON.stringify({
+                        action: 'deduct',
+                        userId: client.userId,
+                        amount: mainDeduct,
+                        astrologerId: astro.userId,
+                        orderId: sessionId
+                    })
+                }).then(async response => {
                     const data = await response.json();
                     if (response.ok && data.success) {
-                        client.walletBalance = data.newBalance;
-                        deductionSuccess = true;
+                        // Sync client balance to match any updated adjustments from API bridge response
+                        if (data.newBalance !== undefined) {
+                            await User.updateOne({ userId: client.userId }, { walletBalance: data.newBalance });
+                        }
                     } else {
-                        console.error('[Billing] API Bridge Deduction Error:', data);
+                        console.error('[Billing] API Bridge Sync Deduction Error:', data);
                     }
-                } catch (err) {
-                    console.error('[Billing] API Bridge Network Error:', err.message);
-                    // Fallback to local deduction if bridge fails just to keep local state moving
-                    client.walletBalance -= mainDeduct;
-                    deductionSuccess = true;
-                }
+                }).catch(err => {
+                    console.error('[Billing] API Bridge Sync Network Error:', err.message);
+                });
             }
 
+            // Mark deduction as completed successfully
+            const deductionSuccess = true;
             if (deductionSuccess) {
-                await client.save();
 
                 if (astroShare > 0) {
                     astro.walletBalance += astroShare;

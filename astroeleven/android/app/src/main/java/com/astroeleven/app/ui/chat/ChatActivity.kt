@@ -673,15 +673,16 @@ fun ChatScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .background(Color(0xFF0F0B18))
                 .padding(padding)
         ) {
-            // WhatsApp Style Background with Astrology Doodles
+            // Very subtle astrology watermark backdrop
             androidx.compose.foundation.Image(
                 painter = painterResource(id = com.astroeleven.app.R.drawable.astrology_chat_bg),
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                alpha = 0.5f // Subtle watermark
+                alpha = 0.08f // Very subtle watermark like Telegram backgrounds
             )
 
             // Modern Summary Overlay
@@ -780,12 +781,12 @@ fun ChatScreen(
 @Composable
 fun ChatBubble(msg: ChatMessage, amIAstrologer: Boolean, audioPlayer: ChatAudioPlayer, onReply: () -> Unit) {
     val isMe = msg.isSent
-    val bubbleColor = if (isMe) Color(0xFFE7FFDB) else Color.White // WhatsApp Colors
+    val bubbleColor = if (isMe) Color(0xFF6B4EE6) else Color(0xFF211933) // Telegram Violet vs Slate
     val align = if (isMe) Alignment.End else Alignment.Start
     val shape = if (isMe) {
-        RoundedCornerShape(12.dp, 0.dp, 12.dp, 12.dp)
+        RoundedCornerShape(16.dp, 16.dp, 2.dp, 16.dp)
     } else {
-        RoundedCornerShape(0.dp, 12.dp, 12.dp, 12.dp)
+        RoundedCornerShape(16.dp, 16.dp, 16.dp, 2.dp)
     }
 
     // Swipe State
@@ -822,9 +823,9 @@ fun ChatBubble(msg: ChatMessage, amIAstrologer: Boolean, audioPlayer: ChatAudioP
             content = {
                 Surface(
                     color = bubbleColor,
-                    shape = RoundedCornerShape(AstroDimens.RadiusMedium),
-                    border = BorderStroke(1.dp, CosmicAppTheme.colors.cardStroke.copy(alpha = 0.3f)),
-                    shadowElevation = 0.dp,
+                    shape = shape,
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.06f)),
+                    shadowElevation = 2.dp,
                     modifier = Modifier
                         .widthIn(max = 280.dp)
                         .combinedClickable(
@@ -832,7 +833,7 @@ fun ChatBubble(msg: ChatMessage, amIAstrologer: Boolean, audioPlayer: ChatAudioP
                             onLongClick = onReply
                         )
                 ) {
-                    Column(modifier = Modifier.padding(8.dp)) {
+                    Column(modifier = Modifier.padding(10.dp)) {
 
                         var displayText = msg.text ?: ""
                         // Check if this is a reply message
@@ -842,10 +843,9 @@ fun ChatBubble(msg: ChatMessage, amIAstrologer: Boolean, audioPlayer: ChatAudioP
                             if (parts.size >= 1 && parts[0].startsWith("> Replying to:")) {
                                 val quoteText = parts[0].removePrefix("> Replying to: ").trim()
                                 if (parts.size > 1) displayText = parts[1] else displayText = ""
-
-                                // WhatsApp Style Quote Block
+                                // Telegram Style Quote Block
                                 Surface(
-                                    color = Color.Black.copy(alpha = 0.05f), // Slightly dimmed inside bubble
+                                    color = Color.White.copy(alpha = 0.08f), // Slightly dimmed inside bubble
                                     shape = RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp),
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -856,20 +856,20 @@ fun ChatBubble(msg: ChatMessage, amIAstrologer: Boolean, audioPlayer: ChatAudioP
                                             modifier = Modifier
                                                 .fillMaxHeight()
                                                 .width(4.dp)
-                                                .background(Color(0xFFE6C15A))
+                                                .background(if (isMe) Color.White else Color(0xFFFFB300))
                                         )
                                         // Quote Content
                                         Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
                                             Text(
                                                 text = "Replying to:",
                                                 style = MaterialTheme.typography.bodySmall,
-                                                color = CosmicAppTheme.colors.accent,
+                                                color = if (isMe) Color(0xFFFFD700) else Color(0xFFFFB300),
                                                 fontWeight = FontWeight.Bold
                                             )
                                             Text(
                                                 text = quoteText,
                                                 style = MaterialTheme.typography.bodySmall,
-                                                color = Color.Black.copy(alpha = 0.7f),
+                                                color = Color.White.copy(alpha = 0.8f),
                                                 maxLines = 3
                                             )
                                         }
@@ -987,7 +987,7 @@ fun ChatBubble(msg: ChatMessage, amIAstrologer: Boolean, audioPlayer: ChatAudioP
                             Text(
                                 text = displayText,
                                 style = MaterialTheme.typography.bodyLarge,
-                                color = CosmicAppTheme.colors.textPrimary
+                                color = Color.White
                             )
                         }
 
@@ -1001,7 +1001,12 @@ fun ChatBubble(msg: ChatMessage, amIAstrologer: Boolean, audioPlayer: ChatAudioP
                                     "delivered" -> Icons.Default.DoneAll
                                     else -> Icons.Default.Check
                                 }
-                                Icon(icon, null, tint = if(msg.status=="read") Color(0xFF34B7F1) else Color.Gray, modifier = Modifier.size(14.dp))
+                                Icon(
+                                    icon, 
+                                    null, 
+                                    tint = if(msg.status=="read") Color(0xFF64B5F6) else Color.White.copy(alpha = 0.5f), 
+                                    modifier = Modifier.size(14.dp)
+                                )
                             }
                         }
                     }
@@ -1014,16 +1019,16 @@ fun ChatBubble(msg: ChatMessage, amIAstrologer: Boolean, audioPlayer: ChatAudioP
 @Composable
 fun TypingBubble() {
     Surface(
-        color = CosmicAppTheme.colors.cardBg,
-        shape = RoundedCornerShape(AstroDimens.RadiusMedium),
-        border = BorderStroke(1.dp, CosmicAppTheme.colors.cardStroke.copy(alpha = 0.2f)),
-        modifier = Modifier.padding(horizontal = AstroDimens.Medium, vertical = 4.dp)
+        color = Color(0xFF211933),
+        shape = RoundedCornerShape(16.dp, 16.dp, 16.dp, 2.dp),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f)),
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
     ) {
         Text(
             text = "Typing...",
-            modifier = Modifier.padding(horizontal = AstroDimens.Medium, vertical = 4.dp),
-            style = MaterialTheme.typography.labelSmall,
-            color = CosmicAppTheme.colors.textSecondary,
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.White.copy(alpha = 0.6f),
             fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
         )
     }

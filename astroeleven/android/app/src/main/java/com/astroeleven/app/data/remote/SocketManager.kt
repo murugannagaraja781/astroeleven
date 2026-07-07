@@ -25,7 +25,7 @@ object SocketManager {
                 timeout = 20000
                 transports = arrayOf("websocket", "polling")
             }
-            val url = "https://socket.astroeleven.com"
+            val url = Constants.SERVER_URL
             socket = IO.socket(url, opts)
 
             socket?.on(Socket.EVENT_CONNECT) {

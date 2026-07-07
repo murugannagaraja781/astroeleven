@@ -1,25 +1,31 @@
 package com.astroeleven.app.ui.chat
 
 import android.content.Context
-import android.media.MediaPlayer
+import androidx.annotation.OptIn
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
+import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DataSource
+import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.datasource.okhttp.OkHttpDataSource
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import java.io.File
-import java.io.FileInputStream
-import java.io.FileOutputStream
+import okhttp3.ConnectionPool
 import okhttp3.OkHttpClient
-import okhttp3.Request
 import java.util.concurrent.TimeUnit
 import android.widget.Toast
 import android.os.Handler
 import android.os.Looper
-import android.media.AudioManager
-import android.os.Build
 
+@OptIn(UnstableApi::class)
 class ChatAudioPlayer(private val context: Context) {
-    private var mediaPlayer: MediaPlayer? = null
     private val coroutineScope = CoroutineScope(Dispatchers.Main + Job())
     private var progressJob: Job? = null
 
@@ -28,6 +34,9 @@ class ChatAudioPlayer(private val context: Context) {
 
     private val _progress = MutableStateFlow(0f)
     val progress: StateFlow<Float> = _progress.asStateFlow()
+
+    private val _bufferedProgress = MutableStateFlow(0f)
+    val bufferedProgress: StateFlow<Float> = _bufferedProgress.asStateFlow()
 
     private val _currentUrl = MutableStateFlow<String?>(null)
     val currentUrl: StateFlow<String?> = _currentUrl.asStateFlow()
@@ -38,275 +47,203 @@ class ChatAudioPlayer(private val context: Context) {
     private val _duration = MutableStateFlow(0f)
     val duration: StateFlow<Float> = _duration.asStateFlow()
 
-    // Internal robust state flags
-    private var isPrepared = false
-    private var isReleased = false
+    companion object {
+        @Volatile
+        private var exoPlayer: ExoPlayer? = null
 
-    private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-    private var audioFocusRequest: Any? = null
+        @Volatile
+        private var activeInstance: ChatAudioPlayer? = null
 
-    private val audioFocusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
-        if (focusChange == AudioManager.AUDIOFOCUS_LOSS || focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
-            if (_isPlaying.value) {
-                try { mediaPlayer?.pause(); _isPlaying.value = false; stopProgressUpdate() } catch(e: Exception) {}
-            }
-        }
-    }
+        @Synchronized
+        private fun getPlayer(context: Context): ExoPlayer {
+            if (exoPlayer == null) {
+                val cache = VoiceMessageCache.getInstance(context)
 
-    private fun requestAudioFocus(): Boolean {
-        return try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                audioFocusRequest = android.media.AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
-                    .setAudioAttributes(
-                        android.media.AudioAttributes.Builder()
-                            .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
-                            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC)
-                            .build()
-                    )
-                    .setAcceptsDelayedFocusGain(true)
-                    .setOnAudioFocusChangeListener(audioFocusChangeListener)
+                // Optimize OkHttpClient for media streaming
+                val okHttpClient = OkHttpClient.Builder()
+                    .connectTimeout(15, TimeUnit.SECONDS)
+                    .readTimeout(15, TimeUnit.SECONDS)
+                    .retryOnConnectionFailure(true)
+                    .connectionPool(ConnectionPool(5, 5, TimeUnit.MINUTES))
                     .build()
-                val res = audioManager.requestAudioFocus(audioFocusRequest as android.media.AudioFocusRequest)
-                res == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
-            } else {
-                @Suppress("DEPRECATION")
-                val res = audioManager.requestAudioFocus(
-                    audioFocusChangeListener,
-                    AudioManager.STREAM_MUSIC,
-                    AudioManager.AUDIOFOCUS_GAIN_TRANSIENT
-                )
-                res == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            false
-        }
-    }
 
-    private fun abandonAudioFocus() {
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                audioFocusRequest?.let { audioManager.abandonAudioFocusRequest(it as android.media.AudioFocusRequest) }
-            } else {
-                @Suppress("DEPRECATION")
-                audioManager.abandonAudioFocus(audioFocusChangeListener)
+                val httpDataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
+                    .setUserAgent("AstroElevenVoicePlayer/1.0")
+
+                val cacheDataSourceFactory = CacheDataSource.Factory()
+                    .setCache(cache)
+                    .setUpstreamDataSourceFactory(httpDataSourceFactory)
+                    .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+
+                exoPlayer = ExoPlayer.Builder(context.applicationContext)
+                    .setMediaSourceFactory(
+                        DefaultMediaSourceFactory(context.applicationContext)
+                            .setDataSourceFactory(cacheDataSourceFactory)
+                    )
+                    .build().apply {
+                        val audioAttributes = AudioAttributes.Builder()
+                            .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+                            .setUsage(C.USAGE_MEDIA)
+                            .build()
+                        setAudioAttributes(audioAttributes, true /* handleAudioFocus */)
+
+                        addListener(object : Player.Listener {
+                            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                                activeInstance?.updatePlayingState(isPlaying)
+                            }
+
+                            override fun onPlaybackStateChanged(state: Int) {
+                                when (state) {
+                                    Player.STATE_BUFFERING -> {
+                                        activeInstance?.updatePreparing(true)
+                                    }
+                                    Player.STATE_READY -> {
+                                        activeInstance?.updatePreparing(false)
+                                        activeInstance?.updateDuration(duration.toFloat())
+                                    }
+                                    Player.STATE_ENDED -> {
+                                        activeInstance?.onPlaybackEnded()
+                                    }
+                                    Player.STATE_IDLE -> {
+                                        activeInstance?.updatePlayingState(false)
+                                        activeInstance?.updatePreparing(false)
+                                    }
+                                }
+                            }
+
+                            override fun onPlayerError(error: PlaybackException) {
+                                activeInstance?.onPlayerError(error)
+                            }
+                        })
+                    }
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
+            return exoPlayer!!
         }
     }
 
     fun play(url: String) {
-        if (_isPreparing.value) {
-            // Ignore rapid clicks while preparing
-            return
-        }
+        val player = getPlayer(context)
 
-        if (_currentUrl.value == url) {
-            if (_isPlaying.value) {
-                try {
-                    if (isPrepared && mediaPlayer != null) {
-                        mediaPlayer?.pause()
-                    }
-                } catch (e: Exception) { e.printStackTrace() }
-                _isPlaying.value = false
-                stopProgressUpdate()
+        if (_currentUrl.value == url && activeInstance == this) {
+            if (player.isPlaying) {
+                player.pause()
             } else {
-                try {
-                    if (isPrepared && mediaPlayer != null) {
-                        try { requestAudioFocus() } catch(e: Exception){}
-                        mediaPlayer?.start()
-                        _isPlaying.value = true
-                        startProgressUpdate()
-                    }
-                } catch (e: Exception) { e.printStackTrace() }
+                if (player.playbackState == Player.STATE_ENDED) {
+                    player.seekTo(0)
+                }
+                player.play()
             }
             return
         }
 
-        stop()
+        // Deactivate the previous playing instance
+        activeInstance?.deactivate()
+
+        // Set this instance as active
+        activeInstance = this
         _currentUrl.value = url
         _isPreparing.value = true
-        isPrepared = false
-        isReleased = false
+        _progress.value = 0f
+        _bufferedProgress.value = 0f
 
-        coroutineScope.launch(Dispatchers.IO) {
-            try {
-                val cachedFile = if (url.startsWith("http")) {
-                    val fileName = "cached_audio_${url.hashCode()}.mp4"
-                    val file = File(context.cacheDir, fileName)
-                    if (!file.exists()) {
-                        val client = OkHttpClient.Builder()
-                            .connectTimeout(15, TimeUnit.SECONDS)
-                            .readTimeout(15, TimeUnit.SECONDS)
-                            .build()
-                        val request = Request.Builder()
-                            .url(url)
-                            .header("User-Agent", "Mozilla/5.0")
-                            .build()
-                        val response = client.newCall(request).execute()
-                        if (response.isSuccessful) {
-                            response.body?.byteStream()?.use { input ->
-                                FileOutputStream(file).use { output ->
-                                    input.copyTo(output)
-                                }
-                            }
-                            if (file.length() == 0L) {
-                                file.delete()
-                                throw Exception("Downloaded file is empty")
-                            }
-                        } else {
-                            throw Exception("Network Error: ${response.code}")
-                        }
-                    }
-                    if (file.length() == 0L) {
-                        file.delete()
-                        throw Exception("Cached file is empty")
-                    }
-                    file
-                } else {
-                    File(url)
-                }
-
-                withContext(Dispatchers.Main) {
-                    if (isReleased) return@withContext
-                    
-                    if (!cachedFile.exists() && url.startsWith("http")) {
-                        _isPreparing.value = false
-                        return@withContext
-                    }
-                    
-                    mediaPlayer = MediaPlayer().apply {
-                        setAudioAttributes(
-                            android.media.AudioAttributes.Builder()
-                                .setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC)
-                                .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
-                                .build()
-                        )
-                        
-                        var fis: FileInputStream? = null
-                        if (cachedFile.exists()) {
-                            fis = FileInputStream(cachedFile)
-                            setDataSource(fis.fd)
-                        } else {
-                            setDataSource(url)
-                        }
-
-                        setOnPreparedListener { mp ->
-                            try { fis?.close() } catch (e: Exception) {}
-                            if (isReleased) return@setOnPreparedListener
-                            
-                            isPrepared = true
-                            _isPreparing.value = false
-                            _duration.value = mp.duration.toFloat()
-                            
-                            try {
-                                try { requestAudioFocus() } catch (e: Exception) {}
-                                mp.start()
-                                _isPlaying.value = true
-                                startProgressUpdate()
-                            } catch (e: Exception) { e.printStackTrace() }
-                        }
-                        
-                        setOnCompletionListener {
-                            _isPlaying.value = false
-                            _progress.value = 0f
-                            _currentUrl.value = null
-                            stopProgressUpdate()
-                            abandonAudioFocus()
-                        }
-                        
-                        setOnErrorListener { _, what, extra ->
-                            try { fis?.close() } catch (e: Exception) {}
-                            if (!isReleased) {
-                                _isPreparing.value = false
-                                Handler(Looper.getMainLooper()).post {
-                                    Toast.makeText(context, "Audio play error: $what, $extra", Toast.LENGTH_SHORT).show()
-                                }
-                                stop()
-                            }
-                            true
-                        }
-                        
-                        try {
-                            prepareAsync()
-                        } catch (e: Exception) {
-                            try { fis?.close() } catch (ex: Exception) {}
-                            _isPreparing.value = false
-                            _currentUrl.value = null
-                            e.printStackTrace()
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    _isPreparing.value = false
-                    Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-                    stop()
-                }
-            }
+        val cleanUrl = if (url.startsWith("http")) {
+            url
+        } else {
+            if (url.startsWith("/")) "file://$url" else url
         }
+
+        val mediaItem = MediaItem.fromUri(cleanUrl)
+        player.setMediaItem(mediaItem)
+        player.prepare()
+        player.playWhenReady = true
+
+        startProgressUpdates()
     }
 
-    private fun startProgressUpdate() {
+    private fun startProgressUpdates() {
         progressJob?.cancel()
         progressJob = coroutineScope.launch {
-            while (isActive && _isPlaying.value) {
-                try {
-                    if (mediaPlayer != null && isPrepared && !isReleased) {
-                        mediaPlayer?.let {
-                            if (it.isPlaying) {
-                                val current = it.currentPosition.toFloat()
-                                val dur = it.duration.toFloat()
-                                if (dur > 0) {
-                                    _progress.value = current / dur
-                                }
-                            }
-                        }
+            val player = getPlayer(context)
+            while (isActive) {
+                if (activeInstance == this@ChatAudioPlayer) {
+                    val current = player.currentPosition.toFloat()
+                    val dur = player.duration.toFloat()
+                    val buf = player.bufferedPosition.toFloat()
+                    if (dur > 0) {
+                        _progress.value = (current / dur).coerceIn(0f, 1f)
+                        _bufferedProgress.value = (buf / dur).coerceIn(0f, 1f)
                     }
-                } catch (e: Exception) {
-                    e.printStackTrace()
                 }
-                delay(100)
+                delay(50) // High-precision polling for smooth visual rendering
             }
         }
     }
 
-    private fun stopProgressUpdate() {
+    private fun stopProgressUpdates() {
         progressJob?.cancel()
+        progressJob = null
     }
 
-    fun stop() {
-        stopProgressUpdate()
-        abandonAudioFocus()
-        try {
-            mediaPlayer?.reset()
-        } catch (e: Exception) { e.printStackTrace() }
-        try {
-            mediaPlayer?.release()
-        } catch (e: Exception) { e.printStackTrace() }
-        
-        mediaPlayer = null
-        isReleased = true
-        isPrepared = false
-        _isPreparing.value = false
+    fun updatePlayingState(isPlaying: Boolean) {
+        _isPlaying.value = isPlaying
+        if (isPlaying) {
+            startProgressUpdates()
+        } else {
+            stopProgressUpdates()
+        }
+    }
+
+    fun updatePreparing(isPreparing: Boolean) {
+        _isPreparing.value = isPreparing
+    }
+
+    fun updateDuration(durationMs: Float) {
+        _duration.value = durationMs
+    }
+
+    fun onPlaybackEnded() {
         _isPlaying.value = false
         _progress.value = 0f
-        _currentUrl.value = null
+        _bufferedProgress.value = 0f
+        stopProgressUpdates()
+    }
+
+    fun onPlayerError(error: PlaybackException) {
+        _isPreparing.value = false
+        _isPlaying.value = false
+        stopProgressUpdates()
+        Handler(Looper.getMainLooper()).post {
+            Toast.makeText(context, "Voice playback failed: ${error.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun deactivate() {
+        stopProgressUpdates()
+        _isPlaying.value = false
+        _isPreparing.value = false
+        _progress.value = 0f
+        _bufferedProgress.value = 0f
     }
 
     fun seekTo(progress: Float) {
-        coroutineScope.launch(Dispatchers.Main) {
-            if (isPrepared && mediaPlayer != null && !isReleased) {
-                try {
-                    val dur = mediaPlayer?.duration ?: 0
-                    if (dur > 0) {
-                        val pos = (dur * progress).toInt()
-                        mediaPlayer?.seekTo(pos)
-                        _progress.value = progress
-                    }
-                } catch (e: Exception) { e.printStackTrace() }
+        if (activeInstance == this) {
+            val player = getPlayer(context)
+            val dur = player.duration
+            if (dur > 0) {
+                val targetPos = (dur * progress).toLong()
+                player.seekTo(targetPos)
+                _progress.value = progress
             }
+        }
+    }
+
+    fun stop() {
+        if (activeInstance == this) {
+            val player = getPlayer(context)
+            player.stop()
+            player.clearMediaItems()
+            deactivate()
+            activeInstance = null
         }
     }
 
