@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const { GoogleAuth } = require('google-auth-library');
 
-const FCM_PROJECT_ID = 'rise-astro-a1a72';
+let FCM_PROJECT_ID = '';
 let callApp = null;
 let fcmAuth = null;
 
@@ -13,10 +13,11 @@ const serviceAccountPath = path.join(__dirname, '../firebase-service-account.jso
 try {
     if (fs.existsSync(serviceAccountPath)) {
         const firebaseServiceAccount = require(serviceAccountPath);
+        FCM_PROJECT_ID = firebaseServiceAccount.project_id;
         callApp = admin.initializeApp({
             credential: admin.credential.cert(firebaseServiceAccount)
         }, 'callApp');
-        console.log('✓ Call App: Firebase Admin SDK initialized');
+        console.log(`✓ Call App: Firebase Admin SDK initialized for project: ${FCM_PROJECT_ID}`);
 
         // Initialize FCM v1 Auth
         fcmAuth = new GoogleAuth({
