@@ -417,6 +417,23 @@ fun AstrologerDashboardScreen(
         "Settings" to Icons.Default.Settings
     )
 
+    val colors = remember {
+        object {
+            val accent = Color(0xFFFF7A00) // Brand Orange
+            val goldAccent = Color(0xFFFFB800) // Bright Gold/Yellow
+            val cardBg = Color(0xFFFFFFFF) // White Glass
+            val cardStroke = Color(0xFFFF7A00).copy(alpha = 0.15f) // Soft Orange Border
+            val textPrimary = Color(0xFF2E1A0F) // Deep Coffee Black
+            val textSecondary = Color(0xFF8C7364) // Warm Cocoa Secondary
+            val headerGradient = Brush.verticalGradient(
+                colors = listOf(Color(0xFFFF7A00), Color(0xFFFF9E00)) // Warm Golden Orange
+            )
+            val bgGradient = Brush.verticalGradient(
+                colors = listOf(Color(0xFFFEF9F3), Color(0xFFFFF3E0)) // Soft Cream to Warm Amber
+            )
+        }
+    }
+
     fun refreshBalanceAndHistory() {
         scope.launch(kotlinx.coroutines.Dispatchers.IO) {
             try {
@@ -540,27 +557,27 @@ fun AstrologerDashboardScreen(
     if (showWithdrawDialog) {
         AlertDialog(
             onDismissRequest = { showWithdrawDialog = false },
-            title = { Text("Request Withdrawal", fontWeight = FontWeight.Bold, color = Color.White) },
+            title = { Text("Request Withdrawal", fontWeight = FontWeight.Bold, color = colors.textPrimary) },
             text = {
                 Column {
-                    Text("Available Balance: ₹${String.format("%.2f", walletBalance)}", color = Color(0xFFFFD700), fontWeight = FontWeight.Bold)
+                    Text("Available Balance: ₹${String.format("%.2f", walletBalance)}", color = colors.accent, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(16.dp))
                     OutlinedTextField(
                         value = withdrawAmount,
                         onValueChange = { if (it.all { char -> char.isDigit() }) withdrawAmount = it },
-                        label = { Text("Enter Amount", color = Color.LightGray) },
+                        label = { Text("Enter Amount", color = colors.textSecondary) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF8A5CFF),
-                            unfocusedBorderColor = Color(0xFF8A5CFF).copy(alpha = 0.4f),
-                            focusedLabelColor = Color(0xFF8A5CFF),
-                            unfocusedLabelColor = Color.LightGray,
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White
+                            focusedBorderColor = colors.accent,
+                            unfocusedBorderColor = colors.cardStroke,
+                            focusedLabelColor = colors.accent,
+                            unfocusedLabelColor = colors.textSecondary,
+                            focusedTextColor = colors.textPrimary,
+                            unfocusedTextColor = colors.textPrimary
                         )
                     )
-                    Text("Min. ₹500 required", fontSize = 11.sp, color = Color.Gray, modifier = Modifier.padding(top = 4.dp))
+                    Text("Min. ₹500 required", fontSize = 11.sp, color = colors.textSecondary, modifier = Modifier.padding(top = 4.dp))
                 }
             },
             confirmButton = {
@@ -587,35 +604,18 @@ fun AstrologerDashboardScreen(
                             }
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8A5CFF))
+                    colors = ButtonDefaults.buttonColors(containerColor = colors.accent)
                 ) {
                     Text("Request", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showWithdrawDialog = false }) {
-                    Text("Cancel", color = Color.Gray)
+                    Text("Cancel", color = colors.textSecondary)
                 }
             },
-            containerColor = Color(0xFF151026)
+            containerColor = Color(0xFFFFFDFB)
         )
-    }
-
-    val colors = remember {
-        object {
-            val accent = Color(0xFF8A5CFF)
-            val goldAccent = Color(0xFFFFD700)
-            val cardBg = Color(0xFF130E26).copy(alpha = 0.85f)
-            val cardStroke = Color(0xFF8A5CFF).copy(alpha = 0.25f)
-            val textPrimary = Color.White
-            val textSecondary = Color(0xFFB3A7DB)
-            val headerGradient = Brush.verticalGradient(
-                colors = listOf(Color(0xFF1E1B4B), Color(0xFF0F0B1E))
-            )
-            val bgGradient = Brush.verticalGradient(
-                colors = listOf(Color(0xFF0F0B1E), Color(0xFF07040E))
-            )
-        }
     }
 
     Scaffold(
@@ -632,8 +632,8 @@ fun AstrologerDashboardScreen(
                     modifier = Modifier
                         .size(58.dp)
                         .clip(CircleShape)
-                        .background(colors.cardBg)
-                        .border(BorderStroke(2.dp, colors.accent), CircleShape)
+                        .background(Color.White)
+                        .border(BorderStroke(2.dp, Color.White), CircleShape)
                         .clickable { if (!isUploading) launcher.launch("image/*") },
                     contentAlignment = Alignment.Center
                 ) {
@@ -658,7 +658,7 @@ fun AstrologerDashboardScreen(
                         } else {
                             Text(
                                 sessionName.take(1),
-                                color = Color.White,
+                                color = colors.accent,
                                 fontWeight = FontWeight.ExtraBold,
                                 fontSize = 22.sp
                             )
@@ -668,14 +668,14 @@ fun AstrologerDashboardScreen(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
                             .size(16.dp)
-                            .background(colors.accent, CircleShape)
-                            .border(1.dp, Color.White, CircleShape),
+                            .background(Color.White, CircleShape)
+                            .border(1.dp, colors.accent, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Person,
                             contentDescription = null,
-                            tint = Color.White,
+                            tint = colors.accent,
                             modifier = Modifier.size(9.dp)
                         )
                     }
@@ -704,7 +704,7 @@ fun AstrologerDashboardScreen(
                             Box(
                                 modifier = Modifier
                                     .size(8.dp)
-                                    .background(if (isOnline) Color(0xFF22C55E) else Color(0xFF6B7280), CircleShape)
+                                    .background(if (isOnline) Color(0xFF22C55E) else Color(0xFFE5E7EB), CircleShape)
                             )
                         }
                     }
@@ -712,7 +712,7 @@ fun AstrologerDashboardScreen(
                         if (isOnline) "ONLINE & AVAILABLE" else "OFFLINE",
                         fontWeight = FontWeight.Bold,
                         fontSize = 11.sp,
-                        color = if (isOnline) Color(0xFF22C55E) else colors.textSecondary
+                        color = Color.White.copy(alpha = 0.9f)
                     )
                 }
 
@@ -721,8 +721,8 @@ fun AstrologerDashboardScreen(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.06f))
-                        .border(1.dp, Color.White.copy(alpha = 0.15f), CircleShape)
+                        .background(Color.White.copy(alpha = 0.15f))
+                        .border(1.dp, Color.White.copy(alpha = 0.25f), CircleShape)
                 ) {
                     Icon(Icons.Default.Notifications, null, tint = Color.White, modifier = Modifier.size(18.dp))
                 }
@@ -732,10 +732,10 @@ fun AstrologerDashboardScreen(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.06f))
-                        .border(1.dp, Color.White.copy(alpha = 0.15f), CircleShape)
+                        .background(Color.White.copy(alpha = 0.15f))
+                        .border(1.dp, Color.White.copy(alpha = 0.25f), CircleShape)
                 ) {
-                    Icon(Icons.Default.ExitToApp, null, tint = Color.Red, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.ExitToApp, null, tint = Color.White, modifier = Modifier.size(18.dp))
                 }
             }
         }
@@ -802,25 +802,24 @@ fun AstrologerDashboardScreen(
 
             if (!hasOverlay || !hasAudio || !hasCamera || !hasNotification || !hasBatteryOptimization || !hasFullScreenIntent) {
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFEF4444).copy(alpha = 0.08f)),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFEE2E2)),
                     shape = RoundedCornerShape(22.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .shadow(8.dp, RoundedCornerShape(22.dp))
-                        .clickable { context.startActivity(Intent(context, PermissionActivity::class.java)) },
-                    border = BorderStroke(1.dp, Color(0xFFEF4444).copy(alpha = 0.3f))
+                        .shadow(8.dp, RoundedCornerShape(22.dp)),
+                    border = BorderStroke(1.dp, Color(0xFFFCA5A5))
                 ) {
                     Column(modifier = Modifier.padding(18.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFEF4444), modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFF991B1B), modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(10.dp))
-                            Text("System Warning: Ringing Alerts Disabled", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
+                            Text("System Warning: Ringing Alerts Disabled", fontWeight = FontWeight.Bold, color = Color(0xFF991B1B), fontSize = 14.sp)
                         }
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             "One or more critical permissions are disabled. Please repair settings to receive calls.",
                             fontSize = 12.sp,
-                            color = Color.White.copy(alpha = 0.7f)
+                            color = Color(0xFF7F1D1D)
                         )
                         Spacer(modifier = Modifier.height(10.dp))
                         Button(
@@ -851,17 +850,17 @@ fun AstrologerDashboardScreen(
                             .background(Color(0xFF22C55E), CircleShape)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Connection Status: Connected & Syncing", fontSize = 12.sp, color = Color.White, fontWeight = FontWeight.Medium)
+                    Text("Connection Status: Connected & Syncing", fontSize = 12.sp, color = colors.textPrimary, fontWeight = FontWeight.Medium)
                 }
             }
 
-            val goldColors = listOf(Color(0xFF4C1D95), Color(0xFF2E1065))
+            val goldColors = listOf(Color(0xFFFF8F00), Color(0xFFFFC400))
             Card(
                 colors = CardDefaults.cardColors(containerColor = Color.Transparent),
                 shape = RoundedCornerShape(26.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .shadow(16.dp, RoundedCornerShape(26.dp), spotColor = colors.accent.copy(alpha = 0.4f))
+                    .shadow(12.dp, RoundedCornerShape(26.dp), spotColor = colors.accent.copy(alpha = 0.3f))
             ) {
                 Box(
                     modifier = Modifier
@@ -870,14 +869,14 @@ fun AstrologerDashboardScreen(
                 ) {
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("CREDIT BALANCE", color = colors.textSecondary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text("CREDIT BALANCE", color = Color.White.copy(alpha = 0.9f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             Spacer(modifier = Modifier.weight(1f))
                             Box(
                                 modifier = Modifier
-                                    .background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
+                                    .background(Color.Black.copy(alpha = 0.12f), RoundedCornerShape(8.dp))
                                     .padding(horizontal = 8.dp, vertical = 4.dp)
                             ) {
-                                Text("Min. ₹500", color = Color(0xFFFFD700), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                Text("Min. ₹500", color = Color(0xFFFFF7ED), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                         Spacer(modifier = Modifier.height(10.dp))
@@ -891,12 +890,12 @@ fun AstrologerDashboardScreen(
                             Spacer(modifier = Modifier.weight(1f))
                             Button(
                                 onClick = { showWithdrawDialog = true },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                                border = BorderStroke(1.5.dp, Color(0xFFFFD700)),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                                border = BorderStroke(1.dp, Color.White),
                                 shape = RoundedCornerShape(12.dp),
                                 modifier = Modifier.height(40.dp)
                             ) {
-                                Text("Withdraw", color = Color(0xFFFFD700), fontWeight = FontWeight.ExtraBold)
+                                Text("Withdraw", color = colors.accent, fontWeight = FontWeight.ExtraBold)
                             }
                         }
                     }
@@ -908,7 +907,7 @@ fun AstrologerDashboardScreen(
                     "Withdrawal Status Feed",
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp,
-                    color = Color.White,
+                    color = colors.textPrimary,
                     modifier = Modifier.padding(horizontal = 4.dp)
                 )
 
@@ -918,10 +917,10 @@ fun AstrologerDashboardScreen(
                         val amount = item.optDouble("amount", 0.0)
                         val date = item.optString("requestedAt", "").take(10)
 
-                        val statusColor = when(status.lowercase()) {
-                            "approved" -> Color(0xFF22C55E)
-                            "rejected" -> Color(0xFFEF4444)
-                            else -> Color(0xFFF59E0B)
+                        val (statusColor, statusBg) = when(status.lowercase()) {
+                            "approved" -> Color(0xFF166534) to Color(0xFFDCFCE7)
+                            "rejected" -> Color(0xFF991B1B) to Color(0xFFFEE2E2)
+                            else -> Color(0xFF9A3412) to Color(0xFFFFEDD5)
                         }
 
                         Card(
@@ -936,13 +935,13 @@ fun AstrologerDashboardScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column {
-                                    Text("₹$amount", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 15.sp)
+                                    Text("₹$amount", fontWeight = FontWeight.Bold, color = colors.textPrimary, fontSize = 15.sp)
                                     Text(date, fontSize = 11.sp, color = colors.textSecondary)
                                 }
                                 Box(
                                     modifier = Modifier
-                                        .background(statusColor.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
-                                        .border(1.dp, statusColor.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                                        .background(statusBg, RoundedCornerShape(8.dp))
+                                        .border(1.dp, statusColor.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
                                         .padding(horizontal = 8.dp, vertical = 4.dp)
                                 ) {
                                     Text(
@@ -1021,7 +1020,7 @@ fun AstrologerDashboardScreen(
             Card(
                 colors = CardDefaults.cardColors(containerColor = colors.cardBg),
                 shape = RoundedCornerShape(22.dp),
-                modifier = Modifier.fillMaxWidth().shadow(12.dp, RoundedCornerShape(22.dp)),
+                modifier = Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(22.dp)),
                 border = BorderStroke(1.dp, colors.cardStroke)
             ) {
                 Row(
@@ -1029,7 +1028,7 @@ fun AstrologerDashboardScreen(
                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Today's Target Meter", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
+                        Text("Today's Target Meter", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = colors.textPrimary)
                         val totalHours = 12.0
                         val completedHours = (todayProgress / 100.0) * totalHours
                         Text("$todayProgress% of daily session goals (${String.format("%.1f", completedHours)} hrs)", fontSize = 12.sp, color = colors.textSecondary)
@@ -1037,14 +1036,14 @@ fun AstrologerDashboardScreen(
                     Box(contentAlignment = Alignment.Center) {
                          CircularProgressIndicator(
                              progress = (todayProgress / 100f).coerceIn(0f, 1f),
-                             trackColor = Color.White.copy(alpha = 0.08f),
+                             trackColor = Color(0xFFF3F4F6),
                              color = colors.accent,
                              modifier = Modifier.size(56.dp),
                              strokeWidth = 6.dp
                          )
                          Text(
                              "$todayProgress%",
-                             color = Color.White,
+                             color = colors.textPrimary,
                              fontSize = 11.sp,
                              fontWeight = FontWeight.Bold
                          )
@@ -1071,7 +1070,7 @@ fun AstrologerDashboardScreen(
                                  modifier = Modifier
                                      .weight(1f)
                                      .aspectRatio(1f)
-                                     .shadow(12.dp, asymmetryShape)
+                                     .shadow(8.dp, asymmetryShape)
                                      .border(BorderStroke(1.dp, colors.cardStroke), asymmetryShape)
                                      .clickable {
                                          when (label) {
@@ -1107,14 +1106,14 @@ fun AstrologerDashboardScreen(
                                      Box(
                                          modifier = Modifier
                                              .size(40.dp)
-                                             .background(colors.accent.copy(alpha = 0.12f), CircleShape)
-                                             .border(1.dp, colors.accent.copy(alpha = 0.3f), CircleShape),
+                                             .background(colors.accent.copy(alpha = 0.1f), CircleShape)
+                                             .border(1.dp, colors.accent.copy(alpha = 0.2f), CircleShape),
                                          contentAlignment = Alignment.Center
                                      ) {
                                          Icon(icon, null, tint = colors.accent, modifier = Modifier.size(20.dp))
                                      }
                                      Spacer(modifier = Modifier.height(8.dp))
-                                     Text(label, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                     Text(label, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
                                      
                                      val microLabel = when(label) {
                                          "Call" -> "24m today"
@@ -1159,17 +1158,17 @@ fun ServiceTogglesCard(
 ) {
     val colors = remember {
         object {
-            val accent = Color(0xFF8A5CFF)
-            val cardBg = Color(0xFF130E26).copy(alpha = 0.85f)
-            val cardStroke = Color(0xFF8A5CFF).copy(alpha = 0.25f)
-            val textPrimary = Color.White
-            val textSecondary = Color(0xFFB3A7DB)
+            val accent = Color(0xFFFF7A00)
+            val cardBg = Color(0xFFFFFFFF)
+            val cardStroke = Color(0xFFFF7A00).copy(alpha = 0.15f)
+            val textPrimary = Color(0xFF2E1A0F)
+            val textSecondary = Color(0xFF8C7364)
         }
     }
     Card(
         colors = CardDefaults.cardColors(containerColor = colors.cardBg),
         shape = RoundedCornerShape(24.dp),
-        modifier = Modifier.fillMaxWidth().shadow(16.dp, RoundedCornerShape(24.dp)),
+        modifier = Modifier.fillMaxWidth().shadow(12.dp, RoundedCornerShape(24.dp)),
         border = BorderStroke(1.dp, colors.cardStroke)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
@@ -1222,21 +1221,22 @@ fun ServiceToggleRow(
 ) {
     val colors = remember {
         object {
-            val accent = Color(0xFF8A5CFF)
-            val textPrimary = Color.White
+            val accent = Color(0xFFFF7A00)
+            val textPrimary = Color(0xFF2E1A0F)
+            val textSecondary = Color(0xFF8C7364)
         }
     }
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                if (isEnabled) Color(0xFF2A155C).copy(alpha = 0.4f)
-                else Color.White.copy(alpha = 0.04f),
+                if (isEnabled) Color(0xFFFFF7ED)
+                else Color(0xFFF9FAFB),
                 RoundedCornerShape(16.dp)
             )
             .border(
                 1.dp,
-                if (isEnabled) colors.accent.copy(alpha = 0.3f) else Color.Transparent,
+                if (isEnabled) colors.accent.copy(alpha = 0.25f) else Color.Transparent,
                 RoundedCornerShape(16.dp)
             )
             .padding(horizontal = 16.dp, vertical = 12.dp),
@@ -1246,7 +1246,7 @@ fun ServiceToggleRow(
             modifier = Modifier
                 .size(36.dp)
                 .background(
-                    if (isEnabled) colors.accent.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.04f),
+                    if (isEnabled) colors.accent.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.04f),
                     CircleShape
                 ),
             contentAlignment = Alignment.Center
@@ -1264,12 +1264,12 @@ fun ServiceToggleRow(
                 label,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (isEnabled) Color.White else Color.White.copy(alpha = 0.7f)
+                color = colors.textPrimary
             )
             Text(
                 if (isEnabled) "Active & Available" else "Offline",
                 fontSize = 11.sp,
-                color = if (isEnabled) colors.accent else Color.Gray,
+                color = if (isEnabled) colors.accent else colors.textSecondary,
                 fontWeight = FontWeight.Medium
             )
         }
@@ -1279,8 +1279,8 @@ fun ServiceToggleRow(
             colors = SwitchDefaults.colors(
                 checkedThumbColor = Color.White,
                 checkedTrackColor = colors.accent,
-                uncheckedThumbColor = Color.Gray.copy(alpha = 0.8f),
-                uncheckedTrackColor = Color.White.copy(alpha = 0.08f),
+                uncheckedThumbColor = Color(0xFFD1D5DB),
+                uncheckedTrackColor = Color(0xFFE5E7EB),
                 uncheckedBorderColor = Color.Transparent
             ),
             modifier = Modifier.scale(0.85f)
