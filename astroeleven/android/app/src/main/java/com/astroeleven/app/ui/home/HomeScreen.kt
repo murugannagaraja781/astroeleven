@@ -99,12 +99,13 @@ fun BannerSection(
     referralBannerTitle: String,
     referralBannerImage: String
 ) {
-    // Total slides = 3 (Referral Poster + 2 Local Banners)
-    val totalSlides = 3
+    if (banners.isEmpty()) return
+
+    val totalSlides = banners.size
     val pagerState = androidx.compose.foundation.pager.rememberPagerState(pageCount = { totalSlides })
 
     // Auto-scroll logic
-    LaunchedEffect(Unit) {
+    LaunchedEffect(totalSlides) {
         while (true) {
             kotlinx.coroutines.delay(5000) // 5 seconds
             if (totalSlides > 1) {
@@ -114,14 +115,13 @@ fun BannerSection(
         }
     }
 
-
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.padding(vertical = 8.dp) // Consistent with AstrologerCard vertical spacing (8dp top + 8dp bottom)
+        modifier = Modifier.padding(vertical = 8.dp)
     ) {
         HorizontalPager(
             state = pagerState,
-            contentPadding = PaddingValues(horizontal = 14.dp), // Matched with AstrologerCard horizontal padding
+            contentPadding = PaddingValues(horizontal = 14.dp),
             pageSpacing = 0.dp,
             modifier = Modifier
                 .fillMaxWidth()
@@ -131,123 +131,35 @@ fun BannerSection(
              val scale by animateFloatAsState(targetValue = if (pageOffset == 0f) 1f else 0.9f, label = "scale")
              val alpha by animateFloatAsState(targetValue = if (pageOffset == 0f) 1f else 0.6f, label = "alpha")
 
-             if (page == 0) {
-                 // --- SLIDE 1: REFERRAL POSTER ---
-                 Card(
-                     shape = RoundedCornerShape(AstroDimens.RadiusLarge),
-                     colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF1F1)),
-                     border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFCCCC)),
-                     elevation = CardDefaults.cardElevation(defaultElevation = AstroDimens.ElevationLarge),
-                     modifier = Modifier
-                         .graphicsLayer {
-                             scaleX = scale
-                             scaleY = scale
-                             this.alpha = alpha
-                         }
-                         .fillMaxSize()
-                         .clickable { onReferClick() }
-                 ) {
-                     Box(modifier = Modifier.fillMaxSize()) {
-                         if (!referralBannerImage.isNullOrEmpty()) {
-                             AsyncImage(
-                                 model = getImageUrl(referralBannerImage),
-                                 contentDescription = "Referral Background",
-                                 contentScale = ContentScale.Crop,
-                                 modifier = Modifier.fillMaxSize()
-                             )
-                         }
+             val banner = banners[page]
 
-                         // Content Side
-                         Column(
-                             modifier = Modifier
-                                 .fillMaxHeight()
-                                 .fillMaxWidth(0.65f)
-                                 .padding(AstroDimens.Large),
-                             verticalArrangement = Arrangement.Center
-                         ) {
-                             Text(
-                                 text = referralBannerTitle.ifEmpty { "Refer Your Friend & Earn Upto ₹5000" },
-                                 style = MaterialTheme.typography.titleSmall, // Reduced size
-                                 fontWeight = FontWeight.Bold,
-                                 color = Color.Black
-                             )
-                             Spacer(modifier = Modifier.height(6.dp)) // Reduced spacer
-                             Surface(
-                                 shape = RoundedCornerShape(50),
-                                 color = Color(0xFFFF5252),
-                                 modifier = Modifier.height(20.dp) // Reduced height
-                             ) {
-                                 Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 10.dp)) {
-                                     Text("REFER & EARN", color = Color.White, fontSize = 7.sp, fontWeight = FontWeight.Black) // Reduced text size
-                                 }
-                             }
-                             Spacer(modifier = Modifier.height(4.dp)) // Reduced spacer
-
-                         }
-
-                         // Share Icon (Top-right)
-                         Box(
-                             modifier = Modifier
-                                 .align(Alignment.TopEnd)
-                                 .padding(6.dp)
-                                 .size(30.dp)
-                                 .clip(CircleShape)
-                                 .background(Color.White.copy(alpha = 0.5f))
-                                 .clickable { onShareClick() },
-                             contentAlignment = Alignment.Center
-                         ) {
-                             Icon(
-                                 imageVector = androidx.compose.material.icons.Icons.Rounded.Share,
-                                  contentDescription = "Share",
-                                  tint = Color(0xFFFF5252),
-                                  modifier = Modifier.size(16.dp)
-                             )
-                         }
-
-                         if (referralBannerImage.isNullOrEmpty()) {
-                             // Decoration
-                             Image(
-                                 painter = painterResource(id = com.astroeleven.app.R.mipmap.ic_launcher_foreground),
-                                 contentDescription = null,
-                                 modifier = Modifier.align(Alignment.CenterEnd).size(110.dp).padding(end = 10.dp),
-                                 alpha = 0.8f
-                             )
-                         }
+             Card(
+                 shape = RoundedCornerShape(AstroDimens.RadiusLarge),
+                 elevation = CardDefaults.cardElevation(defaultElevation = AstroDimens.ElevationLarge),
+                 border = androidx.compose.foundation.BorderStroke(1.dp, CosmicAppTheme.colors.cardStroke.copy(alpha = 0.3f)),
+                 modifier = Modifier
+                     .graphicsLayer {
+                         scaleX = scale
+                         scaleY = scale
+                         this.alpha = alpha
                      }
-                 }
-             } else {
-                 // --- REST OF SLIDES: LOCAL BANNERS ---
-                 val localResId = if (page == 1) com.astroeleven.app.R.drawable.banner_offer_1 else com.astroeleven.app.R.drawable.banner_offer_2
-                 Card(
-                     shape = RoundedCornerShape(AstroDimens.RadiusLarge),
-                     elevation = CardDefaults.cardElevation(defaultElevation = AstroDimens.ElevationLarge),
-                     border = androidx.compose.foundation.BorderStroke(1.dp, CosmicAppTheme.colors.cardStroke.copy(alpha = 0.3f)),
-                     modifier = Modifier
-                         .graphicsLayer {
-                             scaleX = scale
-                             scaleY = scale
-                             this.alpha = alpha
-                         }
-                         .fillMaxSize()
-                         .clickable {
-                             // Clicking local banner scrolls to astrologers list
-                             onBannerClick(com.astroeleven.app.data.model.Banner("", ""))
-                         }
-                 ) {
-                     Box(modifier = Modifier.fillMaxSize()) {
-                         Image(
-                             painter = painterResource(id = localResId),
-                             contentDescription = "Local Banner",
-                             contentScale = ContentScale.Crop,
-                             modifier = Modifier.fillMaxSize()
-                         )
+                     .fillMaxSize()
+                     .clickable {
+                         onBannerClick(banner)
                      }
+             ) {
+                 Box(modifier = Modifier.fillMaxSize()) {
+                     AsyncImage(
+                         model = getImageUrl(banner.imageUrl),
+                         contentDescription = "Server Banner",
+                         contentScale = ContentScale.Crop,
+                         modifier = Modifier.fillMaxSize()
+                     )
                  }
              }
-         }
+        }
 
-
-        Spacer(modifier = Modifier.height(AstroDimens.XSmall)) // Reduced from Medium to XSmall (4dp)
+        Spacer(modifier = Modifier.height(AstroDimens.XSmall))
 
         // Indicators
         Row(
@@ -257,7 +169,6 @@ fun BannerSection(
             repeat(totalSlides) { iteration ->
                 val color = if (pagerState.currentPage == iteration) CosmicAppTheme.colors.accent else CosmicAppTheme.colors.accent.copy(alpha = 0.2f)
                 val width by animateDpAsState(targetValue = if (pagerState.currentPage == iteration) 18.dp else 6.dp, label = "dotWidth")
-
 
                 Box(
                     modifier = Modifier
