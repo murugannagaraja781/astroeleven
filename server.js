@@ -23,7 +23,6 @@ const Payment = require('./models/Payment');
 const ChatMessage = require('./models/ChatMessage');
 const AcademyVideo = require('./models/AcademyVideo');
 const Banner = require('./models/Banner');
-const AstromallProduct = require('./models/AstromallProduct');
 const AccountDeletionRequest = require('./models/AccountDeletionRequest');
 const GlobalSettings = require('./models/GlobalSettings');
 const Ritual = require('./models/Ritual');
@@ -914,67 +913,6 @@ app.delete('/api/admin/banners/:id', async (req, res) => {
     res.status(500).json({ ok: false, error: err.message });
   }
 });
-
-// --- Astromall Products APIs (Admin) ---
-
-// Get All Products
-app.get('/api/admin/products', async (req, res) => {
-  try {
-    const products = await AstromallProduct.find({ isDelete: false }).sort({ name: 1 });
-    res.json({ ok: true, products });
-  } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
-  }
-});
-
-// Create/Update Product
-app.post('/api/admin/products', upload.single('productImage'), async (req, res) => {
-  try {
-    const { id, name, features, amount, productCategoryId, description, isActive } = req.body;
-    let finalImageUrl = req.body.productImage || '';
-
-    if (req.file) {
-      finalImageUrl = 'uploads/' + req.file.filename;
-    }
-
-    if (id && id !== 'undefined') {
-      const product = await AstromallProduct.findByIdAndUpdate(id, {
-        name,
-        features,
-        amount: parseFloat(amount || 0),
-        productCategoryId: parseInt(productCategoryId || 0),
-        description,
-        isActive: isActive === 'true' || isActive === true || isActive === 1,
-        productImage: finalImageUrl
-      }, { new: true });
-      res.json({ ok: true, product });
-    } else {
-      const product = await AstromallProduct.create({
-        name,
-        features,
-        amount: parseFloat(amount || 0),
-        productCategoryId: parseInt(productCategoryId || 0),
-        description,
-        isActive: isActive === 'true' || isActive === true || isActive === 1,
-        productImage: finalImageUrl
-      });
-      res.json({ ok: true, product });
-    }
-  } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
-  }
-});
-
-// Delete Product (Soft delete)
-app.delete('/api/admin/products/:id', async (req, res) => {
-  try {
-    await AstromallProduct.findByIdAndUpdate(req.params.id, { isDelete: true });
-    res.json({ ok: true });
-  } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
-  }
-});
-
 // --- Services APIs (Admin) ---
 app.get('/api/admin/services', async (req, res) => {
   try {
