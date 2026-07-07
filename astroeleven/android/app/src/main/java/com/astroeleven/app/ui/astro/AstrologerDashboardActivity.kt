@@ -40,6 +40,12 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VideoCall
 import androidx.compose.material3.*
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
@@ -387,17 +393,9 @@ fun AstrologerDashboardScreen(
     var isVideoOnline by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
-    // NEW: Local Today's Progress Logic
     val tokenManager = remember { TokenManager(context) }
     var todayProgress by remember { mutableIntStateOf(tokenManager.getDailyProgress()) }
 
-    val services = remember {
-        mutableStateListOf(
-            ServiceData("Chat", false, Icons.Default.Chat),
-            ServiceData("Call", false, Icons.Default.Call),
-            ServiceData("Video", false, Icons.Default.Person)
-        )
-    }
     val scrollState = rememberScrollState()
     val scope = rememberCoroutineScope()
 
@@ -405,12 +403,18 @@ fun AstrologerDashboardScreen(
     var withdrawAmount by remember { mutableStateOf("") }
     var withdrawalHistory by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     
+    // Status metrics data
+    var callsMinsToday by remember { mutableIntStateOf(18) }
+    var reviewsCount by remember { mutableIntStateOf(42) }
+    var starsRating by remember { mutableFloatStateOf(4.9f) }
+
     val actions = listOf(
         "Call" to Icons.Default.Call,
         "History" to Icons.Default.History,
         "Earnings" to Icons.Default.MonetizationOn,
         "Profile" to Icons.Default.Person,
-        "Star" to Icons.Default.Star
+        "Star" to Icons.Default.Star,
+        "Settings" to Icons.Default.Settings
     )
 
     fun refreshBalanceAndHistory() {
@@ -425,7 +429,6 @@ fun AstrologerDashboardScreen(
                     val json = JSONObject(response.body?.string() ?: "{}")
                     walletBalance = json.optDouble("walletBalance", walletBalance)
 
-                    // Sync individual service states from DB
                     val chatFromDb = json.optBoolean("isChatOnline", false)
                     val audioFromDb = json.optBoolean("isAudioOnline", false)
                     val videoFromDb = json.optBoolean("isVideoOnline", false)
@@ -436,7 +439,6 @@ fun AstrologerDashboardScreen(
                     isAudioOnline = audioFromDb
                     isVideoOnline = videoFromDb
 
-                    // Reconnect socket if any service is online
                     if (isChatOnline || isAudioOnline || isVideoOnline) {
                          SocketManager.init()
                          SocketManager.registerUser(sessionId)
@@ -465,13 +467,11 @@ fun AstrologerDashboardScreen(
                     val body = MultipartBody.Part.createFormData("image", "profile.jpg", requestFile)
                     val userIdBody = sessionId.toRequestBody("text/plain".toMediaTypeOrNull())
 
-                    // User Request: Robust upload with userId in query too                    // User Request: Robust upload with userId in query too
                     val response = ApiClient.api.uploadProfilePic(userIdBody, body, sessionId)
                     if (response.isSuccessful) {
                         val newImage = response.body()?.get("image")?.asString
                         if (newImage != null) {
                             profileImage = newImage
-                            // Update local session
                             val session = tokenManager.getUserSession()
                             if (session != null) {
                                 tokenManager.saveUserSession(session.copy(image = newImage))
@@ -499,42 +499,66 @@ fun AstrologerDashboardScreen(
         }
     }
 
-    // Fetch latest balance on load
     LaunchedEffect(Unit) {
-        // Daily Progress Logic
         val sdf = SimpleDateFormat("yyyyMMdd", Locale.getDefault())
         val currentDate = sdf.format(Date())
         val lastDate = tokenManager.getLastDate()
 
         if (currentDate != lastDate) {
-            // New Day! Reset and set initial increment
             todayProgress = 5
             tokenManager.setLastDate(currentDate)
         } else {
-            // Same Day! Increment progress (e.g., +5% per open)
             if (todayProgress < 100) {
                 todayProgress += 5
             }
         }
         tokenManager.setDailyProgress(todayProgress)
-
         refreshBalanceAndHistory()
     }
+
+    val isOnline = isChatOnline || isAudioOnline || isVideoOnline
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 1.0f,
+        targetValue = 1.35f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulseScale"
+    )
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.7f,
+        targetValue = 0.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulseAlpha"
+    )
 
     if (showWithdrawDialog) {
         AlertDialog(
             onDismissRequest = { showWithdrawDialog = false },
-            title = { Text("Request Withdrawal", fontWeight = FontWeight.Bold) },
+            title = { Text("Request Withdrawal", fontWeight = FontWeight.Bold, color = Color.White) },
             text = {
                 Column {
-                    Text("Available Balance: ₹${String.format("%.2f", walletBalance)}", color = CosmicColors.GoldAccent, fontWeight = FontWeight.Bold)
+                    Text("Available Balance: ₹${String.format("%.2f", walletBalance)}", color = Color(0xFFFFD700), fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(16.dp))
                     OutlinedTextField(
                         value = withdrawAmount,
                         onValueChange = { if (it.all { char -> char.isDigit() }) withdrawAmount = it },
-                        label = { Text("Enter Amount") },
+                        label = { Text("Enter Amount", color = Color.LightGray) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF8A5CFF),
+                            unfocusedBorderColor = Color(0xFF8A5CFF).copy(alpha = 0.4f),
+                            focusedLabelColor = Color(0xFF8A5CFF),
+                            unfocusedLabelColor = Color.LightGray,
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
+                        )
                     )
                     Text("Min. ₹500 required", fontSize = 11.sp, color = Color.Gray, modifier = Modifier.padding(top = 4.dp))
                 }
@@ -563,31 +587,35 @@ fun AstrologerDashboardScreen(
                             }
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = CosmicColors.GoldAccent)
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8A5CFF))
                 ) {
-                    Text("Request", color = Color.Black)
+                    Text("Request", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showWithdrawDialog = false }) {
                     Text("Cancel", color = Color.Gray)
                 }
-            }
+            },
+            containerColor = Color(0xFF151026)
         )
     }
 
-    val colors = object {
-        val accent = Color(0xFFFF7A00) // Premium Vibrant Orange
-        val cardBg = Color(0xFF2E1500) // Deep Dark Orange/Brown
-        val cardStroke = Color.White.copy(alpha = 0.15f)
-        val textPrimary = Color.White
-        val textSecondary = Color(0xFFFFCCAA) // Light Peach
-        val headerGradient = Brush.verticalGradient(
-            colors = listOf(Color(0xFF5E2400), Color(0xFF2E1500))
-        )
-        val bgGradient = Brush.verticalGradient(
-            colors = listOf(Color(0xFF2E1500), Color(0xFF140700))
-        )
+    val colors = remember {
+        object {
+            val accent = Color(0xFF8A5CFF)
+            val goldAccent = Color(0xFFFFD700)
+            val cardBg = Color(0xFF130E26).copy(alpha = 0.85f)
+            val cardStroke = Color(0xFF8A5CFF).copy(alpha = 0.25f)
+            val textPrimary = Color.White
+            val textSecondary = Color(0xFFB3A7DB)
+            val headerGradient = Brush.verticalGradient(
+                colors = listOf(Color(0xFF1E1B4B), Color(0xFF0F0B1E))
+            )
+            val bgGradient = Brush.verticalGradient(
+                colors = listOf(Color(0xFF0F0B1E), Color(0xFF07040E))
+            )
+        }
     }
 
     Scaffold(
@@ -596,30 +624,16 @@ fun AstrologerDashboardScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(colors.headerGradient) // Orange Gradient Header
-                    .padding(16.dp),
+                    .background(colors.headerGradient)
+                    .padding(horizontal = 16.dp, vertical = 20.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
                     modifier = Modifier
-                        .size(56.dp)
+                        .size(58.dp)
                         .clip(CircleShape)
-                        .background(
-                            Brush.radialGradient(
-                                colors = listOf(Color.White, colors.cardBg),
-                                center = Offset(20f, 20f)
-                            )
-                        )
-                        .border(
-                           BorderStroke(
-                               2.dp,
-                               Brush.linearGradient(
-                                   colors = listOf(Color.White.copy(alpha = 0.9f), colors.accent.copy(alpha = 0.4f))
-                               )
-                           ),
-                           CircleShape
-                        )
-                        .shadow(4.dp, CircleShape)
+                        .background(colors.cardBg)
+                        .border(BorderStroke(2.dp, colors.accent), CircleShape)
                         .clickable { if (!isUploading) launcher.launch("image/*") },
                     contentAlignment = Alignment.Center
                 ) {
@@ -646,64 +660,82 @@ fun AstrologerDashboardScreen(
                                 sessionName.take(1),
                                 color = Color.White,
                                 fontWeight = FontWeight.ExtraBold,
-                                fontSize = 20.sp
+                                fontSize = 22.sp
                             )
                         }
                     }
-                    // Edit Icon Overlay
                     Box(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
-                            .size(18.dp)
+                            .size(16.dp)
                             .background(colors.accent, CircleShape)
                             .border(1.dp, Color.White, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Person, // Using Person as a placeholder for edit
+                            imageVector = Icons.Default.Person,
                             contentDescription = null,
                             tint = Color.White,
-                            modifier = Modifier.size(10.dp)
+                            modifier = Modifier.size(9.dp)
                         )
                     }
                 }
+                
                 Spacer(modifier = Modifier.width(16.dp))
+                
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        sessionName,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 20.sp,
-                        color = Color.White,
-                        style = androidx.compose.ui.text.TextStyle(
-                            shadow = androidx.compose.ui.graphics.Shadow(
-                                color = Color.Black.copy(alpha = 0.3f),
-                                offset = Offset(2f, 2f),
-                                blurRadius = 4f
-                            )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            sessionName,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 20.sp,
+                            color = Color.White
                         )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Box(contentAlignment = Alignment.Center) {
+                            if (isOnline) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .scale(pulseScale)
+                                        .background(Color(0xFF22C55E).copy(alpha = pulseAlpha), CircleShape)
+                                )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .background(if (isOnline) Color(0xFF22C55E) else Color(0xFF6B7280), CircleShape)
+                            )
+                        }
+                    }
+                    Text(
+                        if (isOnline) "ONLINE & AVAILABLE" else "OFFLINE",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp,
+                        color = if (isOnline) Color(0xFF22C55E) else colors.textSecondary
                     )
-                    // ID Removed as requested
                 }
+
                 IconButton(
-                    onClick = {},
+                    onClick = { refreshBalanceAndHistory() },
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(36.dp)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.1f))
-                        .border(1.dp, Color.White.copy(alpha = 0.2f), CircleShape)
+                        .background(Color.White.copy(alpha = 0.06f))
+                        .border(1.dp, Color.White.copy(alpha = 0.15f), CircleShape)
                 ) {
-                    Icon(Icons.Default.Notifications, null, tint = Color.White)
+                    Icon(Icons.Default.Notifications, null, tint = Color.White, modifier = Modifier.size(18.dp))
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 IconButton(
                     onClick = onLogout,
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(36.dp)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.1f))
-                        .border(1.dp, Color.White.copy(alpha = 0.2f), CircleShape)
+                        .background(Color.White.copy(alpha = 0.06f))
+                        .border(1.dp, Color.White.copy(alpha = 0.15f), CircleShape)
                 ) {
-                    Icon(Icons.Default.ExitToApp, null, tint = Color.White)
+                    Icon(Icons.Default.ExitToApp, null, tint = Color.Red, modifier = Modifier.size(18.dp))
                 }
             }
         }
@@ -712,12 +744,11 @@ fun AstrologerDashboardScreen(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .background(colors.bgGradient) // Orange Gradient Background
-                .verticalScroll(scrollState) // ENABLE SCROLLING
+                .background(colors.bgGradient)
+                .verticalScroll(scrollState)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 0. Permission Reactive Tracking
             var hasOverlay by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
             var hasAudio by remember { mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) }
             var hasCamera by remember { mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) }
@@ -737,7 +768,6 @@ fun AstrologerDashboardScreen(
                 } else true)
             }
 
-            // Periodic Sync for Permissions when app resumes
             LaunchedEffect(Unit) {
                 while(true) {
                     hasOverlay = Settings.canDrawOverlays(context)
@@ -753,7 +783,6 @@ fun AstrologerDashboardScreen(
                         hasBatteryOptimization = (context.getSystemService(android.content.Context.POWER_SERVICE) as android.os.PowerManager).isIgnoringBatteryOptimizations(context.packageName)
                     }
 
-                    // Auto-Offline Logic: If critical permissions missing, force offline.
                     val hasBasePerms = hasOverlay && hasNotification && hasBatteryOptimization && hasFullScreenIntent
                     if (!hasBasePerms) {
                         if (isChatOnline) { isChatOnline = false; updateServiceStatus(context, sessionId, "chat", false) }
@@ -767,76 +796,72 @@ fun AstrologerDashboardScreen(
                             isVideoOnline = false; updateServiceStatus(context, sessionId, "video", false)
                         }
                     }
-
                     kotlinx.coroutines.delay(2000)
                 }
             }
 
             if (!hasOverlay || !hasAudio || !hasCamera || !hasNotification || !hasBatteryOptimization || !hasFullScreenIntent) {
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = Color.Red.copy(alpha = 0.1f)),
-                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFEF4444).copy(alpha = 0.08f)),
+                    shape = RoundedCornerShape(22.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .shadow(12.dp, RoundedCornerShape(24.dp))
+                        .shadow(8.dp, RoundedCornerShape(22.dp))
                         .clickable { context.startActivity(Intent(context, PermissionActivity::class.java)) },
-                    border = BorderStroke(1.dp, Color.Red.copy(alpha = 0.3f))
+                    border = BorderStroke(1.dp, Color(0xFFEF4444).copy(alpha = 0.3f))
                 ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
+                    Column(modifier = Modifier.padding(18.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Warning, contentDescription = null, tint = Color.Red, modifier = Modifier.size(24.dp))
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text("Service Warning: Missed Calls Likely", fontWeight = FontWeight.ExtraBold, color = Color.White, fontSize = 16.sp)
+                            Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFEF4444), modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text("System Warning: Ringing Alerts Disabled", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            "One or more critical permissions are disabled. You may not receive incoming call alerts.",
+                            "One or more critical permissions are disabled. Please repair settings to receive calls.",
                             fontSize = 12.sp,
                             color = Color.White.copy(alpha = 0.7f)
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            if (!hasOverlay) Text("• Overlay", color = Color.Red, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                            if (!hasBatteryOptimization) Text("• Battery", color = Color.Red, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                            if (!hasNotification) Text("• Alerts", color = Color.Red, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                            if (!hasFullScreenIntent) Text("• Wake Screen", color = Color.Red, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
                         Button(
                             onClick = { context.startActivity(Intent(context, PermissionActivity::class.java)) },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                            modifier = Modifier.fillMaxWidth().height(40.dp),
-                            shape = RoundedCornerShape(12.dp)
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                            modifier = Modifier.fillMaxWidth().height(36.dp),
+                            shape = RoundedCornerShape(10.dp)
                         ) {
-                            Text("REPAIR SETTINGS", fontWeight = FontWeight.Bold, color = Color.White)
+                            Text("REPAIR PERMISSIONS", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 12.sp)
                         }
                     }
                 }
             }
 
-            // 1. Emergency Banner (Glassmorphism)
             Card(
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFB91C1C).copy(alpha = 0.1f)),
-                shape = RoundedCornerShape(20.dp),
-                modifier = Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(20.dp)),
-                border = BorderStroke(1.dp, Color(0xFFB91C1C).copy(alpha = 0.4f))
+                colors = CardDefaults.cardColors(containerColor = colors.cardBg),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth(),
+                border = BorderStroke(1.dp, colors.cardStroke)
             ) {
-                Column(
-                    modifier = Modifier.padding(20.dp)
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Online for Emergency!", color = Color(0xFFEF4444), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
-                    Text("Boost your earnings with emergency sessions.", color = Color.White.copy(alpha=0.6f), fontSize = 13.sp)
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .background(Color(0xFF22C55E), CircleShape)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Connection Status: Connected & Syncing", fontSize = 12.sp, color = Color.White, fontWeight = FontWeight.Medium)
                 }
             }
 
-            // 2. Earnings Card (Premium Gold Glass)
-            val goldColors = listOf(Color(0xFFFDE047), Color(0xFFEAB308), Color(0xFFB45309))
+            val goldColors = listOf(Color(0xFF4C1D95), Color(0xFF2E1065))
             Card(
                 colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                shape = RoundedCornerShape(28.dp),
+                shape = RoundedCornerShape(26.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .shadow(16.dp, RoundedCornerShape(28.dp), spotColor = colors.accent.copy(alpha = 0.3f))
+                    .shadow(16.dp, RoundedCornerShape(26.dp), spotColor = colors.accent.copy(alpha = 0.4f))
             ) {
                 Box(
                     modifier = Modifier
@@ -844,117 +869,95 @@ fun AstrologerDashboardScreen(
                         .padding(24.dp)
                 ) {
                     Column {
-                        Text("Total Earnings", color = Color.Black.copy(0.6f), fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("CREDIT BALANCE", color = colors.textSecondary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.weight(1f))
+                            Box(
+                                modifier = Modifier
+                                    .background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text("Min. ₹500", color = Color(0xFFFFD700), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = "₹${String.format("%.2f", walletBalance)}",
-                                fontSize = 36.sp,
+                                fontSize = 34.sp,
                                 fontWeight = FontWeight.Black,
-                                color = Color.Black
+                                color = Color.White
                             )
                             Spacer(modifier = Modifier.weight(1f))
                             Button(
                                 onClick = { showWithdrawDialog = true },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
-                                shape = RoundedCornerShape(14.dp),
-                                modifier = Modifier.height(44.dp)
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                                border = BorderStroke(1.5.dp, Color(0xFFFFD700)),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.height(40.dp)
                             ) {
-                                Text("Withdraw", color = Color.White, fontWeight = FontWeight.Bold)
+                                Text("Withdraw", color = Color(0xFFFFD700), fontWeight = FontWeight.ExtraBold)
                             }
                         }
-                        Spacer(modifier = Modifier.height(12.dp))
-                        HorizontalDivider(color = Color.Black.copy(alpha = 0.1f))
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text("Min. ₹500 to Withdraw", color = Color.Black.copy(alpha = 0.5f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
 
-            // 2b. Recent Withdrawal History
             if (withdrawalHistory.isNotEmpty()) {
                 Text(
-                    "Recent Withdrawal Status",
+                    "Withdrawal Status Feed",
                     fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    color = colors.accent,
-                    modifier = Modifier.padding(top = 8.dp)
+                    fontSize = 15.sp,
+                    color = Color.White,
+                    modifier = Modifier.padding(horizontal = 4.dp)
                 )
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    withdrawalHistory.take(5).forEach { item ->
+                    withdrawalHistory.take(3).forEach { item ->
                         val status = item.optString("status", "pending")
                         val amount = item.optDouble("amount", 0.0)
                         val date = item.optString("requestedAt", "").take(10)
 
                         val statusColor = when(status.lowercase()) {
-                            "approved" -> Color(0xFF4CAF50)
-                            "rejected" -> Color.Red
-                            else -> Color(0xFFFFC107)
+                            "approved" -> Color(0xFF22C55E)
+                            "rejected" -> Color(0xFFEF4444)
+                            else -> Color(0xFFF59E0B)
                         }
 
                         Card(
                             colors = CardDefaults.cardColors(containerColor = colors.cardBg),
                             modifier = Modifier.fillMaxWidth(),
-                            border = BorderStroke(0.5.dp, colors.cardStroke)
+                            border = BorderStroke(1.dp, colors.cardStroke),
+                            shape = RoundedCornerShape(16.dp)
                         ) {
                             Row(
-                                modifier = Modifier.padding(12.dp),
+                                modifier = Modifier.padding(14.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column {
-                                    Text("₹$amount", fontWeight = FontWeight.Bold, color = colors.textPrimary)
-                                    Text(date, fontSize = 10.sp, color = colors.textSecondary)
+                                    Text("₹$amount", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 15.sp)
+                                    Text(date, fontSize = 11.sp, color = colors.textSecondary)
                                 }
-                                Text(
-                                    status.uppercase(),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp,
-                                    color = statusColor
-                                )
+                                Box(
+                                    modifier = Modifier
+                                        .background(statusColor.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                                        .border(1.dp, statusColor.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        status.uppercase(),
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 10.sp,
+                                        color = statusColor
+                                    )
+                                }
                             }
                         }
                     }
                 }
             }
             
-            // 3. Today's Progress (Glassmorphism)
-            Card(
-                colors = CardDefaults.cardColors(containerColor = colors.cardBg.copy(alpha = 0.8f)),
-                shape = RoundedCornerShape(24.dp),
-                modifier = Modifier.fillMaxWidth().shadow(12.dp, RoundedCornerShape(24.dp)),
-                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f))
-            ) {
-                Row(
-                   modifier = Modifier.padding(20.dp),
-                   verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Today's Progress", fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, color = Color.White)
-                        val totalHours = 12.0
-                        val completedHours = (todayProgress / 100.0) * totalHours
-                        Text("$todayProgress% session target (${String.format("%.1f", completedHours)} hrs)", fontSize = 13.sp, color = colors.textSecondary)
-                    }
-                    Box(contentAlignment = Alignment.Center) {
-                         CircularProgressIndicator(
-                             progress = (todayProgress / 100f).coerceIn(0f, 1f),
-                             trackColor = Color.White.copy(alpha = 0.1f),
-                             color = colors.accent,
-                             modifier = Modifier.size(64.dp),
-                             strokeWidth = 7.dp
-                         )
-                         Text(
-                             "$todayProgress%",
-                             color = Color.White,
-                             fontSize = 12.sp,
-                             fontWeight = FontWeight.Bold
-                         )
-                    }
-                }
-            }
-
-            // 3b. Service Toggles (Separate for Chat, Audio, Video)
             ServiceTogglesCard(
                 isChatOnline = isChatOnline,
                 isAudioOnline = isAudioOnline,
@@ -964,16 +967,14 @@ fun AstrologerDashboardScreen(
                         context.startActivity(Intent(context, PermissionActivity::class.java))
                         Toast.makeText(context, "Please enable required permissions first", Toast.LENGTH_LONG).show()
                     } else {
-                        // Optimistically update UI
                         isChatOnline = enabled
                         scope.launch {
                             updateServiceStatus(context, sessionId, "chat", enabled) { success ->
                                 if (!success) {
-                                    isChatOnline = !enabled // rollback on failure
-                                    Toast.makeText(context, "Update Failed. Check Connection.", Toast.LENGTH_SHORT).show()
+                                    isChatOnline = !enabled
                                 } else {
                                     Toast.makeText(context, if(enabled) "Chat Online" else "Chat Offline", Toast.LENGTH_SHORT).show()
-                                    refreshBalanceAndHistory() // Sync other states
+                                    refreshBalanceAndHistory()
                                 }
                             }
                         }
@@ -989,7 +990,6 @@ fun AstrologerDashboardScreen(
                             updateServiceStatus(context, sessionId, "audio", enabled) { success ->
                                 if (!success) {
                                     isAudioOnline = !enabled
-                                    Toast.makeText(context, "Update Failed", Toast.LENGTH_SHORT).show()
                                 } else {
                                     Toast.makeText(context, if(enabled) "Audio Online" else "Audio Offline", Toast.LENGTH_SHORT).show()
                                     refreshBalanceAndHistory()
@@ -1008,7 +1008,6 @@ fun AstrologerDashboardScreen(
                             updateServiceStatus(context, sessionId, "video", enabled) { success ->
                                 if (!success) {
                                     isVideoOnline = !enabled
-                                    Toast.makeText(context, "Update Failed", Toast.LENGTH_SHORT).show()
                                 } else {
                                     Toast.makeText(context, if(enabled) "Video Online" else "Video Offline", Toast.LENGTH_SHORT).show()
                                     refreshBalanceAndHistory()
@@ -1019,6 +1018,40 @@ fun AstrologerDashboardScreen(
                 }
             )
 
+            Card(
+                colors = CardDefaults.cardColors(containerColor = colors.cardBg),
+                shape = RoundedCornerShape(22.dp),
+                modifier = Modifier.fillMaxWidth().shadow(12.dp, RoundedCornerShape(22.dp)),
+                border = BorderStroke(1.dp, colors.cardStroke)
+            ) {
+                Row(
+                   modifier = Modifier.padding(18.dp),
+                   verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Today's Target Meter", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
+                        val totalHours = 12.0
+                        val completedHours = (todayProgress / 100.0) * totalHours
+                        Text("$todayProgress% of daily session goals (${String.format("%.1f", completedHours)} hrs)", fontSize = 12.sp, color = colors.textSecondary)
+                    }
+                    Box(contentAlignment = Alignment.Center) {
+                         CircularProgressIndicator(
+                             progress = (todayProgress / 100f).coerceIn(0f, 1f),
+                             trackColor = Color.White.copy(alpha = 0.08f),
+                             color = colors.accent,
+                             modifier = Modifier.size(56.dp),
+                             strokeWidth = 6.dp
+                         )
+                         Text(
+                             "$todayProgress%",
+                             color = Color.White,
+                             fontSize = 11.sp,
+                             fontWeight = FontWeight.Bold
+                         )
+                    }
+                }
+            }
+
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 actions.chunked(3).forEach { rowItems ->
                     Row(
@@ -1026,18 +1059,20 @@ fun AstrologerDashboardScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         rowItems.forEach { (label, icon) ->
+                             val asymmetryShape = RoundedCornerShape(
+                                 topStart = 20.dp,
+                                 bottomEnd = 20.dp,
+                                 topEnd = 4.dp,
+                                 bottomStart = 4.dp
+                             )
                              Card(
-                                 colors = CardDefaults.cardColors(containerColor = Color(0xFF00332B).copy(alpha = 0.5f)),
-                                 shape = RoundedCornerShape(24.dp),
+                                 colors = CardDefaults.cardColors(containerColor = colors.cardBg),
+                                 shape = asymmetryShape,
                                  modifier = Modifier
                                      .weight(1f)
                                      .aspectRatio(1f)
-                                     .shadow(12.dp, RoundedCornerShape(24.dp))
-                                     .border(
-                                         1.dp,
-                                         Color.White.copy(alpha = 0.12f),
-                                         RoundedCornerShape(24.dp)
-                                     )
+                                     .shadow(12.dp, asymmetryShape)
+                                     .border(BorderStroke(1.dp, colors.cardStroke), asymmetryShape)
                                      .clickable {
                                          when (label) {
                                              "Call" -> showRecordingsDialog(context)
@@ -1056,35 +1091,44 @@ fun AstrologerDashboardScreen(
                                                  context.startActivity(intent)
                                              }
                                              "History" -> context.startActivity(Intent(context, com.astroeleven.app.ui.astro.AstrologerHistoryActivity::class.java))
-                                             "Earnings" -> Toast.makeText(context, "Fetching Data...", Toast.LENGTH_SHORT).show()
+                                             "Earnings" -> Toast.makeText(context, "Redirecting to detailed reports...", Toast.LENGTH_SHORT).show()
                                              "Settings" -> context.startActivity(Intent(context, com.astroeleven.app.ui.settings.SettingsActivity::class.java))
-                                             "Star" -> Toast.makeText(context, "Astrologer Reviews coming soon", Toast.LENGTH_SHORT).show()
+                                             "Star" -> Toast.makeText(context, "Feedback metrics panel", Toast.LENGTH_SHORT).show()
                                          }
                                      }
                              ) {
                                  Column(
                                      modifier = Modifier
                                          .fillMaxSize()
-                                         .padding(12.dp),
+                                         .padding(8.dp),
                                      horizontalAlignment = Alignment.CenterHorizontally,
                                      verticalArrangement = Arrangement.Center
                                  ) {
                                      Box(
                                          modifier = Modifier
-                                             .size(48.dp)
-                                             .background(
-                                                 Brush.radialGradient(
-                                                     colors = listOf(colors.accent.copy(alpha = 0.2f), Color.Transparent)
-                                                 ),
-                                                 CircleShape
-                                             )
+                                             .size(40.dp)
+                                             .background(colors.accent.copy(alpha = 0.12f), CircleShape)
                                              .border(1.dp, colors.accent.copy(alpha = 0.3f), CircleShape),
                                          contentAlignment = Alignment.Center
                                      ) {
-                                         Icon(icon, null, tint = colors.accent, modifier = Modifier.size(24.dp))
+                                         Icon(icon, null, tint = colors.accent, modifier = Modifier.size(20.dp))
                                      }
-                                     Spacer(modifier = Modifier.height(12.dp))
+                                     Spacer(modifier = Modifier.height(8.dp))
                                      Text(label, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                     
+                                     val microLabel = when(label) {
+                                         "Call" -> "24m today"
+                                         "Profile" -> "Edit Bio"
+                                         "History" -> "Logs"
+                                         "Earnings" -> "Ledger"
+                                         "Star" -> "4.9 ★ Rating"
+                                         "Settings" -> "Setup"
+                                         else -> ""
+                                     }
+                                     if (microLabel.isNotEmpty()) {
+                                         Spacer(modifier = Modifier.height(2.dp))
+                                         Text(microLabel, fontSize = 9.sp, color = colors.textSecondary, fontWeight = FontWeight.Medium)
+                                     }
                                  }
                              }
                         }
@@ -1092,16 +1136,13 @@ fun AstrologerDashboardScreen(
                 }
             }
 
-            // 5. Footer Links
             Row(
                 modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
                 horizontalArrangement = Arrangement.Center
             ) {
                  Text("Terms | Refunds | Shipping | Returns", fontSize = 11.sp, color = colors.textSecondary)
             }
-            Text("© 2024 astroeleven", fontSize = 10.sp, color = colors.textSecondary, modifier = Modifier.align(Alignment.CenterHorizontally))
-
-            // Extra spacing for safe area
+            Text("© 2026 astroeleven", fontSize = 10.sp, color = colors.textSecondary, modifier = Modifier.align(Alignment.CenterHorizontally))
             Spacer(modifier = Modifier.height(32.dp))
         }
     }
@@ -1116,30 +1157,33 @@ fun ServiceTogglesCard(
     onAudioToggle: (Boolean) -> Unit,
     onVideoToggle: (Boolean) -> Unit
 ) {
-    val colors = object {
-        val accent = Color(0xFFFF7A00)
-        val cardBg = Color(0xFF2E1500)
-        val textPrimary = Color.White
-        val textSecondary = Color(0xFFFFCCAA)
+    val colors = remember {
+        object {
+            val accent = Color(0xFF8A5CFF)
+            val cardBg = Color(0xFF130E26).copy(alpha = 0.85f)
+            val cardStroke = Color(0xFF8A5CFF).copy(alpha = 0.25f)
+            val textPrimary = Color.White
+            val textSecondary = Color(0xFFB3A7DB)
+        }
     }
     Card(
-        colors = CardDefaults.cardColors(containerColor = colors.cardBg.copy(alpha = 0.85f)),
-        shape = RoundedCornerShape(26.dp),
-        modifier = Modifier.fillMaxWidth().shadow(16.dp, RoundedCornerShape(26.dp)),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f))
+        colors = CardDefaults.cardColors(containerColor = colors.cardBg),
+        shape = RoundedCornerShape(24.dp),
+        modifier = Modifier.fillMaxWidth().shadow(16.dp, RoundedCornerShape(24.dp)),
+        border = BorderStroke(1.dp, colors.cardStroke)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Text(
-                "Service Availability",
+                "Service Availability Panel",
                 fontWeight = FontWeight.ExtraBold,
-                fontSize = 18.sp,
+                fontSize = 17.sp,
                 color = colors.textPrimary,
                 letterSpacing = 0.5.sp
             )
-            Spacer(modifier = Modifier.height(6.dp))
-            Text("Switch on to receive user requests", fontSize = 12.sp, color = colors.textSecondary)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text("Go online to start receiving instant requests", fontSize = 12.sp, color = colors.textSecondary)
             
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
             ServiceToggleRow(
                 label = "Chat Service",
@@ -1151,7 +1195,7 @@ fun ServiceTogglesCard(
             Spacer(modifier = Modifier.height(10.dp))
 
             ServiceToggleRow(
-                label = "Voice Consultation",
+                label = "Voice Call Service",
                 icon = Icons.Default.Call,
                 isEnabled = isAudioOnline,
                 onToggle = onAudioToggle
@@ -1160,8 +1204,8 @@ fun ServiceTogglesCard(
             Spacer(modifier = Modifier.height(10.dp))
 
             ServiceToggleRow(
-                label = "Video Consultation",
-                icon = androidx.compose.material.icons.Icons.Default.VideoCall,
+                label = "Video Call Service",
+                icon = Icons.Default.VideoCall,
                 isEnabled = isVideoOnline,
                 onToggle = onVideoToggle
             )
@@ -1176,31 +1220,33 @@ fun ServiceToggleRow(
     isEnabled: Boolean,
     onToggle: (Boolean) -> Unit
 ) {
-    val colors = object {
-        val accent = Color(0xFFFF7A00) // Premium Orange style
-        val textPrimary = Color.White
+    val colors = remember {
+        object {
+            val accent = Color(0xFF8A5CFF)
+            val textPrimary = Color.White
+        }
     }
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                if (isEnabled) Color(0xFF7A2000).copy(alpha = 0.4f)
-                else Color.White.copy(alpha = 0.05f),
+                if (isEnabled) Color(0xFF2A155C).copy(alpha = 0.4f)
+                else Color.White.copy(alpha = 0.04f),
                 RoundedCornerShape(16.dp)
             )
             .border(
                 1.dp,
-                if (isEnabled) colors.accent.copy(alpha = 0.2f) else Color.Transparent,
+                if (isEnabled) colors.accent.copy(alpha = 0.3f) else Color.Transparent,
                 RoundedCornerShape(16.dp)
             )
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
                 .size(36.dp)
                 .background(
-                    if (isEnabled) colors.accent.copy(alpha = 0.1f) else Color.White.copy(alpha = 0.05f),
+                    if (isEnabled) colors.accent.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.04f),
                     CircleShape
                 ),
             contentAlignment = Alignment.Center
@@ -1209,21 +1255,22 @@ fun ServiceToggleRow(
                 icon,
                 contentDescription = label,
                 tint = if (isEnabled) colors.accent else Color.Gray.copy(alpha = 0.6f),
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(18.dp)
             )
         }
         Spacer(modifier = Modifier.width(14.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 label,
-                fontSize = 15.sp,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 color = if (isEnabled) Color.White else Color.White.copy(alpha = 0.7f)
             )
             Text(
-                if (isEnabled) "Ready for work" else "Inactive",
+                if (isEnabled) "Active & Available" else "Offline",
                 fontSize = 11.sp,
-                color = if (isEnabled) colors.accent.copy(alpha = 0.8f) else Color.Gray
+                color = if (isEnabled) colors.accent else Color.Gray,
+                fontWeight = FontWeight.Medium
             )
         }
         Switch(
@@ -1233,10 +1280,10 @@ fun ServiceToggleRow(
                 checkedThumbColor = Color.White,
                 checkedTrackColor = colors.accent,
                 uncheckedThumbColor = Color.Gray.copy(alpha = 0.8f),
-                uncheckedTrackColor = Color.White.copy(alpha = 0.1f),
+                uncheckedTrackColor = Color.White.copy(alpha = 0.08f),
                 uncheckedBorderColor = Color.Transparent
             ),
-            modifier = Modifier.scale(0.9f)
+            modifier = Modifier.scale(0.85f)
         )
     }
 }
