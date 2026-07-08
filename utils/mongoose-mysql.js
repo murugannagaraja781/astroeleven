@@ -172,6 +172,7 @@ class QueryChain {
         this.isFindOne = isFindOne;
         this._sort = '';
         this._limit = '';
+        this._offset = '';
     }
 
     sort(orderObj) {
@@ -189,6 +190,13 @@ class QueryChain {
     limit(n) {
         if (n !== undefined) {
             this._limit = ` LIMIT ${Number(n)}`;
+        }
+        return this;
+    }
+
+    skip(n) {
+        if (n !== undefined) {
+            this._offset = ` OFFSET ${Number(n)}`;
         }
         return this;
     }
@@ -216,6 +224,11 @@ class QueryChain {
                 finalSql += ' LIMIT 1';
             } else if (this._limit) {
                 finalSql += this._limit;
+                if (this._offset) {
+                    finalSql += this._offset;
+                }
+            } else if (this._offset) {
+                finalSql += ` LIMIT 18446744073709551615${this._offset}`;
             }
 
             const [rows] = await pool.execute(finalSql, this.baseValues);
