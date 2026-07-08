@@ -315,19 +315,34 @@ class WrappedDocument {
     }
 
     async save() {
-        const dataToSave = this.toObject();
-        const docId = dataToSave.id;
-        delete dataToSave.id;
-        delete dataToSave._id;
+        const rawData = this.toObject();
+        const docId = rawData.id;
+        delete rawData.id;
+        delete rawData._id;
 
         // Serialize arrays/objects to JSON strings
-        for (const key in dataToSave) {
-            let val = dataToSave[key];
+        for (const key in rawData) {
+            let val = rawData[key];
             if (val && typeof val === 'object' && !(val instanceof Date)) {
-                dataToSave[key] = JSON.stringify(val);
+                rawData[key] = JSON.stringify(val);
             } else if (val === undefined) {
-                dataToSave[key] = null;
+                rawData[key] = null;
             }
+        }
+
+        // Filter and map fields to only columns that exist in the MySQL table
+        let dataToSave = {};
+        const allowedColumns = this.model.columnNames;
+        if (allowedColumns && allowedColumns.length > 0) {
+            const allowedLower = allowedColumns.map(c => c.toLowerCase());
+            for (const key in rawData) {
+                if (allowedLower.includes(key.toLowerCase())) {
+                    const dbColName = allowedColumns.find(c => c.toLowerCase() === key.toLowerCase()) || key;
+                    dataToSave[dbColName] = rawData[key];
+                }
+            }
+        } else {
+            dataToSave = rawData;
         }
 
         const keys = Object.keys(dataToSave);
@@ -369,6 +384,7 @@ class CustomModel {
         this.name = name;
         this.schema = schema;
         this.tableName = getTableName(name);
+        this.columnNames = [];
         
         // Auto-create database tables on startup
         this.initTable().catch(err => {
@@ -384,6 +400,7 @@ class CustomModel {
         // Fetch existing columns to dynamically run ALTER TABLE migrations for missing columns
         const [existingCols] = await pool.execute(`SHOW COLUMNS FROM \`${this.tableName}\``);
         const existingColNames = existingCols.map(c => c.Field.toLowerCase());
+        this.columnNames = existingCols.map(c => c.Field);
 
         for (const key in this.schema.definition) {
             if (key === 'id' || key === '_id') continue;
@@ -392,6 +409,7 @@ class CustomModel {
                 const alterSql = `ALTER TABLE \`${this.tableName}\` ADD COLUMN \`${key}\` ${typeStr}`;
                 await pool.execute(alterSql);
                 console.log(`📡 Auto-migration: Added column \`${key}\` to table \`${this.tableName}\``);
+                this.columnNames.push(key);
             }
         }
 
