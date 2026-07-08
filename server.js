@@ -2211,7 +2211,7 @@ io.on('connection', (socket) => {
     const uid = socketToUser.get(sid);
     if (!uid) return false;
     const u = await User.findOne({ userId: uid });
-    return u && u.role === 'superadmin';
+    return u && (u.role === 'superadmin' || u.role === 'admin');
   };
 
   // --- Admin: Get All Users ---

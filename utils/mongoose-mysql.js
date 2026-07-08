@@ -93,7 +93,11 @@ function buildWhereClause(query) {
             continue;
         }
 
-        if (val && typeof val === 'object' && !Array.isArray(val) && !(val instanceof Date)) {
+        if (val instanceof RegExp) {
+            clauses.push(`\`${dbKey}\` LIKE ?`);
+            let pattern = val.source.replace(/^\^|\$$/g, '');
+            values.push(`%${pattern}%`);
+        } else if (val && typeof val === 'object' && !Array.isArray(val) && !(val instanceof Date)) {
             // Parse operators: $ne, $gte, $lte, $in, $gt, $lt, $exists
             const operators = Object.keys(val);
             for (const op of operators) {

@@ -121,6 +121,9 @@ class ChatAudioPlayer(private val context: Context) {
         }
     }
 
+    private var retryAttempted = false
+    private var lastAttemptedUrl: String? = null
+
     fun play(url: String) {
         val player = getPlayer(context)
 
@@ -136,6 +139,12 @@ class ChatAudioPlayer(private val context: Context) {
             return
         }
 
+        // Reset retry flags for a new audio file
+        if (lastAttemptedUrl != url) {
+            retryAttempted = false
+        }
+        lastAttemptedUrl = url
+
         // Deactivate the previous playing instance
         activeInstance?.deactivate()
 
@@ -146,11 +155,7 @@ class ChatAudioPlayer(private val context: Context) {
         _progress.value = 0f
         _bufferedProgress.value = 0f
 
-        val cleanUrl = if (url.startsWith("http")) {
-            url
-        } else {
-            if (url.startsWith("/")) "file://$url" else url
-        }
+        val cleanUrl = resolveAudioUrl(url)
 
         val mediaItem = MediaItem.fromUri(cleanUrl)
         player.setMediaItem(mediaItem)
@@ -158,6 +163,51 @@ class ChatAudioPlayer(private val context: Context) {
         player.playWhenReady = true
 
         startProgressUpdates()
+    }
+
+    private fun resolveAudioUrl(url: String): String {
+        if (url.isBlank()) return ""
+        
+        // 1. If it starts with http or https, return it directly after encoding spaces
+        if (url.startsWith("http://", ignoreCase = true) || url.startsWith("https://", ignoreCase = true)) {
+            return sanitizeUrl(url)
+        }
+        
+        // 2. Check if it's an existing local file
+        val localFile = java.io.File(url)
+        if (localFile.exists() && localFile.isFile) {
+            return "file://${localFile.absolutePath}"
+        }
+        
+        // 3. Otherwise, prepend the server URL
+        var baseUrl = com.astroeleven.app.utils.Constants.SERVER_URL
+        if (baseUrl.endsWith("/")) {
+            baseUrl = baseUrl.substring(0, baseUrl.length - 1)
+        }
+        
+        val relativePath = if (url.startsWith("/")) url else "/$url"
+        val fullUrl = "$baseUrl$relativePath"
+        
+        return sanitizeUrl(fullUrl)
+    }
+
+    private fun sanitizeUrl(url: String): String {
+        // Remove duplicate slashes except after protocol (http:// or https://)
+        var cleaned = url.replace("(?<!https?:)/{2,}".toRegex(), "/")
+        
+        // Safely URL encode spaces and special characters
+        try {
+            val uri = java.net.URI(
+                cleaned.substringBefore("://"),
+                cleaned.substringAfter("://"),
+                null
+            )
+            cleaned = uri.toASCIIString()
+        } catch (e: Exception) {
+            // Fallback space replace if URI parsing fails
+            cleaned = cleaned.replace(" ", "%20")
+        }
+        return cleaned
     }
 
     private fun startProgressUpdates() {
@@ -212,8 +262,66 @@ class ChatAudioPlayer(private val context: Context) {
         _isPreparing.value = false
         _isPlaying.value = false
         stopProgressUpdates()
+
+        val cause = error.cause
+        var userFriendlyMessage = "Voice playback failed"
+        var isNetworkError = false
+
+        when (error.errorCode) {
+            PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS -> {
+                val httpError = error as? androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException
+                val responseCode = httpError?.responseCode ?: 0
+                userFriendlyMessage = when (responseCode) {
+                    404 -> "Audio file not found on server (404)"
+                    403 -> "Access denied (403)"
+                    503 -> "Server busy, try again later (503)"
+                    else -> "HTTP Server Error ($responseCode)"
+                }
+                isNetworkError = true
+            }
+            PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED -> {
+                userFriendlyMessage = "Network connection failed"
+                isNetworkError = true
+            }
+            PlaybackException.ERROR_CODE_IO_CLEARTEXT_NOT_PERMITTED -> {
+                userFriendlyMessage = "Cleartext (HTTP) not permitted"
+            }
+            PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND -> {
+                userFriendlyMessage = "Local file not found"
+            }
+            PlaybackException.ERROR_CODE_IO_NO_PERMISSION -> {
+                userFriendlyMessage = "Storage permission denied"
+            }
+            PlaybackException.ERROR_CODE_DECODER_INIT_FAILED,
+            PlaybackException.ERROR_CODE_DECODING_FAILED -> {
+                userFriendlyMessage = "Invalid or unsupported media format"
+            }
+            PlaybackException.ERROR_CODE_TIMEOUT -> {
+                userFriendlyMessage = "Network timeout"
+                isNetworkError = true
+            }
+            else -> {
+                if (cause is java.security.cert.CertificateException || cause is javax.net.ssl.SSLException) {
+                    userFriendlyMessage = "SSL certificate error"
+                } else if (cause is java.io.IOException) {
+                    userFriendlyMessage = "Network or file I/O error"
+                    isNetworkError = true
+                }
+            }
+        }
+
+        // Automatic retry logic for temporary network errors
+        if (isNetworkError && !retryAttempted && lastAttemptedUrl != null) {
+            retryAttempted = true
+            Handler(Looper.getMainLooper()).postDelayed({
+                Toast.makeText(context, "Network issue. Retrying...", Toast.LENGTH_SHORT).show()
+                lastAttemptedUrl?.let { play(it) }
+            }, 1500)
+            return
+        }
+
         Handler(Looper.getMainLooper()).post {
-            Toast.makeText(context, "Voice playback failed: ${error.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, userFriendlyMessage, Toast.LENGTH_LONG).show()
         }
     }
 
