@@ -2642,10 +2642,46 @@ io.on('connection', (socket) => {
   });
 
   // --- Admin: Get Full Sessions History ---
-  socket.on('admin-get-sessions-history', async (cb) => {
-    if (!await checkAdmin(socket.id)) return cb({ ok: false, error: 'Unauthorized' });
+  socket.on('admin-get-sessions-history', async (data, cb) => {
+    // Check if callback is first argument (fallback for legacy page loads without arguments)
+    let callback = cb;
+    let queryParams = data;
+    if (typeof data === 'function') {
+      callback = data;
+      queryParams = {};
+    }
+
+    if (!await checkAdmin(socket.id)) return callback({ ok: false, error: 'Unauthorized' });
     try {
-      const sessions = await Session.find({ status: 'ended' }).sort({ startTime: -1, sessionEndAt: -1 }).lean();
+      const { page = 1, limit = 10, search = '', type = '' } = queryParams || {};
+      const parsedPage = Math.max(1, parseInt(page) || 1);
+      const parsedLimit = Math.max(1, parseInt(limit) || 10);
+      
+      const query = { status: 'ended' };
+      if (type) {
+        query.type = type;
+      }
+      
+      // If search query is provided, find matching client/astrologer names first
+      if (search) {
+        const searchRegex = new RegExp(search.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'i');
+        const matchingUsers = await User.find({ name: searchRegex }).select('userId').lean();
+        const matchingUserIds = matchingUsers.map(u => u.userId);
+        
+        query.$or = [
+          { clientId: { $in: matchingUserIds } },
+          { fromUserId: { $in: matchingUserIds } },
+          { astrologerId: { $in: matchingUserIds } },
+          { toUserId: { $in: matchingUserIds } }
+        ];
+      }
+      
+      const total = await Session.countDocuments(query);
+      const sessions = await Session.find(query)
+        .sort({ startTime: -1, sessionEndAt: -1 })
+        .skip((parsedPage - 1) * parsedLimit)
+        .limit(parsedLimit)
+        .lean();
       
       const populated = await Promise.all(sessions.map(async (s) => {
         const cId = s.clientId || s.fromUserId;
@@ -2670,29 +2706,56 @@ io.on('connection', (socket) => {
         };
       }));
 
+      // Top 3 Astrologers (Most History) calculated from ended sessions
+      const allEndedSessions = await Session.find({ status: 'ended' }).lean();
       const astroStats = {};
-      populated.forEach(s => {
+      allEndedSessions.forEach(s => {
         const aId = s.astrologerId || s.toUserId;
-        if (!aId) return;
-        if (!astroStats[aId]) {
-          astroStats[aId] = {
-            astrologerId: aId,
-            astrologerName: s.astrologerName,
-            sessionCount: 0,
-            totalDuration: 0
-          };
+        if (aId) {
+          if (!astroStats[aId]) {
+            astroStats[aId] = { userId: aId, name: 'Unknown Astrologer', sessions: 0, image: '' };
+          }
+          astroStats[aId].sessions++;
         }
-        astroStats[aId].sessionCount++;
-        astroStats[aId].totalDuration += (s.duration || 0);
       });
+      const topAstrosIds = Object.keys(astroStats)
+        .sort((a, b) => astroStats[b].sessions - astroStats[a].sessions)
+        .slice(0, 3);
+      const topAstros = await Promise.all(topAstrosIds.map(async (id) => {
+        const user = await User.findOne({ userId: id }).select('name image').lean();
+        if (user) {
+          astroStats[id].name = user.name;
+          astroStats[id].image = user.image;
+        }
+        return astroStats[id];
+      }));
 
-      const sortedAstros = Object.values(astroStats).sort((a, b) => b.sessionCount - a.sessionCount);
-      const top3AstroIds = sortedAstros.slice(0, 3).map(a => a.astrologerId);
-
-      cb({ ok: true, sessions: populated, top3AstroIds });
+      callback({
+        ok: true,
+        sessions: populated,
+        topAstrologers: topAstros,
+        total,
+        page: parsedPage,
+        pages: Math.ceil(total / parsedLimit)
+      });
     } catch (e) {
-      console.error('[AdminHistory] Error:', e);
-      cb({ ok: false, error: e.message });
+      console.error('[Admin] Error in admin-get-sessions-history:', e);
+      callback({ ok: false, error: 'Failed to fetch sessions history' });
+    }
+  });
+
+  // --- Admin: Delete Session History Record ---
+  socket.on('admin-delete-session', async (data, cb) => {
+    if (!await checkAdmin(socket.id)) return cb({ ok: false, error: 'Unauthorized' });
+    try {
+      const { sessionId } = data;
+      if (!sessionId) return cb({ ok: false, error: 'SessionId missing' });
+      await Session.deleteOne({ sessionId });
+      console.log(`[Admin] Deleted session record: ${sessionId}`);
+      cb({ ok: true });
+    } catch (e) {
+      console.error('[Admin] Delete Session Error:', e);
+      cb({ ok: false, error: 'Delete Failed' });
     }
   });
 

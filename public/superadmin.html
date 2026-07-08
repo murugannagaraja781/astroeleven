@@ -925,16 +925,25 @@
                                     <th style="padding:15px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted); text-align:center;">Duration</th>
                                     <th style="padding:15px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted); text-align:right;">Charged (₹)</th>
                                     <th style="padding:15px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted); text-align:center;">Date & Time</th>
+                                    <th style="padding:15px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted); text-align:center;">Action</th>
                                 </tr>
                             </thead>
                             <tbody id="sessionsHistoryTableBody">
                                 <tr>
-                                    <td colspan="7" style="text-align:center; padding:30px;">
+                                    <td colspan="8" style="text-align:center; padding:30px;">
                                         <div class="loader"></div>
                                     </td>
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+                    <!-- Pagination Controls for History -->
+                    <div style="padding:15px; border-top:1px solid var(--border-soft); display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.01);">
+                        <div id="historyPaginationInfo" style="font-size:0.9rem; color:var(--text-muted);">Showing 0 to 0 of 0 Logs</div>
+                        <div style="display:flex; gap:10px;">
+                            <button id="historyPrevBtn" onclick="changeHistoryPage(-1)" class="btn-admin" style="width:auto; padding:8px 15px; margin:0;" disabled>Prev</button>
+                            <button id="historyNextBtn" onclick="changeHistoryPage(1)" class="btn-admin" style="width:auto; padding:8px 15px; margin:0;" disabled>Next</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1197,6 +1206,7 @@
         let clientPage = 1, clientLimit = 10, clientTotal = 0, clientSearch = '';
         let astroPage = 1, astroLimit = 10, astroTotal = 0, astroSearch = '';
         let pendingPage = 1, pendingLimit = 10, pendingTotal = 0, pendingSearch = '';
+        let historyPage = 1, historyLimit = 10, historyTotal = 0, historySearch = '', historyType = 'all';
 
         // Boot
         function init() {
@@ -2958,28 +2968,33 @@
                         </div>
                     `).join('');
                 } else {
-                    container.innerHTML = `<div style="color:#EF4444; padding:20px;">Error: ${res.error}</div>`;
-                }
-            });
-        };
-
-        let adminSessionsCache = [];
+             let adminSessionsCache = [];
         let top3AstrologersCache = [];
 
         window.loadSessionsHistory = () => {
             const tableBody = document.getElementById('sessionsHistoryTableBody');
             const topList = document.getElementById('topAstrologersHistoryList');
-            tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:30px;"><div class="loader"></div></td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px;"><div class="loader"></div></td></tr>';
             topList.innerHTML = '<div class="loader"></div>';
 
-            socket.emit('admin-get-sessions-history', (res) => {
+            const payload = {
+                page: historyPage,
+                limit: historyLimit,
+                search: historySearch,
+                type: historyType === 'all' ? '' : historyType
+            };
+
+            socket.emit('admin-get-sessions-history', payload, (res) => {
                 if (res.ok) {
                     adminSessionsCache = res.sessions || [];
-                    top3AstrologersCache = res.top3AstroIds || [];
+                    top3AstrologersCache = (res.topAstrologers || []).map(a => a.userId);
+                    historyTotal = res.total || 0;
+                    
                     renderHistory();
-                    renderTopAstrologers();
+                    renderTopAstrologers(res.topAstrologers || []);
+                    updatePaginationUI('history', res.page || 1, res.pages || 1, res.total || 0);
                 } else {
-                    tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#EF4444; padding:20px;">Error: ${res.error || 'Failed to load'}</td></tr>`;
+                    tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#EF4444; padding:20px;">Error: ${res.error || 'Failed to load'}</td></tr>`;
                     topList.innerHTML = `<div style="color:#EF4444; padding:10px;">Error: ${res.error || 'Failed to load'}</div>`;
                 }
             });
@@ -2999,22 +3014,13 @@
 
         function renderHistory() {
             const tableBody = document.getElementById('sessionsHistoryTableBody');
-            const searchVal = document.getElementById('adminHistorySearch').value.toLowerCase();
-            const typeFilter = document.getElementById('adminHistoryTypeFilter').value;
 
-            const filtered = adminSessionsCache.filter(s => {
-                const matchesSearch = s.clientName.toLowerCase().includes(searchVal) || 
-                                      s.astrologerName.toLowerCase().includes(searchVal);
-                const matchesType = typeFilter === 'all' || (s.type && s.type.toLowerCase() === typeFilter);
-                return matchesSearch && matchesType;
-            });
-
-            if (filtered.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--text-dim);">No matching history logs found</td></tr>';
+            if (adminSessionsCache.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:var(--text-dim);">No matching history logs found</td></tr>';
                 return;
             }
 
-            tableBody.innerHTML = filtered.map(s => {
+            tableBody.innerHTML = adminSessionsCache.map(s => {
                 const dateStr = s.startTime ? new Date(s.startTime).toLocaleString() : (s.actualBillingStart ? new Date(s.actualBillingStart).toLocaleString() : 'N/A');
                 const isTopAstro = top3AstrologersCache.includes(s.astrologerId || s.toUserId);
                 
@@ -3029,41 +3035,31 @@
                     badge = '<span style="background:#10B981; color:#fff; font-size:0.65rem; font-weight:600; padding:2px 6px; border-radius:4px; margin-left:8px;"><i class="fas fa-history"></i> Active</span>';
                 }
 
+                const sessId = s.sessionId || '';
+
                 return `
                     <tr style="border-bottom: 1px solid var(--border-soft);">
-                        <td style="padding:15px; font-size:0.8rem; color:var(--text-dim);">${s.sessionId ? s.sessionId.slice(0, 8) : 'N/A'}</td>
+                        <td style="padding:15px; font-size:0.8rem; color:var(--text-dim);">${sessId ? sessId.slice(0, 8) : 'N/A'}</td>
                         <td style="padding:15px; font-weight:600; color:var(--text-main);">${s.clientName}</td>
                         <td style="padding:15px; font-weight:600; color:var(--text-main);">${s.astrologerName}${badge}</td>
                         <td style="padding:15px; text-align:center;"><span style="background:rgba(255, 204, 0,0.1); color:var(--primary); font-size:0.75rem; padding:4px 8px; border-radius:50px; text-transform:uppercase; font-weight:600;">${s.type || 'Chat'}</span></td>
                         <td style="padding:15px; text-align:center; font-weight:bold; color:var(--text-main);">${formatDuration(s.duration)}</td>
                         <td style="padding:15px; text-align:right; font-weight:700; color:#10B981;">₹${s.totalCharged || 0}</td>
                         <td style="padding:15px; text-align:center; font-size:0.8rem; color:var(--text-dim);">${dateStr}</td>
+                        <td style="padding:15px; text-align:center;">
+                            <button class="btn-admin" style="background:#dc2626; color:white; padding:4px 8px; font-size:0.75rem; width:auto; border-radius:4px; cursor:pointer;" onclick="deleteSession('${sessId}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
                     </tr>
                 `;
             }).join('');
         }
 
-        function renderTopAstrologers() {
+        function renderTopAstrologers(list) {
             const topList = document.getElementById('topAstrologersHistoryList');
-            const stats = {};
-            adminSessionsCache.forEach(s => {
-                const aId = s.astrologerId || s.toUserId;
-                if (!aId) return;
-                if (!stats[aId]) {
-                    stats[aId] = {
-                        astrologerId: aId,
-                        name: s.astrologerName,
-                        sessions: 0,
-                        duration: 0
-                    };
-                }
-                stats[aId].sessions++;
-                stats[aId].duration += (s.duration || 0);
-            });
 
-            const sorted = Object.values(stats).sort((a, b) => b.sessions - a.sessions).slice(0, 3);
-
-            if (sorted.length === 0) {
+            if (!list || list.length === 0) {
                 topList.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-dim);">No top astrologers data available.</div>';
                 return;
             }
@@ -3074,7 +3070,7 @@
                 { color: '#CD7F32', icon: 'fa-award', label: '3rd Place' }
             ];
 
-            topList.innerHTML = sorted.map((ast, idx) => `
+            topList.innerHTML = list.map((ast, idx) => `
                 <div class="admin-card" style="border-top: 4px solid ${medals[idx].color}; display:flex; align-items:center; gap:15px; padding:20px;">
                     <div style="width:45px; height:45px; border-radius:50%; background:${medals[idx].color}20; display:flex; align-items:center; justify-content:center; color:${medals[idx].color}; font-size:1.4rem;">
                         <i class="fas ${medals[idx].icon}"></i>
@@ -3092,8 +3088,30 @@
         }
 
         window.searchHistory = () => {
-            renderHistory();
+            historyPage = 1;
+            historySearch = document.getElementById('adminHistorySearch').value;
+            historyType = document.getElementById('adminHistoryTypeFilter').value;
+            loadSessionsHistory();
         };
+
+        window.changeHistoryPage = (dir) => {
+            historyPage += dir;
+            loadSessionsHistory();
+        };
+
+        window.deleteSession = (sessionId) => {
+            if (!sessionId) return;
+            if (confirm('Are you sure you want to delete this session record? This cannot be undone.')) {
+                socket.emit('admin-delete-session', { sessionId }, (res) => {
+                    if (res.ok) {
+                        alert('Session history record deleted successfully.');
+                        loadSessionsHistory();
+                    } else {
+                        alert('Error: ' + (res.error || 'Failed to delete session'));
+                    }
+                });
+            }
+
 
         init();
     </script>
