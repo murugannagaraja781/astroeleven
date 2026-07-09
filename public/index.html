@@ -27,7 +27,7 @@
   <meta property="twitter:image" content="https://astroeleven.com/images/astroeleven-banner.jpg">
 
   <link rel="canonical" href="https://astroeleven.com/">
-  <link rel="icon" type="image/svg+xml" href="images/astroeleven_icon.svg">
+  <link rel="icon" type="image/png" href="favicon.png">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/smoothness/jquery-ui.css">
@@ -2146,19 +2146,19 @@
           style="margin-bottom: 25px; overflow-x: auto; -webkit-overflow-scrolling: touch;">
           <div style="display: flex; gap: 12px; padding: 5px 0;">
             <div class="service-item-card" onclick="selectQuickService('chat')">
-              <img src="https://cdn-icons-png.flaticon.com/512/134/134914.png" alt="Chat">
+              <i class="fas fa-comment-dots"></i>
               <span>Chat with Astro</span>
             </div>
             <div class="service-item-card" onclick="selectQuickService('call')">
-              <img src="https://cdn-icons-png.flaticon.com/512/724/724664.png" alt="Call">
+              <i class="fas fa-phone-alt"></i>
               <span>Call with Astro</span>
             </div>
             <div class="service-item-card" onclick="selectQuickService('video')">
-              <img src="https://cdn-icons-png.flaticon.com/512/1716/1716282.png" alt="Video">
+              <i class="fas fa-video"></i>
               <span>Video with Astro</span>
             </div>
             <div class="service-item-card" onclick="selectQuickService('all')">
-              <img src="https://cdn-icons-png.flaticon.com/512/570/570170.png" alt="All">
+              <i class="fas fa-th-large"></i>
               <span>All Services</span>
             </div>
             <div class="service-item-card"
@@ -2216,6 +2216,16 @@
             height: 45px;
             margin-bottom: 8px;
             object-fit: contain;
+          }
+
+          .service-item-card i {
+            font-size: 1.8rem;
+            color: var(--primary);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 45px;
           }
 
           .service-item-card span {

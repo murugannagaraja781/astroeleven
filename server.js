@@ -348,6 +348,144 @@ app.use('/api/user', userRoutes);
 app.use('/api/chat', userRoutes);
 app.use('/api/payment', paymentRoutes);
 
+// Shop, Puja Booking, and Astrologer Referral System API
+app.get('/api/shop/items', async (req, res) => {
+    try {
+        const items = {
+            pujas: [
+                { id: "p1", name: "Ganesha Puja • கணபதி பூஜை", description: "For obstacle removal & prosperity", price: 1500, image: "images/pillaiyar_icon.png" },
+                { id: "p2", name: "Navagraha Puja • நவகிரக பூஜை", description: "For pacifying planetary doshas", price: 2500, image: "images/ganesha.png" },
+                { id: "p3", name: "Lakshmi Puja • லட்சுமி பூஜை", description: "For wealth & financial stability", price: 2000, image: "images/ganesha.png" }
+            ],
+            products: [
+                { id: "pr1", name: "Natural Yellow Sapphire • புஷ்பராகம்", description: "Premium gemstone for Jupiter blessings", price: 4500, image: "images/daily_horoscope_new.png" },
+                { id: "pr2", name: "5 Mukhi Rudraksha Mala • ருத்ராட்ச மாலை", description: "For peace of mind & focus", price: 750, image: "images/daily_horoscope_new.png" },
+                { id: "pr3", name: "Siddh Maha Yantra • மகா யந்திரம்", description: "For domestic harmony & protection", price: 1200, image: "images/daily_horoscope_new.png" }
+            ]
+        };
+        res.status(200).json({ success: true, data: items });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+app.post('/api/shop/checkout', async (req, res) => {
+    const { userId, itemType, itemId, itemName, price, referralCode } = req.body;
+    try {
+        const ShopOrder = require('./models/ShopOrder');
+        const User = require('./models/User');
+
+        if (!userId || !itemType || !itemId || !itemName || !price) {
+            return res.status(400).json({ success: false, message: "Missing required checkout fields." });
+        }
+
+        let refCodeApplied = null;
+        let commission = 0;
+
+        if (referralCode) {
+            const astrologer = await User.findOne({ referralCode: referralCode.trim(), role: 'astrologer' });
+            if (astrologer) {
+                refCodeApplied = astrologer.referralCode;
+                commission = Math.round(price * 0.10); // 10% commission
+                
+                if (itemType === 'puja') {
+                    astrologer.referredPujaCount = (astrologer.referredPujaCount || 0) + 1;
+                } else {
+                    astrologer.referredProductCount = (astrologer.referredProductCount || 0) + 1;
+                }
+                astrologer.referredCommission = (astrologer.referredCommission || 0) + commission;
+                astrologer.totalEarnings = (astrologer.totalEarnings || 0) + commission;
+                await astrologer.save();
+            }
+        }
+
+        const newOrder = new ShopOrder({
+            orderId: "ORD" + Date.now(),
+            userId,
+            itemType,
+            itemId,
+            itemName,
+            price,
+            astrologerReferralCode: refCodeApplied,
+            status: 'completed'
+        });
+        await newOrder.save();
+
+        res.status(200).json({ success: true, message: "Order placed successfully!", data: newOrder });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+app.get('/api/admin/referrals', async (req, res) => {
+    try {
+        const ShopOrder = require('./models/ShopOrder');
+        const User = require('./models/User');
+
+        const astrologers = await User.find({ role: 'astrologer' }, 'userId name referralCode referredPujaCount referredProductCount referredCommission');
+        const orders = await ShopOrder.find({});
+        res.status(200).json({ success: true, astrologers, orders });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+app.post('/api/admin/update-referral-code', async (req, res) => {
+    const { userId, newCode } = req.body;
+    try {
+        const User = require('./models/User');
+
+        if (!userId || !newCode) {
+            return res.status(400).json({ success: false, message: "UserId and new code are required." });
+        }
+
+        const taken = await User.findOne({ referralCode: newCode.trim() });
+        if (taken && taken.userId !== userId) {
+            return res.status(400).json({ success: false, message: "This referral code is already assigned to another user." });
+        }
+
+        const astrologer = await User.findOne({ userId, role: 'astrologer' });
+        if (!astrologer) {
+            return res.status(404).json({ success: false, message: "Astrologer not found." });
+        }
+
+        astrologer.referralCode = newCode.trim();
+        await astrologer.save();
+
+        res.status(200).json({ success: true, message: "Referral code updated successfully!" });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// App Rasi Icons endpoints
+app.get('/api/admin/rasi-icons', async (req, res) => {
+    try {
+        const GlobalSettings = require('./models/GlobalSettings');
+        const record = await GlobalSettings.findOne({ key: 'rasiIcons' });
+        res.status(200).json({ success: true, icons: record ? record.value : {} });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+app.post('/api/admin/rasi-icons', async (req, res) => {
+    const { icons } = req.body;
+    try {
+        const GlobalSettings = require('./models/GlobalSettings');
+        let record = await GlobalSettings.findOne({ key: 'rasiIcons' });
+        if (!record) {
+            record = new GlobalSettings({ key: 'rasiIcons', value: {} });
+        }
+        record.value = icons;
+        record.markModified('value');
+        await record.save();
+        res.status(200).json({ success: true, message: "Rasi icons updated successfully!" });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
 
 
 // FCM Test Endpoint - Verify Firebase is working

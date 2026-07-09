@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Astro Eleven Shop - Premium Gemstones & Puja Booking</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            'poppins': ['Poppins', 'sans-serif'],
+          },
+          colors: {
+            'brand-red': '#E1353C',
+            'brand-gold': '#FDBA16',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #FFFDF9 0%, #FFF9E6 100%);
+    }
+    .service-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 25px rgba(225, 53, 60, 0.1);
+    }
+    .custom-dashed {
+      border: 2.5px dashed #FDBA16;
+    }
+  </style>
+</head>
+<body class="min-h-screen pb-16">
+
+  <!-- Header -->
+  <header class="bg-white shadow-sm sticky top-0 z-50 border-b border-orange-100">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-brand-red flex items-center justify-center text-white font-bold text-lg border-2 border-brand-gold shadow">
+          A11
+        </div>
+        <div>
+          <h1 class="text-lg font-extrabold text-brand-red tracking-tight">Astro Eleven Shop</h1>
+          <p class="text-xs text-gray-500 font-medium">Sacred Pujas & Certified Astro Products</p>
+        </div>
+      </div>
+      <a href="index.html" class="text-sm font-semibold text-brand-red hover:underline flex items-center gap-1">
+        <i class="fas fa-arrow-left"></i> Home
+      </a>
+    </div>
+  </header>
+
+  <!-- Banner Carousel -->
+  <section class="max-w-4xl mx-auto px-4 mt-6">
+    <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-brand-red to-red-800 text-white p-6 shadow-lg flex items-center justify-between">
+      <div class="max-w-md">
+        <span class="bg-brand-gold/20 text-brand-gold border border-brand-gold/30 text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider">Festival Offer</span>
+        <h2 class="text-2xl font-black mt-2">Book Puja & Get 100% Remedies Consultation Free!</h2>
+        <p class="text-sm opacity-90 mt-2">Activate planetary blessings and remove malefic obstacles in career and relationship.</p>
+      </div>
+      <div class="text-5xl opacity-20 hidden md:block">🕉️</div>
+    </div>
+  </section>
+
+  <!-- Main Store Layout -->
+  <main class="max-w-6xl mx-auto px-4 mt-8">
+    
+    <!-- Tab Controls -->
+    <div class="flex border-b border-orange-200/60 mb-8 justify-center gap-4">
+      <button onclick="switchCategory('pujas')" id="tab-pujas" class="py-2.5 px-6 font-bold text-sm text-brand-red border-b-2 border-brand-red transition-all">
+        <i class="fas fa-hands-praying mr-2"></i> Sacred Puja Bookings
+      </button>
+      <button onclick="switchCategory('products')" id="tab-products" class="py-2.5 px-6 font-semibold text-sm text-gray-500 hover:text-brand-red transition-all">
+        <i class="fas fa-gem mr-2"></i> Astro Store Products
+      </button>
+    </div>
+
+    <!-- Pujas Grid -->
+    <div id="grid-pujas" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <!-- Loading or items -->
+    </div>
+
+    <!-- Products Grid -->
+    <div id="grid-products" class="grid grid-cols-1 md:grid-cols-3 gap-6 hidden">
+      <!-- Loading or items -->
+    </div>
+
+  </main>
+
+  <!-- Checkout Dialog -->
+  <div id="checkoutModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-2xl border border-orange-100 p-6 w-full max-w-md shadow-2xl relative">
+      <button onclick="closeCheckout()" class="absolute right-4 top-4 text-gray-400 hover:text-gray-600">
+        <i class="fas fa-times text-lg"></i>
+      </button>
+      
+      <h3 class="text-xl font-bold text-gray-800 mb-2">Checkout Details</h3>
+      <p class="text-sm text-gray-500 mb-6" id="checkoutItemName">Booking Puja...</p>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Your Name</label>
+          <input type="text" id="custName" class="w-full px-4 py-3 bg-orange-50/50 border border-orange-100 rounded-xl focus:border-brand-red text-sm" placeholder="Enter your full name">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Phone Number</label>
+          <input type="text" id="custPhone" class="w-full px-4 py-3 bg-orange-50/50 border border-orange-100 rounded-xl focus:border-brand-red text-sm" placeholder="Enter phone number">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Astrologer Booking Referral Code</label>
+          <input type="text" id="referralCode" class="w-full px-4 py-3 bg-brand-gold/10 border-2 border-brand-gold/30 rounded-xl focus:border-brand-red text-sm font-bold text-brand-red" placeholder="e.g. AST1101">
+          <p class="text-[10px] text-gray-500 mt-1">Enter your astrologer's referral code to credit commission.</p>
+        </div>
+
+        <div class="bg-orange-50 p-4 rounded-xl border border-orange-100 mt-4">
+          <div class="flex justify-between font-bold text-gray-800">
+            <span>Total Payable:</span>
+            <span class="text-brand-red" id="checkoutPrice">₹0</span>
+          </div>
+        </div>
+
+        <button onclick="confirmCheckout()" class="w-full py-4 bg-brand-red hover:bg-red-700 text-white font-bold rounded-xl text-sm transition-all shadow-md">
+          Confirm Order & Pay
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-6 right-6 bg-emerald-600 text-white px-6 py-3.5 rounded-xl shadow-lg font-bold text-sm transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-2">
+    <i class="fas fa-check-circle"></i> <span id="toastMsg">Order placed!</span>
+  </div>
+
+  <script>
+    let activeCategory = 'pujas';
+    let selectedItem = null;
+
+    // Load store items from server API
+    async function loadStoreItems() {
+      try {
+        const res = await fetch('/api/shop/items');
+        const json = await res.json();
+        if (json.success) {
+          renderGrid('pujas', json.data.pujas);
+          renderGrid('products', json.data.products);
+        }
+      } catch (err) {
+        console.error("Failed to load shop items", err);
+      }
+    }
+
+    function renderGrid(type, items) {
+      const grid = document.getElementById(`grid-${type}`);
+      grid.innerHTML = '';
+      
+      items.forEach(item => {
+        const card = document.createElement('div');
+        card.className = "bg-white border border-orange-100 rounded-2xl p-5 service-card transition-all cursor-pointer flex flex-col justify-between";
+        card.onclick = () => openCheckout(item, type);
+        
+        card.innerHTML = `
+          <div>
+            <div class="w-16 h-16 rounded-full custom-dashed flex items-center justify-center mb-4 mx-auto bg-orange-50 overflow-hidden">
+              <img src="${item.image}" alt="${item.name}" class="w-10 h-10 object-contain">
+            </div>
+            <h4 class="text-center font-bold text-gray-800 text-base leading-tight">${item.name}</h4>
+            <p class="text-center text-xs text-gray-500 mt-2 font-medium">${item.description}</p>
+          </div>
+          <div class="mt-6">
+            <div class="flex justify-between items-center">
+              <span class="text-brand-red font-extrabold text-lg">₹${item.price}</span>
+              <span class="bg-brand-red/10 text-brand-red text-xs font-bold px-3 py-1.5 rounded-full hover:bg-brand-red hover:text-white transition-all">Book Now</span>
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function switchCategory(cat) {
+      activeCategory = cat;
+      const tabPujas = document.getElementById('tab-pujas');
+      const tabProducts = document.getElementById('tab-products');
+      const gridPujas = document.getElementById('grid-pujas');
+      const gridProducts = document.getElementById('grid-products');
+
+      if (cat === 'pujas') {
+        tabPujas.className = "py-2.5 px-6 font-bold text-sm text-brand-red border-b-2 border-brand-red transition-all";
+        tabProducts.className = "py-2.5 px-6 font-semibold text-sm text-gray-500 hover:text-brand-red transition-all";
+        gridPujas.classList.remove('hidden');
+        gridProducts.classList.add('hidden');
+      } else {
+        tabProducts.className = "py-2.5 px-6 font-bold text-sm text-brand-red border-b-2 border-brand-red transition-all";
+        tabPujas.className = "py-2.5 px-6 font-semibold text-sm text-gray-500 hover:text-brand-red transition-all";
+        gridProducts.classList.remove('hidden');
+        gridPujas.classList.add('hidden');
+      }
+    }
+
+    function openCheckout(item, type) {
+      selectedItem = { ...item, type };
+      document.getElementById('checkoutItemName').innerText = item.name + " (" + item.description + ")";
+      document.getElementById('checkoutPrice').innerText = "₹" + item.price;
+      document.getElementById('checkoutModal').classList.remove('hidden');
+      
+      // Auto-populate referral code if astrologer code is in localStorage
+      try {
+        const storedCode = localStorage.getItem('referred_astro_code');
+        if (storedCode) {
+          document.getElementById('referralCode').value = storedCode;
+        }
+      } catch(e){}
+    }
+
+    function closeCheckout() {
+      document.getElementById('checkoutModal').classList.add('hidden');
+    }
+
+    async function confirmCheckout() {
+      const name = document.getElementById('custName').value.trim();
+      const phone = document.getElementById('custPhone').value.trim();
+      const code = document.getElementById('referralCode').value.trim();
+
+      if (!name || !phone) {
+        alert("Please fill in your Name and Phone Number.");
+        return;
+      }
+
+      const body = {
+        userId: phone, // phone acts as user registration key
+        itemType: selectedItem.type === 'pujas' ? 'puja' : 'product',
+        itemId: selectedItem.id,
+        itemName: selectedItem.name,
+        price: selectedItem.price,
+        referralCode: code || null
+      };
+
+      try {
+        const res = await fetch('/api/shop/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const json = await res.json();
+        if (json.success) {
+          closeCheckout();
+          showToast("Booking Successful! Our pandits will contact you shortly.");
+          
+          // Clear inputs
+          document.getElementById('custName').value = '';
+          document.getElementById('custPhone').value = '';
+          document.getElementById('referralCode').value = '';
+        } else {
+          alert("Checkout failed: " + json.message);
+        }
+      } catch (err) {
+        alert("Failed to confirm order. Please try again.");
+      }
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastMsg').innerText = msg;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 4000);
+    }
+
+    // Auto load items
+    window.onload = loadStoreItems;
+  </script>
+</body>
+</html>

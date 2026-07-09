@@ -193,7 +193,7 @@ fun getImageUrl(path: String?): String {
 
 
 // Data class wrapper for Rasi to be used in Compose
-data class ComposeRasiItem(val id: Int, val name: String, val iconRes: Int, val color: Color)
+data class ComposeRasiItem(val id: Int, val name: String, val iconRes: Int, val color: Color, val customIconUrl: String? = null)
 
 // Local color definitions removed to use Theme aliases (White)
 
@@ -278,6 +278,7 @@ fun HomeScreen(
     var appBackgroundColor by remember { mutableStateOf(Color(0xFFFEF9F3)) }
     var referralBannerTitle by remember { mutableStateOf("Refer Your Friend & Earn Upto ₹5000") }
     var referralBannerImage by remember { mutableStateOf("") }
+    var customRasiIcons by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
 
     LaunchedEffect(Unit) {
         try {
@@ -305,6 +306,18 @@ fun HomeScreen(
                     }
                     if (config.has("referralBannerImage")) {
                         referralBannerImage = config.get("referralBannerImage").getAsString()
+                    }
+                    if (config.has("rasiIcons")) {
+                        try {
+                            val iconsObj = config.getAsJsonObject("rasiIcons")
+                            val iconsMap = mutableMapOf<String, String>()
+                            iconsObj.keySet().forEach { rasiKey ->
+                                iconsMap[rasiKey] = iconsObj.get(rasiKey).getAsString()
+                            }
+                            customRasiIcons = iconsMap
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
                     }
                 }
             }
@@ -562,6 +575,7 @@ fun HomeScreen(
 
     ModalNavigationDrawer(
         drawerState = drawerState,
+        gesturesEnabled = (selectedTab == 0),
         drawerContent = {
             AppDrawer(
                 onItemClick = { item ->
@@ -691,7 +705,7 @@ fun HomeScreen(
                                     return false // Keep navigation inside app webview
                                 }
                             }
-                            loadUrl("https://astroeleven.in/")
+                            loadUrl("file:///android_asset/shop.html?server_url=${com.astroeleven.app.utils.Constants.SERVER_URL}")
                         }
                     },
                     modifier = Modifier.fillMaxSize()
@@ -720,6 +734,7 @@ fun HomeScreen(
                             selectedFilter = selectedFilter,
                             referralBannerTitle = referralBannerTitle,
                             referralBannerImage = referralBannerImage,
+                            customRasiIcons = customRasiIcons,
                             onAstroClick = { selectedLiveAstro = it },
                             onViewAllClick = { selectedTab = 1; selectedFilter = "All" },
                             onAction = { action ->
@@ -892,6 +907,7 @@ fun LazyListScope.HomeTab(
     selectedFilter: String = "All",
     referralBannerTitle: String = "Refer Your Friend & Earn Upto ₹5000",
     referralBannerImage: String = "",
+    customRasiIcons: Map<String, String> = emptyMap(),
     onAstroClick: (Astrologer) -> Unit,
     onViewAllClick: () -> Unit,
     onAction: (String) -> Unit
@@ -913,9 +929,31 @@ fun LazyListScope.HomeTab(
         )
     }
 
+    // Calendar links row above Rasi Grid
+    item {
+        CalendarQuickLinks(isTamil, onAction)
+    }
+
     // 2.5 12 Rasi Palan Daily Horoscope Grid Grid (banner below)
     item {
-        RasiGridSection(isTamil, onRasiClick)
+        RasiGridSection(isTamil, customRasiIcons, onRasiClick)
+    }
+
+    // Secondary Carousel Banner below Rasi Grid
+    item {
+        BannerSection(
+            banners = banners,
+            onBannerClick = onBannerClick,
+            onReferClick = { onAction("referral") },
+            onShareClick = { onAction("referral_share") },
+            referralBannerTitle = referralBannerTitle,
+            referralBannerImage = referralBannerImage
+        )
+    }
+
+    // Matrimony, Puja, and Shop Promo Cards
+    item {
+        PromoServiceGrid(isTamil, onAction)
     }
 
     // 3. Live Astrologers
@@ -1669,7 +1707,7 @@ fun HomeTopBar(
                             .size(40.dp)
                             .clip(CircleShape)
                             .background(Color.White)
-                            .border(1.dp, Color(0xFFF0F0F0), CircleShape)
+                            .border(1.dp, Color(0xFFFDBA16), CircleShape)
                     ) {
                         Image(
                             painter = painterResource(id = com.astroeleven.app.R.mipmap.ic_launcher_foreground),
@@ -1680,11 +1718,18 @@ fun HomeTopBar(
                     }
                 }
 
-                Text(
-                    text = "Hi $userName",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = Color.Black
-                )
+                Column {
+                    Text(
+                        text = "Astro Eleven",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
+                        color = Color(0xFFE1353C)
+                    )
+                    Text(
+                        text = "Hi $userName",
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                        color = Color.Gray
+                    )
+                }
             }
 
             // Wallet Pill, Translate, Support Icons
@@ -1968,215 +2013,197 @@ fun AstrologerCard(
                 context.startActivity(intent)
             }
         ) {
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(14.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(14.dp)
             ) {
-                // LEFT COLUMN: Circle avatar, rating, review/order count
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.width(86.dp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(modifier = Modifier.size(72.dp)) {
-                        AsyncImage(
-                            model = getImageUrl(astro.image),
-                            contentDescription = astro.name,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clip(CircleShape)
-                                .border(
-                                    if (isPandit) 2.dp else 1.dp,
-                                    if (isPandit) Color(0xFFFFD700) else Color(0xFFF0F0F0),
-                                    CircleShape
-                                ),
-                            contentScale = ContentScale.Crop,
-                            error = painterResource(id = com.astroeleven.app.R.drawable.ic_person_placeholder)
-                        )
-
-                        // Status indicator dot
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.BottomEnd)
-                                .size(12.dp)
-                                .background(statusColor, CircleShape)
-                                .border(1.5.dp, Color.White, CircleShape)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    // Star rating layout
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
+                    // LEFT COLUMN: Circle avatar, rating, review/order count
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.width(86.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Star,
-                            contentDescription = null,
-                            tint = Color(0xFFFFB300),
-                            modifier = Modifier.size(13.dp)
-                        )
-                        Spacer(modifier = Modifier.width(2.dp))
-                        Text(
-                            text = if (astro.rating > 0) astro.rating.toString() else "4.9",
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = Color.Black,
-                            fontSize = 11.sp
-                        )
-                    }
+                        Box(modifier = Modifier.size(72.dp)) {
+                            AsyncImage(
+                                model = getImageUrl(astro.image),
+                                contentDescription = astro.name,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(CircleShape)
+                                    .border(
+                                        if (isPandit) 2.dp else 1.dp,
+                                        if (isPandit) Color(0xFFFFD700) else Color(0xFFF0F0F0),
+                                        CircleShape
+                                    ),
+                                contentScale = ContentScale.Crop,
+                                error = painterResource(id = com.astroeleven.app.R.drawable.ic_person_placeholder)
+                            )
 
-                    // Review/order count
-                    Text(
-                        text = "${astro.orders} ${Localization.get("orders", isTamil)}",
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                        color = Color.Gray,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                // MIDDLE COLUMN: Name, verified, exp, skills, double price comparison
-                Column(
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = astro.name,
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp
-                            ),
-                            color = Color.Black,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false)
-                        )
-                        if (astro.isVerified) {
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Icon(
-                                imageVector = Icons.Filled.CheckCircle,
-                                contentDescription = "Verified",
-                                tint = Color(0xFF4CAF50), // Green verified checkmark
-                                modifier = Modifier.size(14.dp)
+                            // Status indicator dot
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .size(12.dp)
+                                    .background(statusColor, CircleShape)
+                                    .border(1.5.dp, Color.White, CircleShape)
                             )
                         }
-                    }
 
-                    if (isPandit) {
-                        Text(
-                            text = "Pandit • पंडित",
-                            color = Color(0xFFD32F2F),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.ExtraBold
-                        )
-                    }
+                        Spacer(modifier = Modifier.height(6.dp))
 
-                    Spacer(modifier = Modifier.height(2.dp))
-
-                    // Experience
-                    Text(
-                        text = "${Localization.get("exp", isTamil)} ${astro.experience} ${Localization.get("years", isTamil)}",
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                        color = Color.Gray
-                    )
-
-                    Spacer(modifier = Modifier.height(2.dp))
-
-                    // Skills list (joined by commas)
-                    val skillsText = if (astro.skills.isNotEmpty()) astro.skills.joinToString(", ") else "Vedic"
-                    Text(
-                        text = skillsText,
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                        color = Color.Gray,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    // Dual price comparison
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "₹${(astro.price * 1.5).toInt()}",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                textDecoration = TextDecoration.LineThrough,
-                                color = Color.Gray,
+                        // Star rating layout
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Star,
+                                contentDescription = null,
+                                tint = Color(0xFFFFB300),
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(modifier = Modifier.width(2.dp))
+                            Text(
+                                text = if (astro.rating > 0) astro.rating.toString() else "4.9",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                color = Color.Black,
                                 fontSize = 11.sp
                             )
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
+                        }
+
+                        // Review/order count
                         Text(
-                            text = "₹${astro.price.toInt()}/${Localization.get("min", isTamil)}",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Black,
-                                fontSize = 12.sp
-                            ),
-                            color = Color(0xFFC62828)
+                            text = "${astro.orders} ${Localization.get("orders", isTamil)}",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                            color = Color.Gray,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    // MIDDLE COLUMN: Name, verified, exp, skills, double price comparison
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = astro.name,
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp
+                                ),
+                                color = Color.Black,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false)
+                            )
+                            if (astro.isVerified) {
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(
+                                    imageVector = Icons.Filled.CheckCircle,
+                                    contentDescription = "Verified",
+                                    tint = Color(0xFF4CAF50), // Green verified checkmark
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                        }
+
+                        if (isPandit) {
+                            Text(
+                                text = "Pandit • पंडित",
+                                color = Color(0xFFD32F2F),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(2.dp))
+
+                        // Experience
+                        Text(
+                            text = "${Localization.get("exp", isTamil)} ${astro.experience} ${Localization.get("years", isTamil)}",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                            color = Color.Gray
+                        )
+
+                        Spacer(modifier = Modifier.height(2.dp))
+
+                        // Skills list (joined by commas)
+                        val skillsText = if (astro.skills.isNotEmpty()) astro.skills.joinToString(", ") else "Vedic"
+                        Text(
+                            text = skillsText,
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                            color = Color.Gray,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        // Dual price comparison
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "₹${(astro.price * 1.5).toInt()}",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    textDecoration = TextDecoration.LineThrough,
+                                    color = Color.Gray,
+                                    fontSize = 11.sp
+                                )
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "₹${astro.price.toInt()}/${Localization.get("min", isTamil)}",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 12.sp
+                                ),
+                                color = Color(0xFFC62828)
+                            )
+                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-                // RIGHT COLUMN: Single outlined action button
-                Column(
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.width(90.dp)
+                // Bottom row with all 3 options: Chat, Call, Video
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val service = when (activeServiceView) {
-                        "chat" -> "chat"
-                        "call" -> "call"
-                        "video" -> "video"
-                        else -> {
-                            when {
-                                astro.isChatOnline -> "chat"
-                                astro.isAudioOnline -> "call"
-                                astro.isVideoOnline -> "video"
-                                else -> "chat"
-                            }
-                        }
-                    }
-
-                    when (service) {
-                        "chat" -> {
-                            AstrologerActionButton(
-                                text = Localization.get("chat", isTamil),
-                                icon = Icons.Rounded.Chat,
-                                active = (astro.isChatOnline && !astro.isBusy),
-                                borderColor = Color(0xFF2196F3), // Blue border
-                                onClick = { onChatClick(astro) },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-                        "call" -> {
-                            AstrologerActionButton(
-                                text = Localization.get("call", isTamil),
-                                icon = Icons.Rounded.Call,
-                                active = (astro.isAudioOnline && !astro.isBusy),
-                                borderColor = Color(0xFF4CAF50), // Green border
-                                onClick = { onCallClick(astro, "call") },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-                        "video" -> {
-                            AstrologerActionButton(
-                                text = Localization.get("video", isTamil),
-                                icon = Icons.Rounded.VideoCall,
-                                active = (astro.isVideoOnline && !astro.isBusy),
-                                borderColor = Color(0xFFD32F2F), // Keep Red border
-                                onClick = { onCallClick(astro, "video") },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-                    }
+                    AstrologerActionButton(
+                        text = Localization.get("chat", isTamil),
+                        icon = Icons.Rounded.Chat,
+                        active = (astro.isChatOnline && !astro.isBusy),
+                        borderColor = Color(0xFF2196F3),
+                        onClick = { onChatClick(astro) },
+                        modifier = Modifier.weight(1f)
+                    )
+                    AstrologerActionButton(
+                        text = Localization.get("call", isTamil),
+                        icon = Icons.Rounded.Call,
+                        active = (astro.isAudioOnline && !astro.isBusy),
+                        borderColor = Color(0xFF4CAF50),
+                        onClick = { onCallClick(astro, "call") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    AstrologerActionButton(
+                        text = Localization.get("video", isTamil),
+                        icon = Icons.Rounded.VideoCall,
+                        active = (astro.isVideoOnline && !astro.isBusy),
+                        borderColor = Color(0xFFD32F2F),
+                        onClick = { onCallClick(astro, "video") },
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
         }
@@ -2203,21 +2230,15 @@ fun AstrologerCard(
     }
 }
 
-
-
-
 // --- 3. RASI ITEM (Fitted BG + Border) ---
 @Composable
 fun RasiItemView(item: ComposeRasiItem, isTamil: Boolean, onClick: (ComposeRasiItem) -> Unit) {
-    val goldColor = Color(0xFFD4AF37)
-
-    // Animation: Gentle Pulse
     val infiniteTransition = rememberInfiniteTransition(label = "RasiPulse")
     val scale by infiniteTransition.animateFloat(
         initialValue = 1f,
-        targetValue = 1.05f,
+        targetValue = 1.04f,
         animationSpec = infiniteRepeatable(
-            animation = tween(2500, easing = FastOutSlowInEasing),
+            animation = tween(2000, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "Scale"
@@ -2226,39 +2247,59 @@ fun RasiItemView(item: ComposeRasiItem, isTamil: Boolean, onClick: (ComposeRasiI
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .width(100.dp)
-            .padding(8.dp)
+            .width(85.dp)
+            .padding(4.dp)
             .clickable { onClick(item) }
     ) {
-        // Glassmorphism Card
         Surface(
             modifier = Modifier
-                .size(85.dp)
+                .size(68.dp)
                 .graphicsLayer {
                     scaleX = scale
                     scaleY = scale
                 },
-            color = Color.White.copy(alpha = 0.05f),
-            shape = RoundedCornerShape(16.dp),
-            border = BorderStroke(1.dp, goldColor.copy(alpha = 0.3f))
+            color = Color.Transparent,
+            shape = CircleShape,
+            border = BorderStroke(1.5.dp, Color(0xFFE1353C))
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                Image(
-                    painter = painterResource(id = item.iconRes),
-                    contentDescription = item.name,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(14.dp),
-                    colorFilter = ColorFilter.tint(goldColor)
-                )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        androidx.compose.ui.graphics.Brush.linearGradient(
+                            colors = listOf(Color(0xFFFFFDE7), Color(0xFFFFF9C4))
+                        )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (!item.customIconUrl.isNullOrEmpty()) {
+                    AsyncImage(
+                        model = getImageUrl(item.customIconUrl),
+                        contentDescription = item.name,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(14.dp),
+                        colorFilter = ColorFilter.tint(Color(0xFFE1353C))
+                    )
+                } else {
+                    Image(
+                        painter = painterResource(id = item.iconRes),
+                        contentDescription = item.name,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(14.dp),
+                        colorFilter = ColorFilter.tint(Color(0xFFE1353C))
+                    )
+                }
             }
         }
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(6.dp))
         Text(
             text = Localization.get(item.name.lowercase(), isTamil),
             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp),
-            color = goldColor.copy(alpha = 0.9f),
+            color = Color(0xFF2C251D),
             textAlign = TextAlign.Center,
             maxLines = 1
         )
@@ -2587,20 +2628,20 @@ fun ProfileItem(label: String, icon: ImageVector, onClick: () -> Unit) {
 }
 
 @Composable
-fun RasiGridSection(isTamil: Boolean, onClick: (ComposeRasiItem) -> Unit) {
+fun RasiGridSection(isTamil: Boolean, customRasiIcons: Map<String, String>, onClick: (ComposeRasiItem) -> Unit) {
     val rasiItems = listOf(
-        ComposeRasiItem(1, "Aries", com.astroeleven.app.R.drawable.ic_rasi_aries_premium, AriesRed),
-        ComposeRasiItem(2, "Taurus", com.astroeleven.app.R.drawable.ic_rasi_taurus_premium_copy, TaurusGreen),
-        ComposeRasiItem(3, "Gemini", com.astroeleven.app.R.drawable.ic_rasi_gemini_premium_copy, GeminiGreen),
-        ComposeRasiItem(4, "Cancer", com.astroeleven.app.R.drawable.ic_rasi_cancer_premium_copy, CancerBlue),
-        ComposeRasiItem(5, "Leo", com.astroeleven.app.R.drawable.ic_rasi_leo_premium, LeoGold),
-        ComposeRasiItem(6, "Virgo", com.astroeleven.app.R.drawable.ic_rasi_virgo_premium, VirgoOlive),
-        ComposeRasiItem(7, "Libra", com.astroeleven.app.R.drawable.ic_rasi_libra_premium_copy, LibraPink),
-        ComposeRasiItem(8, "Scorpio", com.astroeleven.app.R.drawable.ic_rasi_scorpio_premium, ScorpioMaroon),
-        ComposeRasiItem(9, "Sagittarius", com.astroeleven.app.R.drawable.ic_rasi_sagittarius_premium, SagPurple),
-        ComposeRasiItem(10, "Capricorn", com.astroeleven.app.R.drawable.ic_rasi_capricorn_premium_copy, CapTeal),
-        ComposeRasiItem(11, "Aquarius", com.astroeleven.app.R.drawable.ic_rasi_aquarius_premium, AquaBlue),
-        ComposeRasiItem(12, "Pisces", com.astroeleven.app.R.drawable.ic_rasi_pisces_premium_copy, PiscesIndigo)
+        ComposeRasiItem(1, "Aries", com.astroeleven.app.R.drawable.ic_rasi_aries_premium, AriesRed, customRasiIcons["aries"]),
+        ComposeRasiItem(2, "Taurus", com.astroeleven.app.R.drawable.ic_rasi_taurus_premium_copy, TaurusGreen, customRasiIcons["taurus"]),
+        ComposeRasiItem(3, "Gemini", com.astroeleven.app.R.drawable.ic_rasi_gemini_premium_copy, GeminiGreen, customRasiIcons["gemini"]),
+        ComposeRasiItem(4, "Cancer", com.astroeleven.app.R.drawable.ic_rasi_cancer_premium_copy, CancerBlue, customRasiIcons["cancer"]),
+        ComposeRasiItem(5, "Leo", com.astroeleven.app.R.drawable.ic_rasi_leo_premium, LeoGold, customRasiIcons["leo"]),
+        ComposeRasiItem(6, "Virgo", com.astroeleven.app.R.drawable.ic_rasi_virgo_premium, VirgoOlive, customRasiIcons["virgo"]),
+        ComposeRasiItem(7, "Libra", com.astroeleven.app.R.drawable.ic_rasi_libra_premium_copy, LibraPink, customRasiIcons["libra"]),
+        ComposeRasiItem(8, "Scorpio", com.astroeleven.app.R.drawable.ic_rasi_scorpio_premium, ScorpioMaroon, customRasiIcons["scorpio"]),
+        ComposeRasiItem(9, "Sagittarius", com.astroeleven.app.R.drawable.ic_rasi_sagittarius_premium, SagPurple, customRasiIcons["sagittarius"]),
+        ComposeRasiItem(10, "Capricorn", com.astroeleven.app.R.drawable.ic_rasi_capricorn_premium_copy, CapTeal, customRasiIcons["capricorn"]),
+        ComposeRasiItem(11, "Aquarius", com.astroeleven.app.R.drawable.ic_rasi_aquarius_premium, AquaBlue, customRasiIcons["aquarius"]),
+        ComposeRasiItem(12, "Pisces", com.astroeleven.app.R.drawable.ic_rasi_pisces_premium_copy, PiscesIndigo, customRasiIcons["pisces"])
     )
 
     // User Request: "12 rasi contain have one box that box bf use that bg" (Customer Style)
@@ -3373,5 +3414,103 @@ fun ReferStepRow(num: String, text: String, isTamil: Boolean) {
         }
         Spacer(modifier = Modifier.width(16.dp))
         Text(text = text, style = MaterialTheme.typography.bodyMedium, color = CosmicAppTheme.colors.textPrimary)
+    }
+}
+
+@Composable
+fun CalendarQuickLinks(isTamil: Boolean, onAction: (String) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        val items = listOf(
+            Triple("today_cal", if (isTamil) "இன்றைய காலண்டர்" else "Today Calendar", androidx.compose.material.icons.Icons.Rounded.Today),
+            Triple("month_cal", if (isTamil) "மாதாந்திர காலண்டர்" else "Monthly Calendar", androidx.compose.material.icons.Icons.Rounded.CalendarMonth),
+            Triple("muhurtham", if (isTamil) "சுபமுகூர்த்தம்" else "Subha Muhurtham", androidx.compose.material.icons.Icons.Rounded.Spa)
+        )
+        items.forEach { (action, label, icon) ->
+            Card(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { onAction(action) },
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFDE7)),
+                border = BorderStroke(1.dp, Color(0xFFFDBA16).copy(alpha = 0.5f))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(10.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = label,
+                        tint = Color(0xFFE1353C),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp),
+                        color = Color(0xFF2C251D),
+                        textAlign = TextAlign.Center,
+                        maxLines = 1
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PromoServiceGrid(isTamil: Boolean, onAction: (String) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        val promos = listOf(
+            Triple("matrimony", if (isTamil) "மேட்ரிமோனி" else "Matrimony", androidx.compose.material.icons.Icons.Rounded.Favorite),
+            Triple("puja", if (isTamil) "பூஜா புக்கிங்" else "Puja Booking", androidx.compose.material.icons.Icons.Rounded.Spa),
+            Triple("shop", if (isTamil) "அஸ்ட்ரோ ஷாப்" else "Astro Shop", androidx.compose.material.icons.Icons.Rounded.ShoppingBag)
+        )
+        promos.forEach { (action, label, icon) ->
+            Card(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { onAction(action) },
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8F8)),
+                border = BorderStroke(1.dp, Color(0xFFE1353C).copy(alpha = 0.2f))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = label,
+                        tint = Color(0xFFE1353C),
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
+                        color = Color(0xFF2C251D),
+                        textAlign = TextAlign.Center,
+                        maxLines = 1
+                    )
+                }
+            }
+        }
     }
 }

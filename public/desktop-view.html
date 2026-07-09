@@ -282,14 +282,14 @@
     }
 
     .app-header {
-      background: rgba(20, 15, 10, 0.9);
+      background: #FFFFFF;
       backdrop-filter: blur(10px);
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid var(--border-soft);
       padding: 15px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      box-shadow: none;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
       color: var(--primary);
     }
 
@@ -1503,7 +1503,7 @@
 
     .download-header-btn:hover {
       background: var(--primary);
-      color: #000 !important;
+      color: #FFFFFF !important;
     }
 
     .download-header-btn i {
@@ -1647,7 +1647,7 @@
         <i class="fas fa-download"></i> App
       </a>
       <button id="staticLoginBtn" onclick="window.location.reload()"
-        style="background:var(--primary); color:#000; border:none; padding:8px 18px; border-radius:6px; cursor:pointer; font-weight:700; font-size:0.85rem;">Login</button>
+        style="background:var(--primary); color:white; border:none; padding:8px 18px; border-radius:6px; cursor:pointer; font-weight:700; font-size:0.85rem;">Login</button>
       <button id="staticLogoutBtn" onclick="clearSession()"
         style="background:rgba(239,68,68,0.1); color:#EF4444; border:1px solid rgba(239,68,68,0.3); padding:8px 18px; border-radius:6px; cursor:pointer; font-weight:700; font-size:0.85rem; display:none;">Logout</button>
       <script>
@@ -1955,7 +1955,7 @@
 
           <!-- Login Button (Visible when Guest) -->
           <button id="headerLoginBtn" onclick="showLogin()"
-            style="background:var(--primary); color:black; border:none; padding:8px 20px; border-radius:6px; cursor:pointer; font-weight:700; font-size:0.85rem; display:none; transition:all 0.2s;">Login
+            style="background:var(--primary); color:white; border:none; padding:8px 20px; border-radius:6px; cursor:pointer; font-weight:700; font-size:0.85rem; display:none; transition:all 0.2s;">Login
             / Register</button>
 
           <div id="headerReferBtn" class="refer-icon-btn" onclick="showReferralModal()" title="Refer & Earn"
@@ -2022,10 +2022,21 @@
             <div class="hero-visual">
               <div class="zodiac-circle">
                 <div class="zodiac-icon" style="top:0; left:50%; transform:translate(-50%, -50%)">♈</div>
+                <div class="zodiac-icon" style="top:7%; right:25%; transform:translate(50%, -50%)">♉</div>
+                <div class="zodiac-icon" style="top:25%; right:7%; transform:translate(50%, -50%)">♊</div>
                 <div class="zodiac-icon" style="top:50%; right:0; transform:translate(50%, -50%)">♋</div>
+                <div class="zodiac-icon" style="bottom:25%; right:7%; transform:translate(50%, 50%)">♌</div>
+                <div class="zodiac-icon" style="bottom:7%; right:25%; transform:translate(50%, 50%)">♍</div>
                 <div class="zodiac-icon" style="bottom:0; left:50%; transform:translate(-50%, 50%)">♎</div>
+                <div class="zodiac-icon" style="bottom:7%; left:25%; transform:translate(-50%, 50%)">♏</div>
+                <div class="zodiac-icon" style="bottom:25%; left:7%; transform:translate(-50%, 50%)">♐</div>
                 <div class="zodiac-icon" style="top:50%; left:0; transform:translate(-50%, -50%)">♑</div>
+                <div class="zodiac-icon" style="top:25%; left:7%; transform:translate(-50%, -50%)">♒</div>
+                <div class="zodiac-icon" style="top:7%; left:25%; transform:translate(-50%, -50%)">♓</div>
                 <div class="center-glow"></div>
+              </div>
+              <div class="astrologer-overlay-image" style="position: absolute; display: flex; align-items: center; justify-content: center; z-index: 5;">
+                <img src="images/ganesha.png" style="width: 170px; height: 170px; border-radius: 50%; box-shadow: 0 10px 30px rgba(225,53,60,0.15); border: 4px solid var(--accent); background: white; object-fit: contain;">
               </div>
             </div>
           </div>
@@ -2189,7 +2200,7 @@
               <!-- Chat with Astro -->
               <div class="service-item-card" onclick="selectQuickService('chat')">
                 <div class="service-icon-wrapper">
-                  <img src="https://cdn-icons-png.flaticon.com/512/134/134914.png" alt="Chat">
+                  <i class="fas fa-comment-dots"></i>
                 </div>
                 <span>Chat with Astro</span>
               </div>
@@ -2197,7 +2208,7 @@
               <!-- Call with Astro -->
               <div class="service-item-card" onclick="selectQuickService('call')">
                 <div class="service-icon-wrapper">
-                  <img src="https://cdn-icons-png.flaticon.com/512/724/724664.png" alt="Call">
+                  <i class="fas fa-phone-alt"></i>
                 </div>
                 <span>Call with Astro</span>
               </div>
@@ -2205,7 +2216,7 @@
               <!-- Video with Astro -->
               <div class="service-item-card" onclick="selectQuickService('video')">
                 <div class="service-icon-wrapper">
-                  <img src="https://cdn-icons-png.flaticon.com/512/1716/1716282.png" alt="Video">
+                  <i class="fas fa-video"></i>
                 </div>
                 <span>Video with Astro</span>
               </div>
@@ -2213,7 +2224,7 @@
               <!-- All Services -->
               <div class="service-item-card" onclick="selectQuickService('all')">
                 <div class="service-icon-wrapper">
-                  <img src="https://cdn-icons-png.flaticon.com/512/570/570170.png" alt="All">
+                  <i class="fas fa-th-large"></i>
                 </div>
                 <span>All Services</span>
               </div>
@@ -2304,6 +2315,11 @@
               object-fit: contain;
             }
 
+            .service-icon-wrapper i {
+              font-size: 1.3rem;
+              color: var(--primary);
+            }
+
             .service-item-card span {
               font-size: 0.85rem;
               font-weight: 600;
@@ -2318,24 +2334,24 @@
           <div id="dailyHoroscopeSection" class="mb-16">
             <!-- Section Header -->
             <div class="flex items-center gap-4 mb-8">
-              <div class="w-1 h-8 bg-gradient-to-b from-cosmic-green to-milk-green rounded-full"></div>
-              <h2 class="font-poppins text-2xl font-bold text-white tracking-tight">Daily Insights</h2>
-              <div class="flex-1 h-px bg-gradient-to-r from-cosmic-green/30 to-transparent"></div>
+              <div class="w-1 h-8 bg-gradient-to-b from-orange-500 to-yellow-500 rounded-full"></div>
+              <h2 class="font-poppins text-2xl font-bold text-gray-800 tracking-tight">Daily Insights</h2>
+              <div class="flex-1 h-px bg-gradient-to-r from-orange-500/30 to-transparent"></div>
             </div>
 
             <!-- Horoscope Container -->
             <div
-              class="bg-cosmic-card/80 backdrop-blur-md rounded-2xl border border-white/5 p-6 lg:p-8 shadow-2xl shadow-black/30">
+              class="bg-white/95 backdrop-blur-md rounded-2xl border border-orange-200/60 p-6 lg:p-8 shadow-xl">
 
               <!-- Header Row -->
               <div class="flex items-center justify-between mb-6">
                 <div class="flex items-center gap-4">
-                  <span id="activeSignIcon" class="text-4xl text-cosmic-green drop-shadow-lg animate-bounce"
+                  <span id="activeSignIcon" class="text-4xl text-orange-500 drop-shadow-md animate-bounce"
                     style="animation-duration: 3s;">♈</span>
-                  <h3 id="activeSignName" class="font-playfair text-3xl font-bold text-white tracking-tight">மேஷம்</h3>
+                  <h3 id="activeSignName" class="font-playfair text-3xl font-bold text-gray-800 tracking-tight">மேஷம்</h3>
                 </div>
                 <span id="horoscopeDate"
-                  class="font-inter text-sm font-medium text-cosmic-muted bg-white/5 border border-white/10 px-4 py-1.5 rounded-full">Today</span>
+                  class="font-inter text-sm font-medium text-gray-600 bg-orange-50 border border-orange-100 px-4 py-1.5 rounded-full">Today</span>
               </div>
 
               <!-- Zodiac Scroller -->
@@ -2344,12 +2360,12 @@
               </div>
 
               <!-- Horoscope Content Card -->
-              <div class="bg-black/20 rounded-xl p-6 relative">
+              <div class="bg-[#FFFDF4] border border-orange-100 rounded-xl p-6 relative">
                 <div id="horoscopeLoading" class="loading-spinner hidden">
-                  <i class="fas fa-circle-notch fa-spin text-cosmic-green text-2xl"></i>
+                  <i class="fas fa-circle-notch fa-spin text-orange-500 text-2xl"></i>
                 </div>
                 <div class="horoscope-content-box" id="horoscopeContent">
-                  <div id="horoscopeText" class="font-inter text-base leading-relaxed text-gray-200"></div>
+                  <div id="horoscopeText" class="font-inter text-base leading-relaxed text-gray-800"></div>
                 </div>
               </div>
             </div>
@@ -2496,7 +2512,7 @@
             </div>
             <div style="display:flex; justify-content:center; gap:10px;">
               <button
-                style="background:var(--text-main); color:#000; border:none; padding:12px 30px; border-radius:30px; font-weight:bold; font-size:1rem; cursor:pointer; box-shadow:0 10px 20px rgba(0,0,0,0.2); transition: all 0.3s ease;"
+                style="background:linear-gradient(135deg, #FDBA16 0%, #E1353C 100%); color:#FFFFFF; border:none; padding:12px 30px; border-radius:30px; font-weight:bold; font-size:1rem; cursor:pointer; box-shadow:0 10px 20px rgba(225,53,60,0.2); transition: all 0.3s ease;"
                 onclick="initiateRecharge()">
                 <i class="fas fa-plus-circle"></i> Add Money
               </button>
@@ -2823,11 +2839,11 @@
         gap: 15px;
         padding: 5px 12px;
         border-radius: 6px;
-        color: var(--text-muted);
+        color: var(--text-main);
         text-decoration: none;
         transition: all 0.2s ease;
         cursor: pointer;
-        font-weight: 500;
+        font-weight: 600;
         font-size: 0.9rem;
         border: 1px solid transparent;
         letter-spacing: 0.3px;
@@ -2835,7 +2851,7 @@
 
       .desktop-header-nav .nav-item:hover {
         color: var(--primary);
-        background: rgba(244, 180, 0, 0.05);
+        background: rgba(225, 53, 60, 0.05);
       }
 
       .desktop-header-nav .nav-item.active {
@@ -9370,32 +9386,46 @@
 
     .zodiac-item {
       flex-shrink: 0;
-      width: 60px;
-      height: 60px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      gap: 5px;
+    }
+
+    .zodiac-icon {
+      width: 55px;
+      height: 55px;
       border-radius: 50%;
-      background: rgba(165, 139, 116, 0.05);
-      border: 1px solid var(--border);
+      background: rgba(225, 53, 60, 0.05);
+      border: 1px solid var(--border-soft);
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 1.5rem;
-      cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      color: var(--text-muted);
+      color: var(--primary);
+      transition: all 0.2s;
     }
 
-    .zodiac-item:hover {
-      border-color: var(--milk-green);
-      color: var(--milk-green);
-      background: rgba(0, 255, 136, 0.05);
+    .zodiac-item:hover .zodiac-icon {
+      border-color: var(--primary);
+      background: rgba(225, 53, 60, 0.1);
+      transform: translateY(-2px);
     }
 
-    .zodiac-item.active {
-      background: var(--milk-green);
-      color: #000;
-      border-color: var(--milk-green);
-      box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
+    .zodiac-item.active .zodiac-icon {
+      background: var(--primary);
+      color: #FFFFFF;
+      border-color: var(--primary);
+      box-shadow: 0 0 15px rgba(225, 53, 60, 0.3);
       transform: scale(1.05);
+    }
+
+    .zodiac-name {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-main);
     }
 
     .horoscope-card-glass {
@@ -9447,12 +9477,11 @@
       box-shadow: 0 4px 15px rgba(0, 255, 136, 0.2);
     }
 
-    /* Premium Footer */
     .premium-footer {
       margin-top: 50px;
-      padding: 40px 0 20px;
-      border-top: 1px solid var(--border);
-      background: rgba(10, 8, 5, 0.4);
+      padding: 50px 25px 30px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      background: #090D1A;
     }
 
     .footer-content {
@@ -9501,7 +9530,7 @@
 
     .social-links a:hover {
       background: var(--primary);
-      color: #000;
+      color: #FFFFFF;
       transform: translateY(-3px);
     }
 

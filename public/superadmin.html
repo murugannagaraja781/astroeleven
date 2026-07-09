@@ -874,6 +874,48 @@
                     .wf-healthy { border-left-color: #10B981 !important; background: rgba(16,185,129,0.02); }
                     .wf-warning { border-left-color: #FFB300 !important; background: rgba(245,158,11,0.02); }
                     .wf-error { border-left-color: #EF4444 !important; background: rgba(239,68,68,0.02); }
+
+                    /* Collapsible Admin Sidebar Categories */
+                    .nav-category-header {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        padding: 12px 24px;
+                        color: var(--primary);
+                        font-weight: 700;
+                        font-size: 0.72rem;
+                        text-transform: uppercase;
+                        letter-spacing: 0.08em;
+                        cursor: pointer;
+                        border-bottom: 1px solid var(--border-soft);
+                        user-select: none;
+                        transition: background 0.2s ease;
+                        margin-top: 10px;
+                    }
+                    .nav-category-header:hover {
+                        background: rgba(255, 204, 0, 0.03);
+                    }
+                    .nav-category-header i.toggle-icon {
+                        font-size: 0.65rem;
+                        transition: transform 0.2s ease;
+                        color: var(--text-muted);
+                    }
+                    .nav-category-header.open i.toggle-icon {
+                        transform: rotate(90deg);
+                    }
+                    .nav-subcategory-list {
+                        max-height: 0;
+                        overflow: hidden;
+                        transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                        background: rgba(0, 0, 0, 0.15);
+                    }
+                    .nav-category-header.open + .nav-subcategory-list {
+                        max-height: 500px;
+                    }
+                    .admin-nav-item {
+                        padding: 10px 32px !important;
+                        border-left-width: 3px !important;
+                    }
                 </style>
             </div>
 
@@ -944,6 +986,112 @@
                             <button id="historyPrevBtn" onclick="changeHistoryPage(-1)" class="btn-admin" style="width:auto; padding:8px 15px; margin:0;" disabled>Prev</button>
                             <button id="historyNextBtn" onclick="changeHistoryPage(1)" class="btn-admin" style="width:auto; padding:8px 15px; margin:0;" disabled>Next</button>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Referrals -->
+            <div id="admin-sect-referrals" class="admin-tab-section">
+                <div class="dashboard-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h2 class="dashboard-title" style="margin:0;"><i class="fas fa-gift" style="color:#FF7F00;"></i> Astrologer Puja & Product Referrals</h2>
+                    <button class="btn-admin" onclick="loadReferralStats()"><i class="fas fa-sync"></i> Refresh Report</button>
+                </div>
+
+                <div class="grid-3" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:15px; margin-bottom:20px;">
+                    <div class="admin-card stats-card" style="padding:20px; display:flex; align-items:center; gap:15px; background:var(--bg-glass-heavy); border:1px solid var(--border-soft); border-radius:12px;">
+                        <div style="background:rgba(235,179,8,0.15); width:50px; height:50px; border-radius:10px; display:flex; justify-content:center; align-items:center; font-size:1.5rem; color:#EAB308;">
+                            <i class="fas fa-hands-praying"></i>
+                        </div>
+                        <div>
+                            <h4 style="margin:0; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted);">Referred Pujas</h4>
+                            <h3 id="refTotalPujas" style="margin:5px 0 0 0; font-size:1.5rem; font-weight:bold; color:var(--text-main);">0</h3>
+                        </div>
+                    </div>
+                    <div class="admin-card stats-card" style="padding:20px; display:flex; align-items:center; gap:15px; background:var(--bg-glass-heavy); border:1px solid var(--border-soft); border-radius:12px;">
+                        <div style="background:rgba(225,53,60,0.15); width:50px; height:50px; border-radius:10px; display:flex; justify-content:center; align-items:center; font-size:1.5rem; color:var(--primary);">
+                            <i class="fas fa-gem"></i>
+                        </div>
+                        <div>
+                            <h4 style="margin:0; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted);">Referred Products</h4>
+                            <h3 id="refTotalProducts" style="margin:5px 0 0 0; font-size:1.5rem; font-weight:bold; color:var(--text-main);">0</h3>
+                        </div>
+                    </div>
+                    <div class="admin-card stats-card" style="padding:20px; display:flex; align-items:center; gap:15px; background:var(--bg-glass-heavy); border:1px solid var(--border-soft); border-radius:12px;">
+                        <div style="background:rgba(16,185,129,0.15); width:50px; height:50px; border-radius:10px; display:flex; justify-content:center; align-items:center; font-size:1.5rem; color:#10B981;">
+                            <i class="fas fa-wallet"></i>
+                        </div>
+                        <div>
+                            <h4 style="margin:0; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted);">Total Commission Paid</h4>
+                            <h3 id="refTotalCommission" style="margin:5px 0 0 0; font-size:1.5rem; font-weight:bold; color:var(--text-main);">₹0</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Astrologers referral codes config -->
+                <div class="admin-card" style="margin-bottom:20px; padding:20px; background:var(--bg-glass-heavy); border:1px solid var(--border-soft); border-radius:12px;">
+                    <h3 style="margin:0 0 15px 0; font-size:1.1rem; color:var(--primary); font-family:var(--font-heading);">
+                        <i class="fas fa-user-tag"></i> Astrologer Referral Codes & Stats
+                    </h3>
+                    <div style="overflow-x:auto;">
+                        <table style="width:100%; border-collapse:collapse; color:var(--text-main);">
+                            <thead>
+                                <tr style="background:rgba(255,255,255,0.05); text-align:left;">
+                                    <th style="padding:12px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted);">Astro ID</th>
+                                    <th style="padding:12px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted);">Name</th>
+                                    <th style="padding:12px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted);">Referral Code</th>
+                                    <th style="padding:12px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted); text-align:center;">Pujas Referred</th>
+                                    <th style="padding:12px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted); text-align:center;">Products Referred</th>
+                                    <th style="padding:12px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted); text-align:right;">Commission Earned</th>
+                                    <th style="padding:12px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted); text-align:center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="refAstrosTableBody">
+                                <!-- Loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Shop Orders Log -->
+                <div class="admin-card" style="padding:20px; background:var(--bg-glass-heavy); border:1px solid var(--border-soft); border-radius:12px;">
+                    <h3 style="margin:0 0 15px 0; font-size:1.1rem; color:var(--primary); font-family:var(--font-heading);">
+                        <i class="fas fa-list-ol"></i> Shop Order Transactions
+                    </h3>
+                    <div style="overflow-x:auto;">
+                        <table style="width:100%; border-collapse:collapse; color:var(--text-main);">
+                            <thead>
+                                <tr style="background:rgba(255,255,255,0.05); text-align:left;">
+                                    <th style="padding:12px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted);">Order ID</th>
+                                    <th style="padding:12px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted);">User ID (Phone)</th>
+                                    <th style="padding:12px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted);">Item Type</th>
+                                    <th style="padding:12px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted);">Item Name</th>
+                                    <th style="padding:12px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted); text-align:right;">Price</th>
+                                    <th style="padding:12px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted); text-align:center;">Referral Code</th>
+                                    <th style="padding:12px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted); text-align:center;">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="refOrdersTableBody">
+                                <!-- Loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Rasi Icons Editor -->
+            <div id="admin-sect-rasi-icons" class="admin-tab-section">
+                <div class="dashboard-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h2 class="dashboard-title" style="margin:0;"><i class="fas fa-star" style="color:#FDBA16;"></i> Customize Rasi Icons</h2>
+                    <button class="cosmic-btn" onclick="saveAllRasiIcons()"><i class="fas fa-save"></i> Save All Icons</button>
+                </div>
+
+                <div class="admin-card" style="padding:20px; background:var(--bg-glass-heavy); border:1px solid var(--border-soft); border-radius:12px;">
+                    <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:20px;">
+                        Configure custom icon graphic images for the 12 Rasi signs displayed inside the Android App. Upload PNG/SVG files with transparent backgrounds (recommended size: 120x120px). If left empty, default native app drawables will be used.
+                    </p>
+
+                    <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:15px;" id="rasiIconsListContainer">
+                        <!-- Loaded dynamically via JavaScript -->
                     </div>
                 </div>
             </div>
@@ -1141,52 +1289,77 @@
 
 
         <!-- Navigation -->
-        <div class="admin-nav">
-            <div class="admin-nav-item active" onclick="navAdmin('home', event)"><i
-                    class="fas fa-home"></i><span>Dash</span>
+        <div class="admin-nav" style="padding-top: 20px;">
+            <!-- Category: Dashboard -->
+            <div class="nav-category-header open" onclick="toggleNavCategory(this)">
+                <span>Dashboard & Logs</span>
+                <i class="fas fa-chevron-right toggle-icon"></i>
             </div>
-            <!-- <div class="admin-nav-item" onclick="navAdmin('earnings', event)"><i
-                    class="fas fa-chart-pie"></i><span>Earnings</span></div> -->
-            <div class="admin-nav-item" onclick="navAdmin('performance', event)"><i
-                    class="fas fa-medal" style="color:#FFD700;"></i><span>Performance</span></div>
-            <div class="admin-nav-item" onclick="navAdmin('payouts', event)"><i
-                    class="fas fa-user-astronaut"></i><span>Astros <small id="nav-count-astros" style="color:#EF4444; font-weight:bold;"></small></span></div>
-            <div class="admin-nav-item" onclick="navAdmin('pending', event)"><i
-                    class="fas fa-user-clock"></i><span>Pending <small id="nav-count-pending" style="color:#EF4444; font-weight:bold;"></small></span></div>
-            <div class="admin-nav-item" onclick="navAdmin('users', event)"><i
-                    class="fas fa-users"></i><span>Users <small id="nav-count-users" style="color:#EF4444; font-weight:bold;"></small></span></div>
-            <div class="admin-nav-item" onclick="navAdmin('add-astro', event)"><i
-                    class="fas fa-user-plus"></i><span>Add Astro</span></div>
-            <div class="admin-nav-item" onclick="navAdmin('slab', event)"><i
-                    class="fas fa-layer-group"></i><span>Slabs</span></div>
-            <div class="admin-nav-item" onclick="navAdmin('offers', event)"><i
-                    class="fas fa-bullhorn"></i><span>Offers</span></div>
-            <div class="admin-nav-item" onclick="navAdmin('refunds', event)"><i
-                    class="fas fa-undo"></i><span>Refund</span></div>
-            <div class="admin-nav-item" onclick="navAdmin('academy', event)"><i
-                    class="fas fa-graduation-cap"></i><span>Academy</span></div>
-            <div class="admin-nav-item" onclick="navAdmin('notifications', event)"><i
-                    class="fas fa-bell"></i><span>Notifs <small id="nav-count-notifs" style="color:#EF4444; font-weight:bold;"></small></span></div>
-            <div class="admin-nav-item" onclick="navAdmin('slider', event)"><i
-                    class="fas fa-images"></i><span>Slider</span></div>
-            <div class="admin-nav-item" onclick="navAdmin('services', event)"><i
-                    class="fas fa-th-large"></i><span>Services</span></div>
-            <div class="admin-nav-item" onclick="navAdmin('rituals', event)"><i
-                    class="fas fa-magic"></i><span>Rituals</span></div>
-            <div class="admin-nav-item" onclick="window.open('https://astroeleven.in/wp-login.php?loggedout=true&wp_lang=en_US', '_blank')"><i
-                    class="fas fa-shopping-bag" style="color:#EAB308;"></i><span>Products</span></div>
-            <div class="admin-nav-item" onclick="navAdmin('feedback', event)"><i
-                    class="fas fa-comment-alt"></i><span>Feedback</span></div>
-            <div class="admin-nav-item" onclick="navAdmin('settings', event)"><i
-                    class="fas fa-cog"></i><span>Settings</span></div>
-            <div class="admin-nav-item" onclick="navAdmin('smtp', event)"><i
-                    class="fas fa-envelope"></i><span>SMTP Config</span></div>
-            <div class="admin-nav-item" onclick="navAdmin('workflow', event)"><i
-                    class="fas fa-microchip" style="color:#10B981;"></i><span>Workflow</span></div>
-            <div class="admin-nav-item" onclick="navAdmin('history', event)"><i
-                    class="fas fa-history" style="color:#FFB300;"></i><span>History</span></div>
-            <div class="admin-nav-item" onclick="logout()"
-                style="margin-top: auto; color: #EF4444; border-top: 1px solid #eee;">
+            <div class="nav-subcategory-list">
+                <div class="admin-nav-item active" onclick="navAdmin('home', event)"><i class="fas fa-home"></i><span>Dashboard</span></div>
+                <div class="admin-nav-item" onclick="navAdmin('performance', event)"><i class="fas fa-medal" style="color:#FFD700;"></i><span>Performance</span></div>
+                <div class="admin-nav-item" onclick="navAdmin('history', event)"><i class="fas fa-history" style="color:#FFB300;"></i><span>History Logs</span></div>
+                <div class="admin-nav-item" onclick="navAdmin('feedback', event)"><i class="fas fa-comment-alt"></i><span>Feedback</span></div>
+            </div>
+
+            <!-- Category: Astrologers -->
+            <div class="nav-category-header" onclick="toggleNavCategory(this)">
+                <span>Astrologers</span>
+                <i class="fas fa-chevron-right toggle-icon"></i>
+            </div>
+            <div class="nav-subcategory-list">
+                <div class="admin-nav-item" onclick="navAdmin('payouts', event)"><i class="fas fa-user-astronaut"></i><span>Astros <small id="nav-count-astros" style="color:#EF4444; font-weight:bold;"></small></span></div>
+                <div class="admin-nav-item" onclick="navAdmin('pending', event)"><i class="fas fa-user-clock"></i><span>Pending <small id="nav-count-pending" style="color:#EF4444; font-weight:bold;"></small></span></div>
+                <div class="admin-nav-item" onclick="navAdmin('add-astro', event)"><i class="fas fa-user-plus"></i><span>Add Astro</span></div>
+                <div class="admin-nav-item" onclick="navAdmin('slab', event)"><i class="fas fa-layer-group"></i><span>Slab Rates</span></div>
+            </div>
+
+            <!-- Category: Users & Notifs -->
+            <div class="nav-category-header" onclick="toggleNavCategory(this)">
+                <span>Users & Notifications</span>
+                <i class="fas fa-chevron-right toggle-icon"></i>
+            </div>
+            <div class="nav-subcategory-list">
+                <div class="admin-nav-item" onclick="navAdmin('users', event)"><i class="fas fa-users"></i><span>Users <small id="nav-count-users" style="color:#EF4444; font-weight:bold;"></small></span></div>
+                <div class="admin-nav-item" onclick="navAdmin('notifications', event)"><i class="fas fa-bell"></i><span>Notifications <small id="nav-count-notifs" style="color:#EF4444; font-weight:bold;"></small></span></div>
+            </div>
+
+            <!-- Category: Content Layouts -->
+            <div class="nav-category-header" onclick="toggleNavCategory(this)">
+                <span>App Layouts</span>
+                <i class="fas fa-chevron-right toggle-icon"></i>
+            </div>
+            <div class="nav-subcategory-list">
+                <div class="admin-nav-item" onclick="navAdmin('slider', event)"><i class="fas fa-images"></i><span>Slider Banners</span></div>
+                <div class="admin-nav-item" onclick="navAdmin('services', event)"><i class="fas fa-th-large"></i><span>Services Icons</span></div>
+                <div class="admin-nav-item" onclick="navAdmin('rituals', event)"><i class="fas fa-magic"></i><span>Rituals / Pujas</span></div>
+                <div class="admin-nav-item" onclick="navAdmin('rasi-icons', event)"><i class="fas fa-star" style="color:#FDBA16;"></i><span>Rasi Icons</span></div>
+                <div class="admin-nav-item" onclick="navAdmin('academy', event)"><i class="fas fa-graduation-cap"></i><span>Academy Videos</span></div>
+            </div>
+
+            <!-- Category: Shop & Referrals -->
+            <div class="nav-category-header" onclick="toggleNavCategory(this)">
+                <span>E-Commerce</span>
+                <i class="fas fa-chevron-right toggle-icon"></i>
+            </div>
+            <div class="nav-subcategory-list">
+                <div class="admin-nav-item" onclick="navAdmin('referrals', event)"><i class="fas fa-gift" style="color:#FF7F00;"></i><span>Referrals</span></div>
+                <div class="admin-nav-item" onclick="window.open('https://astroeleven.in/wp-login.php?loggedout=true&wp_lang=en_US', '_blank')"><i class="fas fa-shopping-bag" style="color:#EAB308;"></i><span>Products Store</span></div>
+            </div>
+
+            <!-- Category: System Configuration -->
+            <div class="nav-category-header" onclick="toggleNavCategory(this)">
+                <span>System Config</span>
+                <i class="fas fa-chevron-right toggle-icon"></i>
+            </div>
+            <div class="nav-subcategory-list">
+                <div class="admin-nav-item" onclick="navAdmin('settings', event)"><i class="fas fa-cog"></i><span>Settings</span></div>
+                <div class="admin-nav-item" onclick="navAdmin('smtp', event)"><i class="fas fa-envelope"></i><span>SMTP Config</span></div>
+                <div class="admin-nav-item" onclick="navAdmin('workflow', event)"><i class="fas fa-microchip" style="color:#10B981;"></i><span>Workflow</span></div>
+                <div class="admin-nav-item" onclick="navAdmin('refunds', event)"><i class="fas fa-undo"></i><span>Refunds</span></div>
+            </div>
+
+            <div class="admin-nav-item" onclick="logout()" style="margin-top: 20px; color: #EF4444; border-top: 1px solid rgba(255,255,255,0.1); padding: 14px 24px !important;">
                 <i class="fas fa-sign-out-alt"></i><span>Logout</span>
             </div>
         </div>
@@ -1487,6 +1660,8 @@
             if (id === 'workflow') fetchWorkflowStatus();
             if (id === 'feedback') fetchFeedback();
             if (id === 'history') loadSessionsHistory();
+            if (id === 'referrals') loadReferralStats();
+            if (id === 'rasi-icons') loadRasiIconsConfig();
 
             document.querySelectorAll('.admin-nav-item').forEach(i => i.classList.remove('active'));
             if (ev) ev.currentTarget.classList.add('active');
@@ -3111,7 +3286,174 @@
                     }
                 });
             }
+        };
 
+        window.loadReferralStats = async () => {
+            try {
+                const res = await fetch('/api/admin/referrals');
+                const json = await res.json();
+                if (json.success) {
+                    let totalPujas = 0;
+                    let totalProducts = 0;
+                    let totalComm = 0;
+
+                    json.astrologers.forEach(ast => {
+                        totalPujas += (ast.referredPujaCount || 0);
+                        totalProducts += (ast.referredProductCount || 0);
+                        totalComm += (ast.referredCommission || 0);
+                    });
+
+                    document.getElementById('refTotalPujas').innerText = totalPujas;
+                    document.getElementById('refTotalProducts').innerText = totalProducts;
+                    document.getElementById('refTotalCommission').innerText = '₹' + totalComm;
+
+                    const astBody = document.getElementById('refAstrosTableBody');
+                    astBody.innerHTML = json.astrologers.map(ast => `
+                        <tr style="border-bottom:1px solid var(--border-soft);">
+                            <td style="padding:12px; font-size:0.9rem;">${ast.userId}</td>
+                            <td style="padding:12px; font-size:0.9rem; font-weight:bold;">${ast.name}</td>
+                            <td style="padding:12px;">
+                                <input type="text" id="code-${ast.userId}" value="${ast.referralCode || ''}" class="app-input" style="width:110px; margin:0; padding:4px 8px; font-size:0.85rem; font-weight:bold; color:var(--primary); text-transform:uppercase; background:rgba(255,255,255,0.05); border:1px solid var(--border-soft);">
+                            </td>
+                            <td style="padding:12px; text-align:center; font-size:0.9rem;">${ast.referredPujaCount || 0}</td>
+                            <td style="padding:12px; text-align:center; font-size:0.9rem;">${ast.referredProductCount || 0}</td>
+                            <td style="padding:12px; text-align:right; font-size:0.9rem; font-weight:bold; color:#10B981;">₹${ast.referredCommission || 0}</td>
+                            <td style="padding:12px; text-align:center;">
+                                <button class="btn-admin" onclick="updateAstroReferralCode('${ast.userId}')" style="padding:4px 10px; font-size:0.75rem; width:auto; margin:0;">Save</button>
+                            </td>
+                        </tr>
+                    `).join('');
+
+                    const ordBody = document.getElementById('refOrdersTableBody');
+                    if (json.orders.length === 0) {
+                        ordBody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--text-muted);">No shop orders recorded yet.</td></tr>`;
+                    } else {
+                        ordBody.innerHTML = json.orders.map(ord => `
+                            <tr style="border-bottom:1px solid var(--border-soft);">
+                                <td style="padding:12px; font-size:0.85rem;">${ord.orderId}</td>
+                                <td style="padding:12px; font-size:0.85rem;">${ord.userId}</td>
+                                <td style="padding:12px; font-size:0.85rem; text-transform:capitalize;">${ord.itemType}</td>
+                                <td style="padding:12px; font-size:0.85rem; font-weight:medium;">${ord.itemName}</td>
+                                <td style="padding:12px; text-align:right; font-size:0.85rem; font-weight:bold; color:var(--primary);">₹${ord.price}</td>
+                                <td style="padding:12px; text-align:center; font-size:0.85rem; font-weight:bold; color:#EAB308;">${ord.astrologerReferralCode || '-'}</td>
+                                <td style="padding:12px; text-align:center; font-size:0.8rem; color:var(--text-muted);">${new Date(ord.bookingDate).toLocaleDateString()}</td>
+                            </tr>
+                        `).join('');
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to load referral stats", err);
+            }
+        };
+
+        window.updateAstroReferralCode = async (userId) => {
+            const newCode = document.getElementById(`code-${userId}`).value.trim();
+            if (!newCode) {
+                alert("Referral code cannot be empty!");
+                return;
+            }
+            try {
+                const res = await fetch('/api/admin/update-referral-code', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ userId, newCode })
+                });
+                const json = await res.json();
+                if (json.success) {
+                    alert("Referral code updated successfully!");
+                    loadReferralStats();
+                } else {
+                    alert("Error: " + json.message);
+                }
+            } catch (err) {
+                alert("Failed to update referral code");
+            }
+        };
+
+        window.toggleNavCategory = (el) => {
+            el.classList.toggle('open');
+        };
+
+        const RASIS = [
+            "aries", "taurus", "gemini", "cancer", "leo", "virgo", 
+            "libra", "scorpio", "sagittarius", "capricorn", "aquarius", "pisces"
+        ];
+
+        window.loadRasiIconsConfig = async () => {
+            const container = document.getElementById('rasiIconsListContainer');
+            container.innerHTML = '<div class="loader"></div>';
+            try {
+                const res = await fetch('/api/admin/rasi-icons');
+                const json = await res.json();
+                if (json.success) {
+                    const icons = json.icons || {};
+                    container.innerHTML = RASIS.map(rasi => {
+                        const val = icons[rasi] || '';
+                        return `
+                            <div class="admin-card" style="padding:15px; display:flex; flex-direction:column; gap:10px; background:rgba(255,255,255,0.02); border:1px solid var(--border-soft); border-radius:10px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <h4 style="margin:0; text-transform:capitalize; font-weight:bold; color:var(--primary);">${rasi}</h4>
+                                    <div id="preview-${rasi}" style="width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.05); display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                                        ${val ? `<img src="${val}" style="width:24px; height:24px; object-fit:contain;">` : `<i class="fas fa-image" style="color:var(--text-dim); font-size:0.9rem;"></i>`}
+                                    </div>
+                                </div>
+                                <div style="display:flex; gap:6px;">
+                                    <input type="text" id="icon-url-${rasi}" value="${val}" class="app-input rasi-icon-input" data-rasi="${rasi}" placeholder="Image URL" style="margin:0; flex:1; font-size:0.8rem; padding:6px 10px; background:rgba(255,255,255,0.05); border:1px solid var(--border-soft);">
+                                    <input type="file" id="file-${rasi}" style="display:none;" onchange="uploadRasiIcon(this, '${rasi}')">
+                                    <button class="btn-admin" onclick="document.getElementById('file-${rasi}').click()" style="padding:6px 10px; font-size:0.75rem; width:auto; margin:0;"><i class="fas fa-upload"></i></button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            } catch (err) {
+                console.error("Failed to load rasi icons", err);
+                container.innerHTML = '<div style="color:#EF4444; padding:15px;">Failed to load rasi icons config.</div>';
+            }
+        };
+
+        window.uploadRasiIcon = async (input, rasiName) => {
+            if (!input.files || input.files.length === 0) return;
+            const file = input.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+            try {
+                const res = await fetch('/upload', { method: 'POST', body: formData }).then(r => r.json());
+                if (res.ok) {
+                    document.getElementById(`icon-url-${rasiName}`).value = res.url;
+                    document.getElementById(`preview-${rasiName}`).innerHTML = `<img src="${res.url}" style="width:24px; height:24px; object-fit:contain;">`;
+                    alert(`${rasiName.toUpperCase()} icon uploaded! Click Save All Icons to save changes.`);
+                } else {
+                    alert('Upload failed');
+                }
+            } catch (e) {
+                alert('Upload error');
+            }
+        };
+
+        window.saveAllRasiIcons = async () => {
+            const inputs = document.querySelectorAll('.rasi-icon-input');
+            const icons = {};
+            inputs.forEach(input => {
+                icons[input.getAttribute('data-rasi')] = input.value.trim();
+            });
+            try {
+                const res = await fetch('/api/admin/rasi-icons', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ icons })
+                });
+                const json = await res.json();
+                if (json.success) {
+                    alert("Rasi icons configuration saved successfully!");
+                    loadRasiIconsConfig();
+                } else {
+                    alert("Error: " + json.message);
+                }
+            } catch (err) {
+                alert("Failed to save Rasi icons");
+            }
+        };
 
         init();
     </script>

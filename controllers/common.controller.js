@@ -55,6 +55,7 @@ const GlobalSettings = require('../models/GlobalSettings');
 exports.getAppConfig = async (req, res) => {
     try {
         const shareLinkRecord = await GlobalSettings.findOne({ key: 'shareLink' });
+        const rasiIconsRecord = await GlobalSettings.findOne({ key: 'rasiIcons' });
         res.json({
             ok: true,
             config: {
@@ -63,7 +64,8 @@ exports.getAppConfig = async (req, res) => {
                 showBanner: process.env.SHOW_BANNER === 'true',
                 appBackgroundColor: process.env.APP_BG_COLOR || "#FEF9F3",
                 referralBannerTitle: process.env.REFERRAL_BANNER_TITLE || "Refer Your Friend & Earn Upto ₹5000",
-                referralBannerImage: process.env.REFERRAL_BANNER_IMAGE || ""
+                referralBannerImage: process.env.REFERRAL_BANNER_IMAGE || "",
+                rasiIcons: rasiIconsRecord ? rasiIconsRecord.value : {}
             }
         });
     } catch (error) {
