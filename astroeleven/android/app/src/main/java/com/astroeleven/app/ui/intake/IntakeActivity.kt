@@ -416,14 +416,7 @@ fun IntakeScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        Color(0xFF0F0B18), // Deep Space Midnight
-                        Color(0xFF07040B)  // Almost Black
-                    )
-                )
-            )
+            .background(CosmicAppTheme.backgroundBrush)
     ) {
         Scaffold(
             containerColor = Color.Transparent,
@@ -432,7 +425,7 @@ fun IntakeScreen(
                     title = { 
                         Text(
                             text = Localization.get("premium_consultation", isTamil), 
-                            color = Color.White, 
+                            color = CosmicAppTheme.colors.textPrimary, 
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 20.sp,
                             letterSpacing = 0.5.sp
@@ -440,7 +433,7 @@ fun IntakeScreen(
                     },
                     navigationIcon = {
                         IconButton(onClick = onClose) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = CosmicAppTheme.colors.textPrimary)
                         }
                     },
                     actions = {
@@ -448,13 +441,13 @@ fun IntakeScreen(
                             modifier = Modifier
                                 .padding(end = 12.dp)
                                 .clip(RoundedCornerShape(20.dp))
-                                .background(Color.White.copy(alpha = 0.1f))
+                                .background(CosmicAppTheme.colors.textPrimary.copy(alpha = 0.1f))
                                 .clickable { isTamil = !isTamil }
                                 .padding(horizontal = 14.dp, vertical = 6.dp)
                         ) {
                             Text(
                                 text = if (isTamil) "English" else "தமிழ்", 
-                                color = Color(0xFFFFB300), // Rich Gold
+                                color = CosmicAppTheme.colors.accent, // Rich Gold
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 13.sp
                             )
@@ -493,12 +486,12 @@ fun IntakeScreen(
                                     .size(60.dp)
                                     .clip(CircleShape)
                                     .border(2.dp, Color(0xFFFFB300), CircleShape)
-                                    .background(Color.White.copy(alpha = 0.1f)),
+                                    .background(CosmicAppTheme.colors.textPrimary.copy(alpha = 0.1f)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = partnerName.take(1).uppercase(),
-                                    color = Color(0xFFFFB300),
+                                    color = CosmicAppTheme.colors.accent,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 24.sp
                                 )
@@ -507,7 +500,7 @@ fun IntakeScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = partnerName,
-                                    color = Color.White,
+                                    color = CosmicAppTheme.colors.textPrimary,
                                     fontWeight = FontWeight.ExtraBold,
                                     fontSize = 18.sp
                                 )
@@ -522,7 +515,7 @@ fun IntakeScreen(
                                     Spacer(Modifier.width(6.dp))
                                     Text(
                                         text = if (isTamil) "இணைப்பில் உள்ளார்" else "Live Session",
-                                        color = Color.White.copy(alpha = 0.7f),
+                                        color = CosmicAppTheme.colors.textSecondary,
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Medium
                                     )
@@ -536,7 +529,7 @@ fun IntakeScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 val icon = if (callType == "chat") Icons.Default.AutoAwesome else Icons.Default.AutoFixHigh
-                                Icon(icon, "Type", tint = Color(0xFFFFB300), modifier = Modifier.size(20.dp))
+                                Icon(icon, "Type", tint = CosmicAppTheme.colors.accent, modifier = Modifier.size(20.dp))
                             }
                         }
                     }
@@ -546,9 +539,9 @@ fun IntakeScreen(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)), RoundedCornerShape(20.dp)),
+                        .border(BorderStroke(1.dp, CosmicAppTheme.colors.textSecondary.copy(alpha = 0.15f)), RoundedCornerShape(20.dp)),
                     shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF161122).copy(alpha = 0.8f))
+                    colors = CardDefaults.cardColors(containerColor = CosmicAppTheme.colors.cardBg)
                 ) {
                     Column(
                         modifier = Modifier.padding(20.dp),
@@ -558,27 +551,27 @@ fun IntakeScreen(
                             text = Localization.get("personal_details", isTamil),
                             fontSize = 16.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFFFFB300),
+                            color = CosmicAppTheme.colors.accent,
                             letterSpacing = 0.5.sp
                         )
 
                         val textFieldColors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White, 
-                            unfocusedTextColor = Color.White,
-                            disabledTextColor = Color.White,
-                            focusedBorderColor = Color(0xFFFFB300),
-                            unfocusedBorderColor = Color.White.copy(alpha = 0.12f),
-                            disabledBorderColor = Color.White.copy(alpha = 0.12f),
-                            cursorColor = Color(0xFFFFB300),
-                            focusedContainerColor = Color(0xFF1E1830),
-                            unfocusedContainerColor = Color(0xFF1E1830),
-                            disabledContainerColor = Color(0xFF1E1830)
+                            focusedTextColor = CosmicAppTheme.colors.textPrimary, 
+                            unfocusedTextColor = CosmicAppTheme.colors.textPrimary,
+                            disabledTextColor = CosmicAppTheme.colors.textSecondary,
+                            focusedBorderColor = CosmicAppTheme.colors.accent,
+                            unfocusedBorderColor = CosmicAppTheme.colors.textSecondary.copy(alpha = 0.3f),
+                            disabledBorderColor = CosmicAppTheme.colors.textSecondary.copy(alpha = 0.15f),
+                            cursorColor = CosmicAppTheme.colors.accent,
+                            focusedContainerColor = Color(0xFFF4F4F4),
+                            unfocusedContainerColor = Color(0xFFF4F4F4),
+                            disabledContainerColor = Color(0xFFF4F4F4)
                         )
 
                         OutlinedTextField(
                             value = name,
                             onValueChange = { name = it },
-                            label = { Text(Localization.get("full_name", isTamil), color = Color.White.copy(alpha = 0.5f)) },
+                            label = { Text(Localization.get("full_name", isTamil), color = CosmicAppTheme.colors.textSecondary) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(
@@ -594,7 +587,7 @@ fun IntakeScreen(
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
                                 text = Localization.get("gender", isTamil),
-                                color = Color.White.copy(alpha = 0.6f),
+                                color = CosmicAppTheme.colors.textSecondary,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -603,8 +596,8 @@ fun IntakeScreen(
                                     .fillMaxWidth()
                                     .height(48.dp)
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(Color(0xFF1E1830))
-                                    .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp)),
+                                    .background(Color(0xFFF4F4F4))
+                                    .border(1.dp, CosmicAppTheme.colors.textSecondary.copy(alpha = 0.2f), RoundedCornerShape(12.dp)),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Box(
@@ -614,7 +607,7 @@ fun IntakeScreen(
                                         .clip(RoundedCornerShape(12.dp))
                                         .run {
                                             if (gender == "Male") {
-                                                background(Brush.horizontalGradient(listOf(Color(0xFFFF9800), Color(0xFFFF5722))))
+                                                background(Brush.horizontalGradient(listOf(Color(0xFFFDBA16), Color(0xFFE1353C))))
                                             } else {
                                                 this
                                             }
@@ -624,7 +617,7 @@ fun IntakeScreen(
                                 ) {
                                     Text(
                                         text = Localization.get("male", isTamil),
-                                        color = if (gender == "Male") Color.White else Color.White.copy(alpha = 0.5f),
+                                        color = if (gender == "Male") Color.White else CosmicAppTheme.colors.textSecondary,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 14.sp
                                     )
@@ -636,7 +629,7 @@ fun IntakeScreen(
                                         .clip(RoundedCornerShape(12.dp))
                                         .run {
                                             if (gender == "Female") {
-                                                background(Brush.horizontalGradient(listOf(Color(0xFFFF9800), Color(0xFFFF5722))))
+                                                background(Brush.horizontalGradient(listOf(Color(0xFFFDBA16), Color(0xFFE1353C))))
                                             } else {
                                                 this
                                             }
@@ -646,7 +639,7 @@ fun IntakeScreen(
                                 ) {
                                     Text(
                                         text = Localization.get("female", isTamil),
-                                        color = if (gender == "Female") Color.White else Color.White.copy(alpha = 0.5f),
+                                        color = if (gender == "Female") Color.White else CosmicAppTheme.colors.textSecondary,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 14.sp
                                     )
@@ -658,7 +651,7 @@ fun IntakeScreen(
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
                                 text = Localization.get("dob", isTamil),
-                                color = Color.White.copy(alpha = 0.6f),
+                                color = CosmicAppTheme.colors.textSecondary,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -670,7 +663,7 @@ fun IntakeScreen(
                                 OutlinedTextField(
                                     value = day,
                                     onValueChange = { if(it.length <= 2) day = it },
-                                    placeholder = { Text("DD", color = Color.White.copy(alpha = 0.3f)) },
+                                    placeholder = { Text("DD", color = CosmicAppTheme.colors.textSecondary.copy(alpha = 0.5f)) },
                                     modifier = Modifier.weight(1f),
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
                                     shape = RoundedCornerShape(12.dp),
@@ -680,7 +673,7 @@ fun IntakeScreen(
                                 OutlinedTextField(
                                     value = month,
                                     onValueChange = { if(it.length <= 2) month = it },
-                                    placeholder = { Text("MM", color = Color.White.copy(alpha = 0.3f)) },
+                                    placeholder = { Text("MM", color = CosmicAppTheme.colors.textSecondary.copy(alpha = 0.5f)) },
                                     modifier = Modifier.weight(1f),
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
                                     shape = RoundedCornerShape(12.dp),
@@ -690,7 +683,7 @@ fun IntakeScreen(
                                 OutlinedTextField(
                                     value = year,
                                     onValueChange = { if(it.length <= 4) year = it },
-                                    placeholder = { Text("YYYY", color = Color.White.copy(alpha = 0.3f)) },
+                                    placeholder = { Text("YYYY", color = CosmicAppTheme.colors.textSecondary.copy(alpha = 0.5f)) },
                                     modifier = Modifier.weight(1.3f),
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
                                     shape = RoundedCornerShape(12.dp),
@@ -709,7 +702,7 @@ fun IntakeScreen(
                                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFB300).copy(alpha = 0.15f)),
                                     contentPadding = PaddingValues(0.dp)
                                 ) {
-                                    Icon(Icons.Default.AutoFixHigh, "Pick Date", tint = Color(0xFFFFB300), modifier = Modifier.size(22.dp))
+                                    Icon(Icons.Default.AutoFixHigh, "Pick Date", tint = CosmicAppTheme.colors.accent, modifier = Modifier.size(22.dp))
                                 }
                             }
                         }
@@ -718,7 +711,7 @@ fun IntakeScreen(
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
                                 text = Localization.get("tob", isTamil),
-                                color = Color.White.copy(alpha = 0.6f),
+                                color = CosmicAppTheme.colors.textSecondary,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -730,7 +723,7 @@ fun IntakeScreen(
                                 OutlinedTextField(
                                     value = hour,
                                     onValueChange = { if(it.length <= 2) hour = it },
-                                    placeholder = { Text("HH", color = Color.White.copy(alpha = 0.3f)) },
+                                    placeholder = { Text("HH", color = CosmicAppTheme.colors.textSecondary.copy(alpha = 0.5f)) },
                                     modifier = Modifier.weight(1f),
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     shape = RoundedCornerShape(12.dp),
@@ -740,7 +733,7 @@ fun IntakeScreen(
                                 OutlinedTextField(
                                     value = minute,
                                     onValueChange = { if(it.length <= 2) minute = it },
-                                    placeholder = { Text("MM", color = Color.White.copy(alpha = 0.3f)) },
+                                    placeholder = { Text("MM", color = CosmicAppTheme.colors.textSecondary.copy(alpha = 0.5f)) },
                                     modifier = Modifier.weight(1f),
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     shape = RoundedCornerShape(12.dp),
@@ -752,12 +745,12 @@ fun IntakeScreen(
                                         .weight(1f)
                                         .height(54.dp)
                                         .clip(RoundedCornerShape(12.dp))
-                                        .background(Color(0xFF1E1830))
-                                        .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(12.dp))
+                                        .background(Color(0xFFF4F4F4))
+                                        .border(1.dp, CosmicAppTheme.colors.textSecondary.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
                                         .clickable { amPm = if (amPm == "AM") "PM" else "AM" },
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text(amPm, color = Color(0xFFFFB300), fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
+                                    Text(amPm, color = CosmicAppTheme.colors.accent, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
                                 }
                                 Button(
                                     onClick = {
@@ -771,7 +764,7 @@ fun IntakeScreen(
                                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFB300).copy(alpha = 0.15f)),
                                     contentPadding = PaddingValues(0.dp)
                                 ) {
-                                    Icon(Icons.Default.AutoAwesome, "Pick Time", tint = Color(0xFFFFB300), modifier = Modifier.size(22.dp))
+                                    Icon(Icons.Default.AutoAwesome, "Pick Time", tint = CosmicAppTheme.colors.accent, modifier = Modifier.size(22.dp))
                                 }
                             }
                         }
@@ -780,7 +773,7 @@ fun IntakeScreen(
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
                                 text = Localization.get("pob", isTamil),
-                                color = Color.White.copy(alpha = 0.6f),
+                                color = CosmicAppTheme.colors.textSecondary,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -793,11 +786,11 @@ fun IntakeScreen(
                                 OutlinedTextField(
                                     value = cityName,
                                     onValueChange = {},
-                                    placeholder = { Text(Localization.get("city", isTamil), color = Color.White.copy(alpha = 0.4f)) },
+                                    placeholder = { Text(Localization.get("city", isTamil), color = CosmicAppTheme.colors.textSecondary) },
                                     readOnly = true,
                                     enabled = false,
                                     modifier = Modifier.fillMaxWidth(),
-                                    trailingIcon = { Icon(Icons.Default.LocationOn, "Location", tint = Color(0xFFFFB300), modifier = Modifier.size(22.dp)) },
+                                    trailingIcon = { Icon(Icons.Default.LocationOn, "Location", tint = CosmicAppTheme.colors.accent, modifier = Modifier.size(22.dp)) },
                                     shape = RoundedCornerShape(12.dp),
                                     colors = textFieldColors
                                 )
@@ -812,14 +805,14 @@ fun IntakeScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(Color.White.copy(alpha = 0.04f))
-                                .border(1.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(12.dp))
+                                .background(Color.Black.copy(alpha = 0.04f))
+                                .border(1.dp, CosmicAppTheme.colors.textSecondary.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
                                 .clickable { isMatchingLocal = !isMatchingLocal }
                                 .padding(14.dp)
                         ) {
                             Text(
                                 text = if (isTamil) "திருமணப் பொருத்தம் விவரங்களைச் சேர்க்க" else "Add Marriage Matching Details",
-                                color = Color.White,
+                                color = CosmicAppTheme.colors.textPrimary,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp,
                                 modifier = Modifier.weight(1f)
@@ -829,30 +822,30 @@ fun IntakeScreen(
                                 onCheckedChange = { isMatchingLocal = it },
                                 colors = SwitchDefaults.colors(
                                     checkedThumbColor = Color.White,
-                                    checkedTrackColor = Color(0xFFFF8C00),
-                                    uncheckedThumbColor = Color.White.copy(alpha = 0.6f),
-                                    uncheckedTrackColor = Color.White.copy(alpha = 0.15f)
+                                    checkedTrackColor = CosmicAppTheme.colors.accent,
+                                    uncheckedThumbColor = CosmicAppTheme.colors.textSecondary,
+                                    uncheckedTrackColor = CosmicAppTheme.colors.textSecondary.copy(alpha = 0.2f)
                                 )
                             )
                         }
 
                         if (isMatchingLocal) {
                             Spacer(Modifier.height(8.dp))
-                            HorizontalDivider(color = Color.White.copy(alpha = 0.08f), thickness = 1.dp)
+                            HorizontalDivider(color = CosmicAppTheme.colors.textSecondary.copy(alpha = 0.15f), thickness = 1.dp)
                             Spacer(Modifier.height(8.dp))
 
                             Text(
                                 text = if (isTamil) "துணை விவரங்கள்" else "Partner Details",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = Color(0xFFFFB300),
+                                color = CosmicAppTheme.colors.accent,
                                 letterSpacing = 0.5.sp
                             )
 
                             OutlinedTextField(
                                 value = pName,
                                 onValueChange = { pName = it },
-                                label = { Text(if (isTamil) "துணையின் பெயர்" else "Partner's Full Name", color = Color.White.copy(alpha = 0.5f)) },
+                                label = { Text(if (isTamil) "துணையின் பெயர்" else "Partner's Full Name", color = CosmicAppTheme.colors.textSecondary) },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(
@@ -868,7 +861,7 @@ fun IntakeScreen(
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text(
                                     text = Localization.get("gender", isTamil),
-                                    color = Color.White.copy(alpha = 0.6f),
+                                    color = CosmicAppTheme.colors.textSecondary,
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -877,8 +870,8 @@ fun IntakeScreen(
                                         .fillMaxWidth()
                                         .height(48.dp)
                                         .clip(RoundedCornerShape(12.dp))
-                                        .background(Color(0xFF1E1830))
-                                        .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp)),
+                                        .background(Color(0xFFF4F4F4))
+                                        .border(1.dp, CosmicAppTheme.colors.textSecondary.copy(alpha = 0.2f), RoundedCornerShape(12.dp)),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                      Box(
@@ -888,7 +881,7 @@ fun IntakeScreen(
                                              .clip(RoundedCornerShape(12.dp))
                                              .run {
                                                  if (pGender == "Male") {
-                                                     background(Brush.horizontalGradient(listOf(Color(0xFFFF9800), Color(0xFFFF5722))))
+                                                     background(Brush.horizontalGradient(listOf(Color(0xFFFDBA16), Color(0xFFE1353C))))
                                                  } else {
                                                      this
                                                  }
@@ -898,7 +891,7 @@ fun IntakeScreen(
                                      ) {
                                          Text(
                                              text = Localization.get("male", isTamil),
-                                             color = if (pGender == "Male") Color.White else Color.White.copy(alpha = 0.5f),
+                                             color = if (pGender == "Male") Color.White else CosmicAppTheme.colors.textSecondary,
                                              fontWeight = FontWeight.Bold,
                                              fontSize = 14.sp
                                          )
@@ -910,7 +903,7 @@ fun IntakeScreen(
                                              .clip(RoundedCornerShape(12.dp))
                                              .run {
                                                  if (pGender == "Female") {
-                                                     background(Brush.horizontalGradient(listOf(Color(0xFFFF9800), Color(0xFFFF5722))))
+                                                     background(Brush.horizontalGradient(listOf(Color(0xFFFDBA16), Color(0xFFE1353C))))
                                                  } else {
                                                      this
                                                  }
@@ -920,7 +913,7 @@ fun IntakeScreen(
                                      ) {
                                          Text(
                                              text = Localization.get("female", isTamil),
-                                             color = if (pGender == "Female") Color.White else Color.White.copy(alpha = 0.5f),
+                                             color = if (pGender == "Female") Color.White else CosmicAppTheme.colors.textSecondary,
                                              fontWeight = FontWeight.Bold,
                                              fontSize = 14.sp
                                          )
@@ -932,7 +925,7 @@ fun IntakeScreen(
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text(
                                     text = Localization.get("dob", isTamil),
-                                    color = Color.White.copy(alpha = 0.6f),
+                                    color = CosmicAppTheme.colors.textSecondary,
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -944,7 +937,7 @@ fun IntakeScreen(
                                     OutlinedTextField(
                                         value = pDay,
                                         onValueChange = { if(it.length <= 2) pDay = it },
-                                        placeholder = { Text("DD", color = Color.White.copy(alpha = 0.3f)) },
+                                        placeholder = { Text("DD", color = CosmicAppTheme.colors.textSecondary.copy(alpha = 0.5f)) },
                                         modifier = Modifier.weight(1f),
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
                                         shape = RoundedCornerShape(12.dp),
@@ -954,7 +947,7 @@ fun IntakeScreen(
                                     OutlinedTextField(
                                         value = pMonth,
                                         onValueChange = { if(it.length <= 2) pMonth = it },
-                                        placeholder = { Text("MM", color = Color.White.copy(alpha = 0.3f)) },
+                                        placeholder = { Text("MM", color = CosmicAppTheme.colors.textSecondary.copy(alpha = 0.5f)) },
                                         modifier = Modifier.weight(1f),
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
                                         shape = RoundedCornerShape(12.dp),
@@ -964,7 +957,7 @@ fun IntakeScreen(
                                     OutlinedTextField(
                                         value = pYear,
                                         onValueChange = { if(it.length <= 4) pYear = it },
-                                        placeholder = { Text("YYYY", color = Color.White.copy(alpha = 0.3f)) },
+                                        placeholder = { Text("YYYY", color = CosmicAppTheme.colors.textSecondary.copy(alpha = 0.5f)) },
                                         modifier = Modifier.weight(1.3f),
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
                                         shape = RoundedCornerShape(12.dp),
@@ -983,7 +976,7 @@ fun IntakeScreen(
                                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFB300).copy(alpha = 0.15f)),
                                         contentPadding = PaddingValues(0.dp)
                                     ) {
-                                        Icon(Icons.Default.AutoFixHigh, "Pick Date", tint = Color(0xFFFFB300), modifier = Modifier.size(22.dp))
+                                        Icon(Icons.Default.AutoFixHigh, "Pick Date", tint = CosmicAppTheme.colors.accent, modifier = Modifier.size(22.dp))
                                     }
                                 }
                             }
@@ -992,7 +985,7 @@ fun IntakeScreen(
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text(
                                     text = Localization.get("tob", isTamil),
-                                    color = Color.White.copy(alpha = 0.6f),
+                                    color = CosmicAppTheme.colors.textSecondary,
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -1004,7 +997,7 @@ fun IntakeScreen(
                                     OutlinedTextField(
                                         value = pHour,
                                         onValueChange = { if(it.length <= 2) pHour = it },
-                                        placeholder = { Text("HH", color = Color.White.copy(alpha = 0.3f)) },
+                                        placeholder = { Text("HH", color = CosmicAppTheme.colors.textSecondary.copy(alpha = 0.5f)) },
                                         modifier = Modifier.weight(1f),
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                         shape = RoundedCornerShape(12.dp),
@@ -1014,7 +1007,7 @@ fun IntakeScreen(
                                     OutlinedTextField(
                                         value = pMinute,
                                         onValueChange = { if(it.length <= 2) pMinute = it },
-                                        placeholder = { Text("MM", color = Color.White.copy(alpha = 0.3f)) },
+                                        placeholder = { Text("MM", color = CosmicAppTheme.colors.textSecondary.copy(alpha = 0.5f)) },
                                         modifier = Modifier.weight(1f),
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                         shape = RoundedCornerShape(12.dp),
@@ -1026,12 +1019,12 @@ fun IntakeScreen(
                                             .weight(1f)
                                             .height(54.dp)
                                             .clip(RoundedCornerShape(12.dp))
-                                            .background(Color(0xFF1E1830))
-                                            .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(12.dp))
+                                            .background(Color(0xFFF4F4F4))
+                                            .border(1.dp, CosmicAppTheme.colors.textSecondary.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
                                             .clickable { pAmPm = if (pAmPm == "AM") "PM" else "AM" },
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Text(pAmPm, color = Color(0xFFFFB300), fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
+                                        Text(pAmPm, color = CosmicAppTheme.colors.accent, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
                                     }
                                     Button(
                                         onClick = {
@@ -1045,7 +1038,7 @@ fun IntakeScreen(
                                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFB300).copy(alpha = 0.15f)),
                                         contentPadding = PaddingValues(0.dp)
                                     ) {
-                                        Icon(Icons.Default.AutoAwesome, "Pick Time", tint = Color(0xFFFFB300), modifier = Modifier.size(22.dp))
+                                        Icon(Icons.Default.AutoAwesome, "Pick Time", tint = CosmicAppTheme.colors.accent, modifier = Modifier.size(22.dp))
                                     }
                                 }
                             }
@@ -1054,7 +1047,7 @@ fun IntakeScreen(
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text(
                                     text = Localization.get("pob", isTamil),
-                                    color = Color.White.copy(alpha = 0.6f),
+                                    color = CosmicAppTheme.colors.textSecondary,
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -1067,11 +1060,11 @@ fun IntakeScreen(
                                     OutlinedTextField(
                                         value = pCityName,
                                         onValueChange = {},
-                                        placeholder = { Text(Localization.get("city", isTamil), color = Color.White.copy(alpha = 0.4f)) },
+                                        placeholder = { Text(Localization.get("city", isTamil), color = CosmicAppTheme.colors.textSecondary) },
                                         readOnly = true,
                                         enabled = false,
                                         modifier = Modifier.fillMaxWidth(),
-                                        trailingIcon = { Icon(Icons.Default.LocationOn, "Location", tint = Color(0xFFFFB300), modifier = Modifier.size(22.dp)) },
+                                        trailingIcon = { Icon(Icons.Default.LocationOn, "Location", tint = CosmicAppTheme.colors.accent, modifier = Modifier.size(22.dp)) },
                                         shape = RoundedCornerShape(12.dp),
                                         colors = textFieldColors
                                     )
@@ -1125,7 +1118,7 @@ fun IntakeScreen(
                         Text(
                             text = if (isTamil) "அனைத்து விவரங்களையும் சரிபார்க்கவும்" else "Please verify all details before submitting",
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color.White.copy(alpha = 0.5f),
+                            color = CosmicAppTheme.colors.textSecondary,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -1181,11 +1174,11 @@ fun IntakeScreen(
                         .padding(horizontal = 16.dp)
                         .border(
                             1.dp, 
-                            Brush.linearGradient(listOf(Color(0xFFFFB300), Color(0xFFFF7F00))), 
+                            Brush.linearGradient(listOf(Color(0xFFFDBA16), Color(0xFFE1353C))), 
                             RoundedCornerShape(24.dp)
                         ),
                     shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF161122)),
+                    colors = CardDefaults.cardColors(containerColor = CosmicAppTheme.colors.cardBg),
                     elevation = CardDefaults.cardElevation(defaultElevation = 16.dp)
                 ) {
                     Column(
@@ -1197,15 +1190,15 @@ fun IntakeScreen(
                             CircularProgressIndicator(
                                 progress = { waitTimeLeft / 30f },
                                 modifier = Modifier.size(90.dp),
-                                color = Color(0xFFFFB300),
+                                color = CosmicAppTheme.colors.accent,
                                 strokeWidth = 5.dp,
-                                trackColor = Color(0xFF292040)
+                                trackColor = Color(0xFFEEEEEE)
                             )
                             Text(
                                 text = waitTimeLeft.toString(),
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Black,
-                                color = Color(0xFFFFB300),
+                                color = CosmicAppTheme.colors.accent,
                                 fontSize = 22.sp
                             )
                         }
@@ -1218,14 +1211,14 @@ fun IntakeScreen(
                                 text = Localization.get("connecting_title", isTamil),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Black,
-                                color = Color.White,
+                                color = CosmicAppTheme.colors.textPrimary,
                                 textAlign = TextAlign.Center,
                                 fontSize = 18.sp
                             )
                             Text(
                                 text = Localization.get("connecting_subtitle", isTamil),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = Color.White.copy(alpha = 0.6f),
+                                color = CosmicAppTheme.colors.textSecondary,
                                 textAlign = TextAlign.Center,
                                 fontSize = 13.sp
                             )

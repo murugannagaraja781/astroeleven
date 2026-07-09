@@ -85,7 +85,7 @@ fun RasipalanScreen(targetSignId: Int, displayTitle: String, onBack: () -> Unit)
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(Color(0xFF140F0A), Color(0xFF0B0805))))
+            .background(CosmicAppTheme.backgroundBrush)
     ) {
         Scaffold(
             containerColor = Color.Transparent,
@@ -95,18 +95,22 @@ fun RasipalanScreen(targetSignId: Int, displayTitle: String, onBack: () -> Unit)
                         Text(
                             text = displayTitle,
                             style = MaterialTheme.typography.titleLarge,
-                            color = Color.White,
+                            color = CosmicAppTheme.colors.textPrimary,
                             fontWeight = FontWeight.Bold
                         )
                     },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                            Icon(
+                                Icons.Default.ArrowBack,
+                                contentDescription = "Back",
+                                tint = CosmicAppTheme.colors.textPrimary
+                            )
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = Color.Transparent,
-                        titleContentColor = Color.White
+                        titleContentColor = CosmicAppTheme.colors.textPrimary
                     )
                 )
             }
@@ -115,7 +119,7 @@ fun RasipalanScreen(targetSignId: Int, displayTitle: String, onBack: () -> Unit)
                 if (isLoading) {
                     CircularProgressIndicator(
                         modifier = Modifier.align(Alignment.Center),
-                        color = Color(0xFFFFD700)
+                        color = CosmicAppTheme.colors.accent
                     )
                 } else {
                     LazyColumn(
@@ -131,7 +135,7 @@ fun RasipalanScreen(targetSignId: Int, displayTitle: String, onBack: () -> Unit)
                             Text(
                                 text = "Future Predictions",
                                 style = MaterialTheme.typography.titleLarge,
-                                color = Color(0xFFFFD700),
+                                color = CosmicAppTheme.colors.accent,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(vertical = 8.dp)
                             )
@@ -151,8 +155,8 @@ fun PremiumRasipalanCard(item: RasipalanItem) {
     Card(
         modifier = Modifier.fillMaxWidth().shadow(12.dp, RoundedCornerShape(20.dp)),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1C140E)),
-        border = BorderStroke(1.dp, Color(0xFFFF7F00).copy(alpha = 0.3f))
+        colors = CardDefaults.cardColors(containerColor = CosmicAppTheme.colors.cardBg),
+        border = BorderStroke(1.dp, CosmicAppTheme.colors.accent.copy(alpha = 0.3f))
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             // Header Row
@@ -164,25 +168,25 @@ fun PremiumRasipalanCard(item: RasipalanItem) {
                 Text(
                     text = item.signNameTa ?: item.signNameEn ?: "",
                     style = MaterialTheme.typography.headlineMedium,
-                    color = Color.White,
+                    color = CosmicAppTheme.colors.textPrimary,
                     fontWeight = FontWeight.ExtraBold
                 )
                 Text(
                     text = item.date ?: "2024-04-13",
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color(0xFFFFD700)
+                    color = CosmicAppTheme.colors.accent
                 )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-            HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+            HorizontalDivider(color = CosmicAppTheme.colors.textSecondary.copy(alpha = 0.15f))
             Spacer(modifier = Modifier.height(16.dp))
 
             // Main Prediction Text
             Text(
                 text = item.prediction?.ta ?: "",
                 style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 24.sp),
-                color = Color.White.copy(alpha = 0.9f)
+                color = CosmicAppTheme.colors.textPrimary
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -196,9 +200,9 @@ fun PremiumRasipalanCard(item: RasipalanItem) {
 
             // Lucky Highlights Section
             Surface(
-                color = Color.White.copy(alpha = 0.05f),
+                color = Color.Black.copy(alpha = 0.04f),
                 shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(1.dp, Color(0xFFFFD700).copy(alpha = 0.2f))
+                border = BorderStroke(1.dp, CosmicAppTheme.colors.accent.copy(alpha = 0.2f))
             ) {
                 Row(
                     modifier = Modifier.padding(16.dp).fillMaxWidth(),
@@ -207,7 +211,7 @@ fun PremiumRasipalanCard(item: RasipalanItem) {
                     LuckyStat("அதிர்ஷ்ட எண்", item.lucky?.number ?: "-")
                     LuckyStat("அதிர்ஷ்ட நிறம்", item.lucky?.color?.ta ?: "-")
                 }
-                HorizontalDivider(color = Color.White.copy(alpha = 0.05f), modifier = Modifier.padding(horizontal = 16.dp))
+                HorizontalDivider(color = CosmicAppTheme.colors.textSecondary.copy(alpha = 0.15f), modifier = Modifier.padding(horizontal = 16.dp))
                 Row(
                     modifier = Modifier.padding(16.dp).fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceAround
@@ -226,12 +230,12 @@ fun PremiumStatusItem(label: String, detail: String?) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelLarge,
-            color = Color(0xFFFFD700),
+            color = CosmicAppTheme.colors.accent,
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(4.dp))
         Surface(
-            color = Color.Black.copy(alpha = 0.2f),
+            color = Color.Black.copy(alpha = 0.04f),
             shape = RoundedCornerShape(8.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -239,7 +243,7 @@ fun PremiumStatusItem(label: String, detail: String?) {
                 text = detail ?: "Optimistic outlook for today.",
                 modifier = Modifier.padding(12.dp),
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.8f)
+                color = CosmicAppTheme.colors.textPrimary
             )
         }
     }

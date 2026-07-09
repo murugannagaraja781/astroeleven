@@ -178,7 +178,7 @@ fun FreeHoroscopeScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(Color(0xFF140F0A), Color(0xFF0B0805))))
+            .background(CosmicAppTheme.backgroundBrush)
     ) {
         Scaffold(
             containerColor = Color.Transparent,
@@ -188,7 +188,7 @@ fun FreeHoroscopeScreen(
                         Text(
                             "Free Horoscope",
                             style = MaterialTheme.typography.titleLarge,
-                            color = Color.White,
+                            color = CosmicAppTheme.colors.textPrimary,
                             fontWeight = FontWeight.Bold
                         )
                     },
@@ -197,13 +197,13 @@ fun FreeHoroscopeScreen(
                             Icon(
                                 Icons.Default.ArrowBack,
                                 contentDescription = "Back",
-                                tint = Color.White
+                                tint = CosmicAppTheme.colors.textPrimary
                             )
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = Color.Transparent,
-                        titleContentColor = Color.White
+                        titleContentColor = CosmicAppTheme.colors.textPrimary
                     )
                 )
             }
@@ -221,7 +221,7 @@ fun FreeHoroscopeScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1C140E)),
+                    colors = CardDefaults.cardColors(containerColor = CosmicAppTheme.colors.cardBg),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(
@@ -385,7 +385,7 @@ fun FreeHoroscopeScreen(
                             },
                             modifier = Modifier.fillMaxWidth().height(54.dp).shadow(8.dp, RoundedCornerShape(12.dp)),
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF7F00))
+                            colors = ButtonDefaults.buttonColors(containerColor = CosmicAppTheme.colors.accent)
                         ) {
                             if (isLoading) {
                                 CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)

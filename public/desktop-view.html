@@ -46,7 +46,7 @@
           colors: {
             'cosmic-dark': '#140F0A',
             'cosmic-card': '#211912',
-            'cosmic-green': '#166534',
+            'cosmic-green': '#E1353C',
             'milk-green': '#00FF88',
             'cosmic-muted': '#A58B74',
           }
@@ -76,9 +76,9 @@
       --bg-glass: rgba(255, 253, 249, 0.85);
       --bg-glass-heavy: rgba(255, 255, 255, 0.95);
 
-      --primary: #166534;
+      --primary: #E1353C;
       --primary-rgb: 255, 127, 0;
-      --primary-glow: rgba(255, 127, 0, 0.1);
+      --primary-glow: rgba(225, 53, 60, 0.1);
 
       --accent: #E5A900;
       --accent-rgb: 229, 169, 0;
@@ -89,17 +89,17 @@
       --text-muted: #8E7C6E;
       --text-dim: #A89687;
 
-      --border-soft: rgba(255, 127, 0, 0.08);
-      --border-medium: rgba(255, 127, 0, 0.15);
-      --border-accent: rgba(255, 127, 0, 0.3);
+      --border-soft: rgba(225, 53, 60, 0.08);
+      --border-medium: rgba(225, 53, 60, 0.15);
+      --border-accent: rgba(225, 53, 60, 0.3);
 
       --radius-lg: 16px;
       --radius-md: 12px;
       --radius-sm: 8px;
 
       --glass-blur: blur(12px);
-      --shadow-glow: 0 4px 20px rgba(255, 127, 0, 0.05);
-      --shadow-elevation: 0 10px 40px -10px rgba(255, 127, 0, 0.08);
+      --shadow-glow: 0 4px 20px rgba(225, 53, 60, 0.05);
+      --shadow-elevation: 0 10px 40px -10px rgba(225, 53, 60, 0.08);
 
       --font-heading: 'Poppins', sans-serif;
       --font-body: 'Poppins', sans-serif;
@@ -146,7 +146,7 @@
 
     .glass-card-accent {
       border: 1px solid var(--border-accent);
-      box-shadow: 0 0 15px rgba(255, 127, 0, 0.1);
+      box-shadow: 0 0 15px rgba(225, 53, 60, 0.1);
     }
 
     input,
@@ -217,7 +217,7 @@
     .cosmic-input:focus {
       background: rgba(255, 255, 255, 0.06);
       border-color: var(--primary);
-      box-shadow: 0 0 10px rgba(255, 127, 0, 0.1);
+      box-shadow: 0 0 10px rgba(225, 53, 60, 0.1);
     }
 
     .cosmic-input::placeholder {
@@ -238,7 +238,7 @@
       letter-spacing: 1px;
       text-transform: uppercase;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 4px 15px rgba(255, 127, 0, 0.2);
+      box-shadow: 0 4px 15px rgba(225, 53, 60, 0.2);
     }
 
     .cosmic-btn:hover {
@@ -365,7 +365,7 @@
 
     /* Online: Green & Pulsing */
     .status-badge.online {
-      background: #166534;
+      background: #E1353C;
       /* Darker Green as requested */
       box-shadow: 0 0 0 2px white;
       /* Clean separator */
@@ -373,7 +373,7 @@
 
     /* Active Profile Image Ring */
     .astro-img.online-active {
-      border: 2px solid #166534;
+      border: 2px solid #E1353C;
       animation: pulse-border 2s infinite;
     }
 
@@ -441,7 +441,7 @@
       top: 16px;
       right: 16px;
       background: #EFF6FF;
-      color: #166534;
+      color: #E1353C;
       font-weight: 700;
       font-size: 0.85rem;
       padding: 4px 10px;
@@ -492,7 +492,7 @@
     .cta-btn.active-audio {
       background: #EFF6FF;
       border-color: #D1D5DB;
-      color: #166534;
+      color: #E1353C;
       cursor: pointer;
     }
 
@@ -618,13 +618,13 @@
       width: 44px;
       height: 44px;
       border-radius: 12px;
-      background: rgba(255, 127, 0, 0.1);
+      background: rgba(225, 53, 60, 0.1);
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 1.3rem;
       color: var(--primary);
-      border: 1px solid rgba(255, 127, 0, 0.2);
+      border: 1px solid rgba(225, 53, 60, 0.2);
     }
 
     .modal-overlay {
@@ -769,7 +769,7 @@
 
     .countdown-circle-fg {
       fill: none;
-      stroke: #166534;
+      stroke: #E1353C;
       stroke-width: 8;
       stroke-linecap: round;
       stroke-dasharray: 251;
@@ -785,7 +785,7 @@
       transform: translate(-50%, -50%);
       font-size: 1.5rem;
       font-weight: bold;
-      color: #166534;
+      color: #E1353C;
     }
 
 
@@ -1073,7 +1073,7 @@
     .bal-amount {
       font-size: 1.5rem;
       font-weight: 700;
-      color: #166534;
+      color: #E1353C;
     }
 
     .btn-recharge {
@@ -1087,7 +1087,7 @@
       font-weight: 700;
       text-transform: uppercase;
       cursor: pointer;
-      box-shadow: 0 4px 15px rgba(255, 127, 0, 0.2);
+      box-shadow: 0 4px 15px rgba(225, 53, 60, 0.2);
       margin-bottom: 12px;
       transition: all 0.2s;
     }
@@ -1549,7 +1549,7 @@
     }
 
     .download-card-banner {
-      background: linear-gradient(135deg, #0F766E, #166534);
+      background: linear-gradient(135deg, #B71C1C, #E1353C);
       padding: 40px 20px;
       text-align: center;
       color: white;
@@ -1582,7 +1582,7 @@
     }
 
     .download-action-btn {
-      background: #166534;
+      background: #E1353C;
       color: white;
       text-decoration: none;
       padding: 16px 24px;
@@ -1738,19 +1738,19 @@
       color: var(--primary);
       font-size: 0.85rem;
       cursor: pointer;
-      background: rgba(255, 127, 0, 0.05);
+      background: rgba(225, 53, 60, 0.05);
       padding: 6px 14px;
       border-radius: 6px;
       display: flex;
       align-items: center;
       gap: 6px;
       font-weight: 600;
-      border: 1px solid rgba(255, 127, 0, 0.2);
+      border: 1px solid rgba(225, 53, 60, 0.2);
       transition: all 0.2s ease;
     }
 
     .refer-icon-btn:hover {
-      background: rgba(255, 127, 0, 0.1);
+      background: rgba(225, 53, 60, 0.1);
       border-color: var(--primary);
     }
 
@@ -1792,7 +1792,7 @@
     }
 
     .refer-header {
-      background: linear-gradient(135deg, #0F766E, #166534);
+      background: linear-gradient(135deg, #B71C1C, #E1353C);
       padding: 30px 20px;
       color: white;
       position: relative;
@@ -1821,7 +1821,7 @@
 
     .refer-rule-icon {
       background: #EFF6FF;
-      color: #166534;
+      color: #E1353C;
       width: 20px;
       height: 20px;
       border-radius: 50%;
@@ -1836,7 +1836,7 @@
 
     .refer-code-box {
       background: #F9FAFB;
-      border: 2px dashed #166534;
+      border: 2px dashed #E1353C;
       padding: 16px;
       border-radius: 16px;
       margin: 20px 0;
@@ -1921,7 +1921,7 @@
     }
 
     .referral-input-glow {
-      border: 2px solid #166534 !important;
+      border: 2px solid #E1353C !important;
       box-shadow: 0 0 15px rgba(5, 150, 105, 0.2);
     }
   </style>
@@ -2282,7 +2282,7 @@
             .service-icon-wrapper {
               width: 50px;
               height: 50px;
-              background: rgba(255, 127, 0, 0.05);
+              background: rgba(225, 53, 60, 0.05);
               border-radius: 50%;
               display: flex;
               align-items: center;
@@ -2293,7 +2293,7 @@
             }
 
             .service-item-card:hover .service-icon-wrapper {
-              background: rgba(255, 127, 0, 0.1);
+              background: rgba(225, 53, 60, 0.1);
               border-color: var(--primary);
               transform: scale(1.1);
             }
@@ -2390,7 +2390,7 @@
           </div>
           <div id="astroList">
             <div class="loading-spinner" style="padding: 40px; text-align: center;">
-              <i class="fas fa-circle-notch fa-spin" style="font-size: 2rem; color: #166534;"></i>
+              <i class="fas fa-circle-notch fa-spin" style="font-size: 2rem; color: #E1353C;"></i>
               <p style="margin-top: 10px; color: #9CA3AF;">Loading Astrologers...</p>
             </div>
           </div>
@@ -2699,7 +2699,7 @@
           </div>
         </div>
         <button class="cosmic-btn" onclick="fetchDashboardChart()"
-          style="font-size:1.1rem; padding:15px; border-radius:12px; box-shadow:0 10px 15px -3px rgba(4,120,87,0.2); width:100%; border:none; background:linear-gradient(to right, #166534, #0F766E); color:white; cursor:pointer; font-weight:600;">
+          style="font-size:1.1rem; padding:15px; border-radius:12px; box-shadow:0 10px 15px -3px rgba(4,120,87,0.2); width:100%; border:none; background:linear-gradient(to right, #E1353C, #B71C1C); color:white; cursor:pointer; font-weight:600;">
           <i class="fas fa-calculator"></i> Get Birth Chart
         </button>
       </div>
@@ -2926,7 +2926,7 @@
 
       <!-- Astro Earnings Card -->
       <div class="progress-card"
-        style="margin-bottom: 0px; background: linear-gradient(135deg, #0F766E 0%, #166534 100%); color: white; border: none;">
+        style="margin-bottom: 0px; background: linear-gradient(135deg, #B71C1C 0%, #E1353C 100%); color: white; border: none;">
         <div>
           <div style="font-weight: bold; font-size: 1.1rem;">Total Earnings</div>
 
@@ -2946,7 +2946,7 @@
         </div>
         <div style="text-align: right;">
           <button id="btnAstroWithdraw" onclick="astroRequestWithdrawal()"
-            style="background: var(--bg-card); color: #166534; border: none; padding: 8px 12px; border-radius: 8px; font-weight: bold; font-size: 0.8rem; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            style="background: var(--bg-card); color: #E1353C; border: none; padding: 8px 12px; border-radius: 8px; font-weight: bold; font-size: 0.8rem; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
             Withdraw
           </button>
         </div>
@@ -3158,7 +3158,7 @@
                 id="mainWalletVal">0.00</span>
             </div>
           </div>
-          <i class="fas fa-wallet" style="color: #166534; font-size: 1.5rem; opacity: 0.2;"></i>
+          <i class="fas fa-wallet" style="color: #E1353C; font-size: 1.5rem; opacity: 0.2;"></i>
         </div>
 
         <div
@@ -3178,7 +3178,7 @@
       </p>
 
       <button class="cosmic-btn" onclick="openRechargeFromMain()"
-        style="width: 100%; padding: 16px; border-radius: 12px; font-weight: bold; font-size: 1.1rem; border:none; background: #166534; color:white;">
+        style="width: 100%; padding: 16px; border-radius: 12px; font-weight: bold; font-size: 1.1rem; border:none; background: #E1353C; color:white;">
         <i class="fas fa-plus-circle"></i> Add Money
       </button>
     </div>
@@ -4515,7 +4515,7 @@
                     <i class="fas fa-times"></i>
                 </button>
 
-                <div style="background: linear-gradient(135deg, #166534 0%, #0F766E 100%); padding: 40px 20px 25px 20px; text-align: center; color: white;">
+                <div style="background: linear-gradient(135deg, #E1353C 0%, #B71C1C 100%); padding: 40px 20px 25px 20px; text-align: center; color: white;">
                     <div style="position: relative; width: 90px; height: 90px; margin: 0 auto 12px auto;">
                         <img src="${astro.image || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(astro.name) + '&background=random'}" 
                              style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 3px solid #ffffff; box-shadow: 0 4px 10px rgba(0,0,0,0.15);">
@@ -4532,11 +4532,11 @@
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; background: #f8fafc; padding: 12px; border-radius: 12px; border: 1px solid #f1f5f9;">
                         <div style="text-align: center;">
                             <span style="display: block; font-size: 0.75rem; color: #6b7280; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Experience</span>
-                            <span style="font-size: 0.95rem; font-weight: 700; color: #166534;">${astro.experience || 0} Years</span>
+                            <span style="font-size: 0.95rem; font-weight: 700; color: #E1353C;">${astro.experience || 0} Years</span>
                         </div>
                         <div style="text-align: center; border-left: 1px solid #e2e8f0;">
                             <span style="display: block; font-size: 0.75rem; color: #6b7280; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Orders</span>
-                            <span style="font-size: 0.95rem; font-weight: 700; color: #166534;">${astro.orderCount || 0}+ calls</span>
+                            <span style="font-size: 0.95rem; font-weight: 700; color: #E1353C;">${astro.orderCount || 0}+ calls</span>
                         </div>
                     </div>
 
@@ -4554,7 +4554,7 @@
                         ${astro.isChatOnline ? `
                             <button onclick="document.getElementById('astro-profile-modal').remove(); checkGuestAction('chat', '${astro.userId}')" style="
                                 flex: 1; height: 42px; border: none; border-radius: 8px;
-                                background: linear-gradient(135deg, #166534 0%, #15803D 100%);
+                                background: linear-gradient(135deg, #E1353C 0%, #C62828 100%);
                                 color: white; font-weight: 700; font-size: 0.9rem;
                                 cursor: pointer; box-shadow: 0 4px 10px rgba(22, 101, 52, 0.2);
                             ">
@@ -4565,7 +4565,7 @@
                         ${astro.isAudioOnline ? `
                             <button onclick="document.getElementById('astro-profile-modal').remove(); checkGuestAction('call', '${astro.userId}')" style="
                                 flex: 1; height: 42px; border: none; border-radius: 8px;
-                                background: linear-gradient(135deg, #166534 0%, #15803D 100%);
+                                background: linear-gradient(135deg, #E1353C 0%, #C62828 100%);
                                 color: white; font-weight: 700; font-size: 0.9rem;
                                 cursor: pointer; box-shadow: 0 4px 10px rgba(22, 101, 52, 0.2);
                             ">
@@ -4576,7 +4576,7 @@
                         ${astro.isVideoOnline ? `
                             <button onclick="document.getElementById('astro-profile-modal').remove(); checkGuestAction('video', '${astro.userId}')" style="
                                 flex: 1; height: 42px; border: none; border-radius: 8px;
-                                background: linear-gradient(135deg, #166534 0%, #15803D 100%);
+                                background: linear-gradient(135deg, #E1353C 0%, #C62828 100%);
                                 color: white; font-weight: 700; font-size: 0.9rem;
                                 cursor: pointer; box-shadow: 0 4px 10px rgba(22, 101, 52, 0.2);
                             ">
@@ -4851,7 +4851,7 @@
               <div class="slide-cta" onclick="document.getElementById('astroList').scrollIntoView({behavior:'smooth'})">Book Now <i class="fas fa-arrow-right"></i></div>
             </div>
           </div>
-          <div class="home-slide" style="background: linear-gradient(135deg, #166534 0%, #0F766E 100%);">
+          <div class="home-slide" style="background: linear-gradient(135deg, #E1353C 0%, #B71C1C 100%);">
             <div class="slide-content">
               <div class="slide-title">Find Your Soulmate</div>
               <div class="slide-subtitle">Vedic Compatibility</div>
@@ -5370,7 +5370,7 @@
               let statusLabel = `<span style="color:#F59E0B; font-weight:bold;">PENDING</span>`;
               let bgColor = '#FFFBEB';
               if (w.status === 'approved') {
-                statusLabel = `<span style="color:#166534; font-weight:bold;">APPROVED</span>`;
+                statusLabel = `<span style="color:#E1353C; font-weight:bold;">APPROVED</span>`;
                 bgColor = '#EFF6FF';
               } else if (w.status === 'rejected') {
                 statusLabel = `<span style="color:#DC2626; font-weight:bold;">REJECTED</span>`;
@@ -5613,7 +5613,7 @@
                </div>
                <div style="display:flex; flex-direction:column; align-items:flex-end;">
                   <span style="font-size:0.7rem; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px;">${amountLabel}</span>
-                  <span style="font-size:1.1rem; font-weight:800; color:${isAstro ? '#166534' : '#1e3a8a'};">₹${amount.toFixed(2)}</span>
+                  <span style="font-size:1.1rem; font-weight:800; color:${isAstro ? '#E1353C' : '#1e3a8a'};">₹${amount.toFixed(2)}</span>
                </div>
             </div>
           `;
@@ -7242,7 +7242,7 @@
                 </div>
              </div>
              <div style="background:#f0fdfa; padding:10px; border-radius:10px; border:1px solid #ccfbf1;">
-                <div style="font-size:0.7rem; color:#0f766e; font-weight:bold; text-transform:uppercase;">${t('Dasha Sandhi')}</div>
+                <div style="font-size:0.7rem; color:#B71C1C; font-weight:bold; text-transform:uppercase;">${t('Dasha Sandhi')}</div>
                 <div style="font-size:0.75rem; margin-top:4px;">
                   ${m.sandhi?.hasSandhi ? '⚠️ ' + t('Overlap') : '✅ ' + t('No Overlap')}
                 </div>
@@ -7577,7 +7577,7 @@
             </div>
           ` : ''}
           <!-- Lagna Section -->
-          <div style="background:linear-gradient(135deg, #0F766E 0%, #166534 100%); color:white; padding:15px; border-radius:12px; margin-bottom:15px;">
+          <div style="background:linear-gradient(135deg, #B71C1C 0%, #E1353C 100%); color:white; padding:15px; border-radius:12px; margin-bottom:15px;">
             <div style="font-size:0.8rem; opacity:0.9; margin-bottom:5px;">🌟 ${t('Ascendant')}</div>
             <div style="font-size:1.5rem; font-weight:bold;">${t(d.houses?.ascendantDetails?.signName) || 'N/A'}</div>
             <div style="font-size:0.8rem; margin-top:5px;">${t('Nakshatra')}: ${t(d.houses?.ascendantDetails?.nakshatra) || 'N/A'}</div>
@@ -7903,7 +7903,7 @@
 
       // 1. Lagna & Panchangam Header
       html += `
-        <div style="background:linear-gradient(135deg, #0F766E 0%, #166534 100%); color:white; padding:15px; border-radius:12px; margin-bottom:15px; box-shadow:0 10px 15px -3px rgba(4,120,87,0.2);">
+        <div style="background:linear-gradient(135deg, #B71C1C 0%, #E1353C 100%); color:white; padding:15px; border-radius:12px; margin-bottom:15px; box-shadow:0 10px 15px -3px rgba(4,120,87,0.2);">
           <div style="display:flex; justify-content:space-between; align-items:center;">
              <div>
                 <div style="font-size:0.8rem; opacity:0.9;">🌟 ${t('Ascendant')}</div>
@@ -8478,7 +8478,7 @@
 
           listEl.innerHTML = res.data.map(txn => {
             const date = new Date(txn.createdAt).toLocaleDateString() + ' ' + new Date(txn.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const statusColor = txn.status === 'success' ? '#166534' : (txn.status === 'failed' ? '#DC2626' : '#D97706');
+            const statusColor = txn.status === 'success' ? '#E1353C' : (txn.status === 'failed' ? '#DC2626' : '#D97706');
             const icon = txn.status === 'success' ? 'fa-check-circle' : (txn.status === 'failed' ? 'fa-times-circle' : 'fa-clock');
 
             return `
@@ -8956,7 +8956,7 @@
       style="background: var(--bg-card); border-radius:15px; width:90%; max-width:350px; text-align:center; padding:30px; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
       <h2 style="color:#111; margin-bottom:10px;">Session Summary</h2>
       <!-- <div id="summaryText" style="font-size:1.2rem; color:var(--text-muted); margin-bottom:20px;"></div> -->
-      <div class="summary-amount" style="font-size:2rem; font-weight:bold; color: #166534; margin-bottom:30px;"></div>
+      <div class="summary-amount" style="font-size:2rem; font-weight:bold; color: #E1353C; margin-bottom:30px;"></div>
       <button onclick="closeSummaryModal()" class="btn-primary"
         style="width:100%; padding: 12px; font-size:1rem; border-radius:10px; border:none; background:#2563EB; color:white; font-weight:bold;">Okay</button>
     </div>
@@ -9004,7 +9004,7 @@
             <input type="text" id="inputReferralCode" class="cosmic-input" placeholder="Enter Code"
               style="margin:0; text-align:center; flex:1; height:45px; border-radius:12px; font-weight:700; border: 1px solid #ddd;">
             <button class="cosmic-btn" onclick="applyReferral()"
-              style="width: auto; margin:0; padding: 0 20px; height:45px; border-radius:12px; border:none; background: #166534; color:white; font-weight:bold;">Claim</button>
+              style="width: auto; margin:0; padding: 0 20px; height:45px; border-radius:12px; border:none; background: #E1353C; color:white; font-weight:bold;">Claim</button>
           </div>
         </div>
       </div>
@@ -9879,14 +9879,14 @@
       font-family: 'Playfair Display', serif;
       font-size: 1.4rem;
       font-weight: 700;
-      color: #166534;
+      color: #E1353C;
       /* Gold Name */
       margin: 0;
       letter-spacing: 0.5px;
     }
 
     .verified-gold {
-      color: #166534;
+      color: #E1353C;
       font-size: 1rem;
       filter: drop-shadow(0 0 5px rgba(212, 175, 55, 0.4));
     }
@@ -10002,7 +10002,7 @@
     .btn-premium-chat:hover {
       background: var(--primary);
       color: #000;
-      box-shadow: 0 4px 10px rgba(255, 127, 0, 0.2);
+      box-shadow: 0 4px 10px rgba(225, 53, 60, 0.2);
     }
 
     .btn-premium-call.disabled,
@@ -10079,7 +10079,7 @@
       display: block;
       width: 120px;
       padding: 8px 0;
-      background: linear-gradient(135deg, #166534 0%, #D4AF37 100%);
+      background: linear-gradient(135deg, #E1353C 0%, #D4AF37 100%);
       box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
       color: #000;
       font: 700 0.65rem 'Outfit', sans-serif;

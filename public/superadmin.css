@@ -9,7 +9,7 @@
     --bg-glass: rgba(255, 255, 255, 0.9);
     --bg-glass-heavy: rgba(255, 255, 255, 0.98);
 
-    --primary: #166534;
+    --primary: #E1353C;
     /* Deep Forest Green */
     --primary-rgb: 22, 101, 52;
     --primary-glow: rgba(22, 101, 52, 0.15);
@@ -29,7 +29,7 @@
 
     --border-soft: #E5E7EB;
     --border-medium: #CBD5E1;
-    --border-accent: #166534;
+    --border-accent: #E1353C;
 
     --radius-lg: 16px;
     --radius-md: 12px;

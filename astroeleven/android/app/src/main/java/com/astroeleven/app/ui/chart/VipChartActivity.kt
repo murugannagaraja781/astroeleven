@@ -46,7 +46,7 @@ import org.json.JSONObject
 // --- Aesthetic Constants (Premium Light Theme) ---
 val ParchmentBase = Color(0xFFFCF6F0) // Light Cream
 val ParchmentLight = Color(0xFFFFFFFF) // White
-val ChocolateBrown = Color(0xFFFF7F00) // Brand Orange
+val ChocolateBrown = Color(0xFFE1353C) // Brand Red
 val BorderColor = Color(0xFFE0D5C9)
 val ChartLineColor = Color(0xFFD4B99F).copy(alpha = 0.8f)
 
@@ -660,7 +660,7 @@ fun DashaNodeInternal(period: DashaPeriod) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(if (isCurrent) Color(0xFFFF7F00).copy(alpha = 0.1f) else Color.Transparent)
+                .background(if (isCurrent) Color(0xFFE1353C).copy(alpha = 0.1f) else Color.Transparent)
                 .clickable(enabled = hasSub) { expanded = !expanded }
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically

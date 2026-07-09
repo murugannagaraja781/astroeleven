@@ -53,9 +53,9 @@
       --bg-glass: rgba(255, 253, 249, 0.85);
       --bg-glass-heavy: rgba(255, 255, 255, 0.95);
 
-      --primary: #166534;
+      --primary: #E1353C;
       --primary-rgb: 255, 127, 0;
-      --primary-glow: rgba(255, 127, 0, 0.1);
+      --primary-glow: rgba(225, 53, 60, 0.1);
 
       --accent: #E5A900;
       --accent-rgb: 229, 169, 0;
@@ -66,17 +66,17 @@
       --text-muted: #8E7C6E;
       --text-dim: #A89687;
 
-      --border-soft: rgba(255, 127, 0, 0.08);
-      --border-medium: rgba(255, 127, 0, 0.15);
-      --border-accent: rgba(255, 127, 0, 0.3);
+      --border-soft: rgba(225, 53, 60, 0.08);
+      --border-medium: rgba(225, 53, 60, 0.15);
+      --border-accent: rgba(225, 53, 60, 0.3);
 
       --radius-lg: 16px;
       --radius-md: 12px;
       --radius-sm: 8px;
 
       --glass-blur: blur(12px);
-      --shadow-glow: 0 4px 20px rgba(255, 127, 0, 0.05);
-      --shadow-elevation: 0 10px 40px -10px rgba(255, 127, 0, 0.08);
+      --shadow-glow: 0 4px 20px rgba(225, 53, 60, 0.05);
+      --shadow-elevation: 0 10px 40px -10px rgba(225, 53, 60, 0.08);
 
       --font-heading: 'Poppins', sans-serif;
       --font-body: 'Poppins', sans-serif;
@@ -4183,7 +4183,7 @@
                     <i class="fas fa-times"></i>
                 </button>
 
-                <div style="background: linear-gradient(135deg, #166534 0%, #0F766E 100%); padding: 40px 20px 25px 20px; text-align: center; color: white;">
+                <div style="background: linear-gradient(135deg, #E1353C 0%, #B71C1C 100%); padding: 40px 20px 25px 20px; text-align: center; color: white;">
                     <div style="position: relative; width: 90px; height: 90px; margin: 0 auto 12px auto;">
                         <img src="${astro.image || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(astro.name) + '&background=random'}" 
                              style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 3px solid #ffffff; box-shadow: 0 4px 10px rgba(0,0,0,0.15);">
@@ -4200,11 +4200,11 @@
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; background: #f8fafc; padding: 12px; border-radius: 12px; border: 1px solid #f1f5f9;">
                         <div style="text-align: center;">
                             <span style="display: block; font-size: 0.75rem; color: #6b7280; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Experience</span>
-                            <span style="font-size: 0.95rem; font-weight: 700; color: #166534;">${astro.experience || 0} Years</span>
+                            <span style="font-size: 0.95rem; font-weight: 700; color: #E1353C;">${astro.experience || 0} Years</span>
                         </div>
                         <div style="text-align: center; border-left: 1px solid #e2e8f0;">
                             <span style="display: block; font-size: 0.75rem; color: #6b7280; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Orders</span>
-                            <span style="font-size: 0.95rem; font-weight: 700; color: #166534;">${astro.orderCount || 0}+ calls</span>
+                            <span style="font-size: 0.95rem; font-weight: 700; color: #E1353C;">${astro.orderCount || 0}+ calls</span>
                         </div>
                     </div>
 
@@ -4222,7 +4222,7 @@
                         ${astro.isChatOnline ? `
                             <button onclick="document.getElementById('astro-profile-modal').remove(); checkGuestAction('chat', '${astro.userId}')" style="
                                 flex: 1; height: 42px; border: none; border-radius: 8px;
-                                background: linear-gradient(135deg, #166534 0%, #15803D 100%);
+                                background: linear-gradient(135deg, #E1353C 0%, #C62828 100%);
                                 color: white; font-weight: 700; font-size: 0.9rem;
                                 cursor: pointer; box-shadow: 0 4px 10px rgba(22, 101, 52, 0.2);
                             ">
@@ -4233,7 +4233,7 @@
                         ${astro.isAudioOnline ? `
                             <button onclick="document.getElementById('astro-profile-modal').remove(); checkGuestAction('call', '${astro.userId}')" style="
                                 flex: 1; height: 42px; border: none; border-radius: 8px;
-                                background: linear-gradient(135deg, #166534 0%, #15803D 100%);
+                                background: linear-gradient(135deg, #E1353C 0%, #C62828 100%);
                                 color: white; font-weight: 700; font-size: 0.9rem;
                                 cursor: pointer; box-shadow: 0 4px 10px rgba(22, 101, 52, 0.2);
                             ">
@@ -4244,7 +4244,7 @@
                         ${astro.isVideoOnline ? `
                             <button onclick="document.getElementById('astro-profile-modal').remove(); checkGuestAction('video', '${astro.userId}')" style="
                                 flex: 1; height: 42px; border: none; border-radius: 8px;
-                                background: linear-gradient(135deg, #166534 0%, #15803D 100%);
+                                background: linear-gradient(135deg, #E1353C 0%, #C62828 100%);
                                 color: white; font-weight: 700; font-size: 0.9rem;
                                 cursor: pointer; box-shadow: 0 4px 10px rgba(22, 101, 52, 0.2);
                             ">
@@ -7629,7 +7629,7 @@
                 </div>
              </div>
              <div style="background:#f0fdfa; padding:10px; border-radius:10px; border:1px solid #ccfbf1;">
-                <div style="font-size:0.7rem; color:#0f766e; font-weight:bold; text-transform:uppercase;">${t('Dasha Sandhi')}</div>
+                <div style="font-size:0.7rem; color:#B71C1C; font-weight:bold; text-transform:uppercase;">${t('Dasha Sandhi')}</div>
                 <div style="font-size:0.75rem; margin-top:4px;">
                   ${m.sandhi?.hasSandhi ? '⚠️ ' + t('Overlap') : '✅ ' + t('No Overlap')}
                 </div>

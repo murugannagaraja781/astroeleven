@@ -212,7 +212,7 @@ fun SplashScreen() {
             Spacer(modifier = Modifier.height(32.dp))
 
             CircularProgressIndicator(
-                color = Color(0xFFFF7F00)
+                color = Color(0xFFE1353C)
             )
         }
     }

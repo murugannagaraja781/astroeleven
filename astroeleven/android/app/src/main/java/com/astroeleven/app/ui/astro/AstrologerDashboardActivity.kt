@@ -419,17 +419,17 @@ fun AstrologerDashboardScreen(
 
     val colors = remember {
         object {
-            val accent = Color(0xFFFF7A00) // Brand Orange
-            val goldAccent = Color(0xFFFFB800) // Bright Gold/Yellow
-            val cardBg = Color(0xFFFFFFFF) // White Glass
-            val cardStroke = Color(0xFFFF7A00).copy(alpha = 0.15f) // Soft Orange Border
-            val textPrimary = Color(0xFF2E1A0F) // Deep Coffee Black
-            val textSecondary = Color(0xFF8C7364) // Warm Cocoa Secondary
+            val accent = Color(0xFFE1353C) // Brand Red
+            val goldAccent = Color(0xFFFDBA16) // Brand Gold
+            val cardBg = Color(0xFFFFFFFF) // White Card
+            val cardStroke = Color(0xFFE1353C).copy(alpha = 0.15f) // Soft Red Border
+            val textPrimary = Color(0xFF1A1A1A) // Near Black
+            val textSecondary = Color(0xFF616161) // Slate Gray
             val headerGradient = Brush.verticalGradient(
-                colors = listOf(Color(0xFFFF7A00), Color(0xFFFF9E00)) // Warm Golden Orange
+                colors = listOf(Color(0xFFE1353C), Color(0xFFB71C1C)) // Red Gradient
             )
             val bgGradient = Brush.verticalGradient(
-                colors = listOf(Color(0xFFFEF9F3), Color(0xFFFFF3E0)) // Soft Cream to Warm Amber
+                colors = listOf(Color(0xFFFCFCFC), Color(0xFFFFFFFF)) // Light background gradient
             )
         }
     }

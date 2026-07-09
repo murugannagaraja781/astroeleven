@@ -619,7 +619,7 @@ fun IncomingCallScreen(
     )
 
     val orangeBrush = androidx.compose.ui.graphics.Brush.verticalGradient(
-        colors = listOf(Color(0xFFFF9800), Color(0xFFF57C00), Color(0xFFE65100))
+        colors = listOf(Color(0xFFE1353C), Color(0xFFC62828), Color(0xFFB71C1C))
     )
 
     Box(

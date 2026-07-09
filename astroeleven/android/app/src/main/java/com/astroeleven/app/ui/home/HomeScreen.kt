@@ -896,7 +896,12 @@ fun LazyListScope.HomeTab(
     onViewAllClick: () -> Unit,
     onAction: (String) -> Unit
 ) {
-    // 1. Unified Banner Slider (Referral Poster + Dynamic Banners)
+    // 1. Services Section (Top Icons - Horoscope, Match, etc.)
+    item {
+        TopServicesSection(services, isTamil)
+    }
+
+    // 2. Unified Banner Slider (Referral Poster + Dynamic Banners)
     item {
         BannerSection(
             banners = banners,
@@ -908,34 +913,32 @@ fun LazyListScope.HomeTab(
         )
     }
 
-    // 2. Services Section (Top Icons - Horoscope, Match, etc.)
+    // 2.5 12 Rasi Palan Daily Horoscope Grid Grid (banner below)
     item {
-        TopServicesSection(services, isTamil)
+        RasiGridSection(isTamil, onRasiClick)
     }
 
-
-
-
-    // 3. Quick Action Section (Chat, Call, Video) commented out
-    /*
-    item {
-        QuickActionsSection(isTamil) { action ->
-            onAction(action)
-        }
-    }
-    */
-
+    // 3. Live Astrologers
     item {
         LiveAstrologersSection(filteredAstros, onAstroClick, onViewAllClick, isTamil)
     }
 
+    // 4. Must Try Astrologers list showing all astrologers
     item {
         Spacer(modifier = Modifier.height(8.dp))
-        if (isLoading) AstrologerShimmerItem()
-        else {
-            filteredAstros.firstOrNull()?.let { astro ->
-                AstrologerCard(astro, { onChatClick(it) }, { a, t -> onCallClick(a, t) }, 0, isTamil, selectedFilter)
-            }
+        Text(
+            text = if (isTamil) "முயற்சி செய்ய வேண்டிய ஜோதிடர்கள்" else "Must Try Astrologers",
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
+            color = CosmicAppTheme.colors.textPrimary,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+    }
+
+    if (isLoading) {
+        item { AstrologerShimmerItem() }
+    } else {
+        items(filteredAstros) { astro ->
+            AstrologerCard(astro, { onChatClick(it) }, { a, t -> onCallClick(a, t) }, 0, isTamil, selectedFilter)
         }
     }
 
@@ -1024,29 +1027,16 @@ fun LiveAstrologersSection(
 
 @Composable
 fun LiveAstroStoryItem(astro: Astrologer, onClick: () -> Unit) {
-    // Animated gradient ring (Instagram/WhatsApp status style)
-    val infiniteTransition = rememberInfiniteTransition(label = "storyRing")
-    val angle by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
+    val whatsappGreen = Color(0xFF25D366)
+    val scalePulse = rememberInfiniteTransition(label = "whatsappRing")
+    val pulseAlpha by scalePulse.animateFloat(
+        initialValue = 0.5f,
+        targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 3000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
+            animation = tween(1500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
         ),
-        label = "ringAngle"
-    )
-
-    // Story ring gradient colors (Instagram-style)
-    val storyGradient = Brush.sweepGradient(
-        colors = listOf(
-            Color(0xFFFF6B6B),
-            Color(0xFFFF9F43),
-            Color(0xFFFFD32A),
-            Color(0xFF2ecc71),
-            Color(0xFF3498db),
-            Color(0xFF9b59b6),
-            Color(0xFFFF6B6B)
-        )
+        label = "pulseAlpha"
     )
 
     Column(
@@ -1059,12 +1049,12 @@ fun LiveAstroStoryItem(astro: Astrologer, onClick: () -> Unit) {
             contentAlignment = Alignment.Center,
             modifier = Modifier.size(72.dp)
         ) {
-            // Animated gradient ring
+            // Pulse outer ring (WhatsApp status style)
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(CircleShape)
-                    .background(storyGradient)
+                    .background(whatsappGreen.copy(alpha = pulseAlpha))
             )
             // White gap between ring and image
             Box(
@@ -1078,7 +1068,7 @@ fun LiveAstroStoryItem(astro: Astrologer, onClick: () -> Unit) {
                 model = getImageUrl(astro.image),
                 contentDescription = astro.name,
                 modifier = Modifier
-                    .size(62.dp)
+                    .size(60.dp)
                     .clip(CircleShape),
                 contentScale = ContentScale.Crop,
                 error = painterResource(id = com.astroeleven.app.R.drawable.ic_person_placeholder),
@@ -1090,8 +1080,8 @@ fun LiveAstroStoryItem(astro: Astrologer, onClick: () -> Unit) {
                     .align(Alignment.BottomCenter)
                     .offset(y = 4.dp)
                     .clip(RoundedCornerShape(4.dp))
-                    .background(Color(0xFFFF3B30))
-                    .padding(horizontal = 5.dp, vertical = 1.dp)
+                    .background(whatsappGreen)
+                    .padding(horizontal = 6.dp, vertical = 2.dp)
             ) {
                 Text(
                     "LIVE",
@@ -1775,33 +1765,7 @@ fun HomeTopBar(
             }
         }
 
-        // Row 2: Capsule Search Bar (directly below, matching search icon on right)
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = onSearchQueryChange,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            placeholder = { Text(if (isTamil) "தேடுக..." else "Search...", color = Color.Gray, fontSize = 14.sp) },
-            trailingIcon = {
-                Icon(
-                    imageVector = Icons.Rounded.Search,
-                    contentDescription = null,
-                    tint = Color.Gray,
-                    modifier = Modifier.size(20.dp)
-                )
-            },
-            shape = RoundedCornerShape(50), // Capsule shape
-            singleLine = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White,
-                focusedBorderColor = Color(0xFFCCCCCC),
-                unfocusedBorderColor = Color(0xFFE0E0E0),
-                focusedTextColor = Color.Black,
-                unfocusedTextColor = Color.Black
-            )
-        )
+        // Row 2: Capsule Search Bar removed per user request
     }
 }
 
@@ -2905,8 +2869,8 @@ fun ServiceItem(name: String, icon: String, onClick: () -> Unit) {
     ) {
         Card(
             shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            border = BorderStroke(1.dp, Color(0xFFF0F0F0)),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFDF8)),
+            border = BorderStroke(1.dp, CosmicAppTheme.colors.accent.copy(alpha = 0.25f)),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
             modifier = Modifier.size(64.dp)
         ) {

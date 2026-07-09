@@ -124,7 +124,7 @@ fun ModernSummaryDialog(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFFFF7F00),
+                            focusedBorderColor = Color(0xFFE1353C),
                             unfocusedBorderColor = Color(0xFFE9ECEF)
                         ),
                         maxLines = 3
@@ -155,7 +155,7 @@ fun ModernSummaryDialog(
                     },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF7F00))
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE1353C))
                 ) {
                     Text(buttonText, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }

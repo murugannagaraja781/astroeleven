@@ -3,8 +3,8 @@
     --bg-dark: #F8FAFC; /* Slate Ice White Bg */
     --bg-card: #FFFFFF; /* Slate Surface */
     --bg-glass: rgba(248, 250, 252, 0.85); /* Transparent Glass */
-    --primary: #166534; /* Forest Green */
-    --primary-glow: rgba(22, 101, 52, 0.08);
+    --primary: #E1353C; /* Forest Green */
+    --primary-glow: rgba(225, 53, 60, 0.08);
     --accent: #D4AF37; /* Gold Accent */
     --gold: rgba(212, 175, 55, 0.08);
     --gold-glow: rgba(212, 175, 55, 0.01);
@@ -14,8 +14,8 @@
     --text-muted: #475569; /* Slate secondary text */
     --success: #16A34A;
     --danger: #DC2626;
-    --astral-blue: #0F766E; /* Teal */
-    --astral-purple: #15803D; /* Primary Hover Green */
+    --astral-blue: #B71C1C; /* Teal */
+    --astral-purple: #C62828; /* Primary Hover Green */
     --font-family: 'Outfit', sans-serif;
     --nav-height-mobile: 80px;
     --header-height-desktop: 70px;

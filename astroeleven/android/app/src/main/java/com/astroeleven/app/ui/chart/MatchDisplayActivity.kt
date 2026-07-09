@@ -140,27 +140,27 @@ class MatchDisplayActivity : ComponentActivity() {
                     body {
                         font-family: 'Inter', sans-serif;
                         padding: 16px;
-                        background-color: #0B0805;
-                        color: #F5F2F0;
+                        background-color: #FCFCFC;
+                        color: #1A1A1A;
                         line-height: 1.5;
                         margin: 0;
                     }
                     .card {
-                        background: #1C140E;
+                        background: #FFFFFF;
                         padding: 20px;
                         border-radius: 20px;
-                        border: 1px solid #3E2723;
+                        border: 1px solid #E2E8F0;
                         margin-bottom: 20px;
-                        box-shadow: 0 8px 25px rgba(0,0,0,0.6);
+                        box-shadow: 0 4px 20px rgba(0,0,0,0.06);
                     }
                     h2 { 
-                        color: #FF7F00; 
+                        color: #E1353C; 
                         text-align: center; 
                         font-weight: 600; 
                         margin-top: 0; 
                         font-size: 18px;
                         letter-spacing: 0.5px; 
-                        border-bottom: 1px solid rgba(255,127,0,0.2); 
+                        border-bottom: 1px solid rgba(225,53,60,0.15); 
                         padding-bottom: 12px; 
                         text-transform: uppercase;
                     }
@@ -168,29 +168,29 @@ class MatchDisplayActivity : ComponentActivity() {
                         text-align: center;
                         font-size: 42px;
                         font-weight: 800;
-                        color: #FF7F00;
+                        color: #E1353C;
                         margin: 20px 0;
                         padding: 15px;
-                        background: rgba(255,127,0,0.05);
+                        background: rgba(225,53,60,0.05);
                         border-radius: 16px;
-                        border: 1px solid rgba(255,127,0,0.3);
+                        border: 1px solid rgba(225,53,60,0.2);
                     }
                     .info-row {
                         display: flex;
                         justify-content: space-between;
                         padding: 12px 0;
-                        border-bottom: 1px solid rgba(165,139,116,0.1);
+                        border-bottom: 1px solid rgba(165,139,116,0.15);
                     }
-                    .info-label { color: #A58B74; font-size: 13px; }
-                    .info-value { font-weight: 600; color: #FF7F00; font-size: 14px; }
+                    .info-label { color: #616161; font-size: 13px; }
+                    .info-value { font-weight: 600; color: #E1353C; font-size: 14px; }
 
                     table { width: 100%; border-collapse: separate; border-spacing: 0 8px; margin-top: 10px; }
                     td {
-                        background: #0B0805;
+                        background: #F9FAFB;
                         padding: 14px;
                         border-radius: 12px;
                         font-size: 13px;
-                        border: 1px solid #3E2723;
+                        border: 1px solid #E5E7EB;
                     }
                     .good { color: #4CAF50; font-weight: 600; }
                     .bad { color: #EF5350; font-weight: 600; }
@@ -223,7 +223,7 @@ class MatchDisplayActivity : ComponentActivity() {
                 <div class="card">
                     <h2>திருமணப் பொருத்தம்</h2>
                     <div id="content">
-                        <div style="text-align:center; padding: 40px; color: #A58B74;">நட்சத்திரங்களை ஆய்வு செய்கிறது...</div>
+                        <div style="text-align:center; padding: 40px; color: #616161;">நட்சத்திரங்களை ஆய்வு செய்கிறது...</div>
                     </div>
                 </div>
 
