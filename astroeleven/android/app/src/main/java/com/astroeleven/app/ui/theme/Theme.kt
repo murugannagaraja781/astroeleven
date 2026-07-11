@@ -3,6 +3,8 @@ package com.astroeleven.app.ui.theme
 import android.app.Activity
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -100,18 +102,36 @@ fun CosmicAppTheme(
     CompositionLocalProvider(
         LocalThemeColors provides pageColors
     ) {
+        val baseColorScheme = if (isDark) {
+            darkColorScheme(
+                primary = pageColors.accent,
+                onPrimary = Color.White,
+                secondary = pageColors.accent,
+                onSecondary = Color.White,
+                background = currentBgStart,
+                onBackground = pageColors.textPrimary,
+                surface = pageColors.cardBg,
+                onSurface = pageColors.textPrimary,
+                outline = pageColors.cardStroke
+            )
+        } else {
+            lightColorScheme(
+                primary = pageColors.accent,
+                onPrimary = Color.White,
+                secondary = pageColors.accent,
+                onSecondary = Color.White,
+                background = currentBgStart,
+                onBackground = pageColors.textPrimary,
+                surface = pageColors.cardBg,
+                onSurface = pageColors.textPrimary,
+                outline = pageColors.cardStroke
+            )
+        }
+
         MaterialTheme(
-             colorScheme = (if (isDark) androidx.compose.material3.darkColorScheme() else androidx.compose.material3.lightColorScheme()).copy(
-                 primary = pageColors.accent,
-                 secondary = pageColors.accent,
-                 background = currentBgStart,
-                 surface = pageColors.cardBg,
-                 onPrimary = Color.White,
-                 onSecondary = Color.White,
-                 onBackground = pageColors.textPrimary,
-                 onSurface = pageColors.textPrimary,
-                 outline = pageColors.cardStroke
-             ),
+             colorScheme = baseColorScheme,
+             typography = Typography, // Loaded from Type.kt
+             shapes = Shapes,         // Loaded from Shapes.kt
              content = content
         )
     }

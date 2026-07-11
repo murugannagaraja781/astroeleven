@@ -236,15 +236,15 @@ fun FreeHoroscopeScreen(
                         )
 
                         val textFieldColors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White, 
-                            unfocusedTextColor = Color.White,
-                            disabledTextColor = Color.White,
+                            focusedTextColor = CosmicAppTheme.colors.textPrimary, 
+                            unfocusedTextColor = CosmicAppTheme.colors.textPrimary,
+                            disabledTextColor = CosmicAppTheme.colors.textSecondary,
                             focusedBorderColor = CosmicAppTheme.colors.accent,
-                            unfocusedBorderColor = Color.White.copy(alpha = 0.3f),
-                            disabledBorderColor = Color.White.copy(alpha = 0.3f),
+                            unfocusedBorderColor = CosmicAppTheme.colors.cardStroke,
+                            disabledBorderColor = CosmicAppTheme.colors.cardStroke.copy(alpha = 0.5f),
                             cursorColor = CosmicAppTheme.colors.accent,
-                            focusedPlaceholderColor = Color.White.copy(alpha = 0.5f),
-                            unfocusedPlaceholderColor = Color.White.copy(alpha = 0.5f)
+                            focusedPlaceholderColor = CosmicAppTheme.colors.textSecondary.copy(alpha = 0.5f),
+                            unfocusedPlaceholderColor = CosmicAppTheme.colors.textSecondary.copy(alpha = 0.5f)
                         )
 
                         OutlinedTextField(

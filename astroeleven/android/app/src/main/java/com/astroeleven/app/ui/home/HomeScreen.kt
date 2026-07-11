@@ -51,6 +51,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -61,6 +62,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.animation.core.*
+import androidx.activity.compose.BackHandler
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
@@ -88,6 +90,122 @@ import com.astroeleven.app.data.local.TokenManager
 import com.astroeleven.app.data.model.Ritual
 import com.astroeleven.app.data.model.GridService
 
+
+@Composable
+fun AstrologyPromoSlide(onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.horizontalGradient(
+                    colors = listOf(Color(0xFF380816), Color(0xFF1E020A))
+                )
+            )
+            .clickable { onClick() }
+    ) {
+        // Decorative gold lines/circle in the background on the right
+        androidx.compose.foundation.Canvas(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .fillMaxHeight()
+                .width(160.dp)
+        ) {
+            val center = Offset(size.width * 0.8f, size.height * 0.5f)
+            val radius = size.height * 0.7f
+            drawCircle(
+                color = Color(0xFFD4A017).copy(alpha = 0.15f),
+                radius = radius,
+                center = center,
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f)
+            )
+            drawCircle(
+                color = Color(0xFFD4A017).copy(alpha = 0.1f),
+                radius = radius * 0.8f,
+                center = center,
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f)
+            )
+            drawCircle(
+                color = Color(0xFFD4A017).copy(alpha = 0.12f),
+                radius = radius * 0.5f,
+                center = center,
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f)
+            )
+            // Draw some radial lines
+            val numLines = 12
+            for (i in 0 until numLines) {
+                val angle = (i * 360f / numLines) * (Math.PI / 180f)
+                val startX = center.x + (radius * 0.5f * Math.cos(angle)).toFloat()
+                val startY = center.y + (radius * 0.5f * Math.sin(angle)).toFloat()
+                val endX = center.x + (radius * Math.cos(angle)).toFloat()
+                val endY = center.y + (radius * Math.sin(angle)).toFloat()
+                drawLine(
+                    color = Color(0xFFD4A017).copy(alpha = 0.08f),
+                    start = Offset(startX, startY),
+                    end = Offset(endX, endY),
+                    strokeWidth = 2f
+                )
+            }
+        }
+
+        // Text & Button Content
+        Column(
+            modifier = Modifier
+                .fillMaxHeight()
+                .fillMaxWidth(0.65f)
+                .padding(start = 20.dp, top = 16.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text(
+                    text = "Unlock the Secrets\nof Your Destiny",
+                    fontFamily = FontFamily.Serif,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 17.sp,
+                    lineHeight = 22.sp,
+                    color = Color(0xFFFFD700) // Gold
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "Accurate Predictions. Trusted Guidance. Better Tomorrow.",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 9.sp,
+                        lineHeight = 11.sp,
+                        fontWeight = FontWeight.Normal
+                    ),
+                    color = Color.White.copy(alpha = 0.8f)
+                )
+            }
+
+            // Button "Talk to Astrologer >"
+            Box(
+                modifier = Modifier
+                    .height(30.dp)
+                    .clip(RoundedCornerShape(15.dp))
+                    .background(Color(0xFFFDBA16))
+                    .padding(horizontal = 12.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Talk to Astrologer",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 10.sp
+                        ),
+                        color = Color(0xFF2B2516)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(
+                        imageVector = Icons.Rounded.ChevronRight,
+                        contentDescription = null,
+                        tint = Color(0xFF2B2516),
+                        modifier = Modifier.size(10.dp)
+                    )
+                }
+            }
+        }
+    }
+}
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -262,6 +380,8 @@ fun HomeScreen(
     var isApplyingReferral by remember { mutableStateOf(false) }
     var selectedLiveAstro by remember { mutableStateOf<Astrologer?>(null) }
     var activeServiceView by remember { mutableStateOf<String?>(null) }
+    var webViewInstance by remember { mutableStateOf<android.webkit.WebView?>(null) }
+    var isWebLoading by remember { mutableStateOf(true) }
 
     // Dynamic Share Link State (Placeholder until configured in Admin Dashboard)
     var shareLink by remember { mutableStateOf("https://astroeleven.com") }
@@ -671,45 +791,86 @@ fun HomeScreen(
             .background(appBackgroundColor)
         ) {
             if (selectedTab == 2) {
-                androidx.compose.ui.viewinterop.AndroidView(
-                    factory = { context ->
-                        android.webkit.WebView(context).apply {
-                            settings.javaScriptEnabled = true
-                            settings.domStorageEnabled = true
-                            settings.useWideViewPort = true
-                            settings.loadWithOverviewMode = true
-                            settings.builtInZoomControls = true
-                            settings.displayZoomControls = false
-                            settings.setSupportZoom(true)
-                            settings.allowFileAccess = true
-                            settings.databaseEnabled = true
-                            settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                            
-                            // Set mobile user agent to force mobile touch layout
-                            settings.userAgentString = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36 AstroApp"
-                            
-                            isVerticalScrollBarEnabled = true
-                            isHorizontalScrollBarEnabled = false
-                            
-                            // Enable focus on touch to ensure Compose does not intercept drag scroll gestures
-                            setOnTouchListener { v, event ->
-                                v.requestFocus()
-                                false
-                            }
-                            
-                            webViewClient = object : android.webkit.WebViewClient() {
-                                override fun shouldOverrideUrlLoading(
-                                    view: android.webkit.WebView?,
-                                    request: android.webkit.WebResourceRequest?
-                                ): Boolean {
-                                    return false // Keep navigation inside app webview
+                BackHandler(enabled = true) {
+                    if (webViewInstance?.canGoBack() == true) {
+                        webViewInstance?.goBack()
+                    } else {
+                        selectedTab = 0
+                    }
+                }
+
+                Box(modifier = Modifier.fillMaxSize()) {
+                    androidx.compose.ui.viewinterop.AndroidView(
+                        factory = { context ->
+                            android.webkit.WebView(context).apply {
+                                settings.javaScriptEnabled = true
+                                settings.domStorageEnabled = true
+                                settings.useWideViewPort = true
+                                settings.loadWithOverviewMode = true
+                                settings.builtInZoomControls = true
+                                settings.displayZoomControls = false
+                                settings.setSupportZoom(true)
+                                settings.allowFileAccess = true
+                                settings.databaseEnabled = true
+                                settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+
+                                // Accept cookies for login session persistence
+                                val cookieManager = android.webkit.CookieManager.getInstance()
+                                cookieManager.setAcceptCookie(true)
+                                cookieManager.setAcceptThirdPartyCookies(this, true)
+
+                                // Set mobile user agent
+                                settings.userAgentString = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36 AstroApp"
+
+                                isVerticalScrollBarEnabled = true
+                                isHorizontalScrollBarEnabled = false
+
+                                setOnTouchListener { v, event ->
+                                    v.requestFocus()
+                                    false
                                 }
+
+                                webViewClient = object : android.webkit.WebViewClient() {
+                                    override fun onPageStarted(view: android.webkit.WebView?, url: String?, favicon: android.graphics.Bitmap?) {
+                                        isWebLoading = true
+                                    }
+
+                                    override fun onPageFinished(view: android.webkit.WebView?, url: String?) {
+                                        isWebLoading = false
+                                    }
+
+                                    override fun shouldOverrideUrlLoading(
+                                        view: android.webkit.WebView?,
+                                        request: android.webkit.WebResourceRequest?
+                                    ): Boolean {
+                                        return false // Keep inside WebView
+                                    }
+                                }
+
+                                webChromeClient = object : android.webkit.WebChromeClient() {
+                                    override fun onShowFileChooser(
+                                        webView: android.webkit.WebView?,
+                                        filePathCallback: android.webkit.ValueCallback<Array<android.net.Uri>>?,
+                                        fileChooserParams: FileChooserParams?
+                                    ): Boolean {
+                                        return false // Default fallback
+                                    }
+                                }
+
+                                webViewInstance = this
+                                loadUrl("https://astroeleven.in/")
                             }
-                            loadUrl("file:///android_asset/shop.html?server_url=${com.astroeleven.app.utils.Constants.SERVER_URL}")
-                        }
-                    },
-                    modifier = Modifier.fillMaxSize()
-                )
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
+
+                    if (isWebLoading) {
+                        androidx.compose.material3.CircularProgressIndicator(
+                            modifier = Modifier.align(Alignment.Center),
+                            color = Color(0xFFB3262A)
+                        )
+                    }
+                }
             } else {
                 LazyColumn(
                     state = listState,
@@ -929,31 +1090,9 @@ fun LazyListScope.HomeTab(
         )
     }
 
-    // Calendar links row above Rasi Grid
-    item {
-        CalendarQuickLinks(isTamil, onAction)
-    }
-
-    // 2.5 12 Rasi Palan Daily Horoscope Grid Grid (banner below)
+    // 2.5 12 Rasi Palan Daily Horoscope Grid
     item {
         RasiGridSection(isTamil, customRasiIcons, onRasiClick)
-    }
-
-    // Secondary Carousel Banner below Rasi Grid
-    item {
-        BannerSection(
-            banners = banners,
-            onBannerClick = onBannerClick,
-            onReferClick = { onAction("referral") },
-            onShareClick = { onAction("referral_share") },
-            referralBannerTitle = referralBannerTitle,
-            referralBannerImage = referralBannerImage
-        )
-    }
-
-    // Matrimony, Puja, and Shop Promo Cards
-    item {
-        PromoServiceGrid(isTamil, onAction)
     }
 
     // 3. Live Astrologers
@@ -1679,11 +1818,11 @@ fun HomeTopBar(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.White)
+            .background(Color(0xFFFDBA16))
             .statusBarsPadding()
             .padding(bottom = 8.dp)
     ) {
-        // Row 1: Avatar, Greeting, Wallet Pill, Translate, Support
+        // Row 1: Logo, Greeting, Wallet Pill, Translate, Notification
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1691,27 +1830,27 @@ fun HomeTopBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // User Info (Avatar + "Hi Name")
+            // User Info (Circular Logo + "Hi Name")
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Avatar with Menu Overlay
+                // Circular Logo with dark border for contrast
                 Box(
                     modifier = Modifier
-                        .size(44.dp)
+                        .size(46.dp)
                         .clickable { onMenuClick() }
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(40.dp)
+                            .size(42.dp)
                             .clip(CircleShape)
                             .background(Color.White)
-                            .border(1.dp, Color(0xFFFDBA16), CircleShape)
+                            .border(1.dp, Color(0xFFB3262A), CircleShape) // Crimson border
                     ) {
                         Image(
-                            painter = painterResource(id = com.astroeleven.app.R.mipmap.ic_launcher_foreground),
-                            contentDescription = "Avatar",
+                            painter = painterResource(id = com.astroeleven.app.R.drawable.app_logo),
+                            contentDescription = "Logo",
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Fit
                         )
@@ -1721,29 +1860,33 @@ fun HomeTopBar(
                 Column {
                     Text(
                         text = "Astro Eleven",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
-                        color = Color(0xFFE1353C)
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            fontFamily = FontFamily.Serif
+                        ),
+                        color = Color(0xFFB3262A) // Astro Crimson
                     )
                     Text(
-                        text = "Hi $userName",
-                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
-                        color = Color.Gray
+                        text = if (isTamil) "Hi நான்" else "Hi $userName",
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                        color = Color(0xFF2B2516) // Dark bronze for high contrast
                     )
                 }
             }
 
-            // Wallet Pill, Translate, Support Icons
+            // Wallet Pill, Translate, Notifications Icons
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Wallet Pill (Outlined with black/gray border, white bg, black text, plus icon inside black circle)
+                // Wallet Pill (Premium white style on yellow background)
                 Surface(
                     onClick = onWalletClick,
                     shape = RoundedCornerShape(50),
                     color = Color.White,
-                    border = BorderStroke(1.dp, Color.Black),
-                    modifier = Modifier.height(34.dp)
+                    border = BorderStroke(1.dp, Color(0xFFB3262A).copy(alpha = 0.4f)),
+                    shadowElevation = 2.dp,
+                    modifier = Modifier.height(36.dp)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -1752,27 +1895,27 @@ fun HomeTopBar(
                         Icon(
                             imageVector = Icons.Rounded.AccountBalanceWallet,
                             contentDescription = null,
-                            tint = Color.Black,
+                            tint = Color(0xFFB3262A), // Crimson tint
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "₹${balance.toInt()}",
                             style = MaterialTheme.typography.labelMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 14.sp
                             ),
-                            color = Color.Black
+                            color = Color(0xFF2B2516)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
-                        // Plus inside black circle
+                        // Plus inside gold/crimson circle
                         Box(
                             modifier = Modifier
-                                .size(22.dp)
-                                .background(Color.Black, CircleShape),
+                                .size(24.dp)
+                                .background(Color(0xFFB3262A), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("+", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text("+", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -1780,31 +1923,40 @@ fun HomeTopBar(
                 // Translate Icon (A -> அ)
                 IconButton(
                     onClick = onToggleLanguage,
-                    modifier = Modifier.size(34.dp)
+                    modifier = Modifier.size(36.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Translate,
                         contentDescription = "Language",
-                        tint = Color.Black,
+                        tint = Color(0xFF2B2516), // Dark bronze
                         modifier = Modifier.size(22.dp)
                     )
                 }
 
-                // Support circular button (yellow background with headset icon)
+                // Notification Bell with Red Badge
                 Box(
                     modifier = Modifier
-                        .size(34.dp)
-                        .background(Color(0xFFFFD600), CircleShape) // AstroTalk Yellow
+                        .size(36.dp)
+                        .background(Color.White, CircleShape)
+                        .border(1.dp, Color(0xFFB3262A).copy(alpha = 0.2f), CircleShape)
                         .clickable {
                             context.startActivity(Intent(context, com.astroeleven.app.ui.support.FeedbackSupportActivity::class.java))
                         },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Rounded.SupportAgent,
-                        contentDescription = "Support",
-                        tint = Color.Black,
-                        modifier = Modifier.size(18.dp)
+                        imageVector = Icons.Rounded.Notifications,
+                        contentDescription = "Notifications",
+                        tint = Color(0xFF2B2516),
+                        modifier = Modifier.size(20.dp)
+                    )
+                    // Red Dot Badge
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .background(Color(0xFFE1353C), CircleShape)
+                            .align(Alignment.TopEnd)
+                            .offset(x = (-3).dp, y = 3.dp)
                     )
                 }
             }
@@ -2483,7 +2635,7 @@ fun HomeBottomBar(
             val isStoreSelected = selectedTab == 2
             BottomNavItem(
                 label = if (isTamil) "ஸ்டோர்" else "Store",
-                icon = androidx.compose.material.icons.Icons.Rounded.Store,
+                icon = androidx.compose.material.icons.Icons.Rounded.ShoppingBag, // Updated to match screenshot
                 isSelected = isStoreSelected,
                 modifier = Modifier.weight(1f)
             ) {
@@ -2501,7 +2653,7 @@ fun BottomNavItem(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    val contentColor = if (isSelected) Color.Black else Color.Gray
+    val contentColor = if (isSelected) Color(0xFFB3262A) else Color.Gray
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -2644,26 +2796,102 @@ fun RasiGridSection(isTamil: Boolean, customRasiIcons: Map<String, String>, onCl
         ComposeRasiItem(12, "Pisces", com.astroeleven.app.R.drawable.ic_rasi_pisces_premium_copy, PiscesIndigo, customRasiIcons["pisces"])
     )
 
-    // User Request: "12 rasi contain have one box that box bf use that bg" (Customer Style)
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = CosmicAppTheme.colors.cardBg),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray.copy(alpha=0.5f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+    val dateRanges = mapOf(
+        1 to "Mar 21 - Apr 19",
+        2 to "Apr 20 - May 20",
+        3 to "May 21 - Jun 20",
+        4 to "Jun 21 - Jul 22",
+        5 to "Jul 23 - Aug 22",
+        6 to "Aug 23 - Sep 22",
+        7 to "Sep 23 - Oct 22",
+        8 to "Oct 23 - Nov 21",
+        9 to "Nov 22 - Dec 21",
+        10 to "Dec 22 - Jan 19",
+        11 to "Jan 20 - Feb 18",
+        12 to "Feb 19 - Mar 20"
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp)
     ) {
-        Column(modifier = Modifier.padding(vertical = 16.dp, horizontal = 4.dp)) {
-            val rows = rasiItems.chunked(4)
-            for (rowItems in rows) {
-                Row(
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = if (isTamil) "உங்கள் ராசியை ஆராயுங்கள்" else "Explore Your Zodiac",
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp
+                ),
+                color = Color(0xFF2B2516)
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.clickable { /* Handle View All click */ }
+            ) {
+                Text(
+                    text = if (isTamil) "அனைத்தையும் பார்" else "View All",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp
+                    ),
+                    color = Color(0xFF2B2516).copy(alpha = 0.7f)
+                )
+                Icon(
+                    imageVector = Icons.Rounded.ChevronRight,
+                    contentDescription = null,
+                    tint = Color(0xFF2B2516).copy(alpha = 0.7f),
+                    modifier = Modifier.size(14.dp)
+                )
+            }
+        }
+
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            items(rasiItems) { item ->
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+                        .width(72.dp)
+                        .clickable { onClick(item) }
                 ) {
-                    for (item in rowItems) {
-                        RasiItemView(item, isTamil, onClick)
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .shadow(2.dp, CircleShape)
+                            .background(Color.White, CircleShape)
+                            .border(1.dp, Color(0xFFF9EFE5), CircleShape)
+                            .padding(8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = painterResource(id = item.iconRes),
+                            contentDescription = item.name,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit,
+                            colorFilter = ColorFilter.tint(Color(0xFFB3262A)) // red outline
+                        )
                     }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = if (isTamil) Localization.get(item.name.lowercase(), true) else item.name,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp
+                        ),
+                        color = Color(0xFF2B2516),
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
         }
@@ -2819,34 +3047,27 @@ fun TopServicesSection(services: List<GridService>, isTamil: Boolean) {
     val context = LocalContext.current
     val listToUse = if (services.isEmpty()) {
         listOf(
-            GridService("free_kundeli", "Free\nHoroscope", "இலவச ஜாதகம்", "kundeli", "FreeKundeli"),
-            GridService("daily_horoscope", "Daily\nHoroscope", "தினசரி ராசிபலன்", "horoscope", "Horoscope"),
-            GridService("marriage_matching", "Horoscope\nMatch", "திருமணப் பொருத்தம்", "matching", "MatchMaking"),
-            GridService("academy", "Astro\nAcademy", "ஜோதிட அகாடமி", "academy", "Academy")
+            GridService("free_kundeli", if (isTamil) "இலவச ஜாதகம்" else "Free Kundeli", "இலவச ஜாதகம்", "kundeli", "FreeKundeli"),
+            GridService("daily_horoscope", if (isTamil) "தினசரி ராசிபலன்" else "Daily Horoscope", "தினசரி ராசிபலன்", "horoscope", "Horoscope"),
+            GridService("marriage_matching", if (isTamil) "திருமணப் பொருத்தம்" else "Marriage Matching", "திருமணப் பொருத்தம்", "matching", "MatchMaking"),
+            GridService("academy", if (isTamil) "ஜோதிட அகாடமி" else "Astro Academy", "ஜோதிட அகாடமி", "academy", "Academy")
         )
     } else {
         services
     }
 
-    val scrollState = rememberScrollState()
+    val descriptions = mapOf(
+        "free_kundeli" to (if (isTamil) "இலவச ஜாதகம்" else "Get your free birth chart"),
+        "daily_horoscope" to (if (isTamil) "இன்றைய பலன்" else "Know what stars have in store"),
+        "marriage_matching" to (if (isTamil) "பொருத்தம் காண்க" else "Match your stars for a perfect life"),
+        "academy" to (if (isTamil) "ஜோதிடம் கற்க" else "Learn astrology from experts")
+    )
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(
-                start = if (listToUse.size > 4) 8.dp else 7.dp,
-                end = if (listToUse.size > 4) 8.dp else 7.dp,
-                top = 4.dp,
-                bottom = 4.dp
-            )
-            .then(
-                if (listToUse.size > 4) Modifier.horizontalScroll(scrollState)
-                else Modifier
-            ),
-        horizontalArrangement = if (listToUse.size > 4) {
-            Arrangement.spacedBy(6.dp)
-        } else {
-            Arrangement.SpaceBetween
-        }
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         listToUse.forEach { service ->
             val displayName = if (isTamil && !service.titleTamil.isNullOrBlank()) {
@@ -2854,7 +3075,14 @@ fun TopServicesSection(services: List<GridService>, isTamil: Boolean) {
             } else {
                 service.title
             }
-            ServiceItem(displayName, service.icon) {
+            val desc = descriptions[service.id] ?: ""
+            
+            ServiceItem(
+                name = displayName,
+                description = desc,
+                icon = service.icon,
+                modifier = Modifier.weight(1f)
+            ) {
                 val actionType = when (service.id) {
                     "free_kundeli" -> "kundali"
                     "marriage_matching" -> "match"
@@ -2901,26 +3129,35 @@ fun TopServicesSection(services: List<GridService>, isTamil: Boolean) {
 }
 
 @Composable
-fun ServiceItem(name: String, icon: String, onClick: () -> Unit) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .width(78.dp)
+fun ServiceItem(
+    name: String,
+    description: String,
+    icon: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Card(
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, Color(0xFFF9EFE5).copy(alpha = 0.8f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        modifier = modifier
+            .height(98.dp)
             .clickable { onClick() }
     ) {
-        Card(
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFDF8)),
-            border = BorderStroke(1.dp, CosmicAppTheme.colors.accent.copy(alpha = 0.25f)),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-            modifier = Modifier.size(64.dp)
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(6.dp)
         ) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.size(44.dp), contentAlignment = Alignment.Center) {
                 if (icon.startsWith("http") || icon.contains("uploads/")) {
                     AsyncImage(
                         model = getImageUrl(icon),
                         contentDescription = name,
-                        modifier = Modifier.fillMaxSize().padding(6.dp),
+                        modifier = Modifier.fillMaxSize().padding(2.dp),
                         contentScale = ContentScale.Fit,
                         error = painterResource(id = com.astroeleven.app.R.drawable.ic_kundali_matching),
                         placeholder = painterResource(id = com.astroeleven.app.R.drawable.ic_kundali_matching)
@@ -2941,20 +3178,20 @@ fun ServiceItem(name: String, icon: String, onClick: () -> Unit) {
                     )
                 }
             }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = name,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 11.sp,
+                    lineHeight = 12.sp
+                ),
+                color = Color(0xFF2B2516), // Dark warm bronze
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
         }
-        Spacer(modifier = Modifier.height(6.dp))
-        Text(
-            text = name,
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontWeight = FontWeight.Bold,
-                fontSize = 10.sp,
-                lineHeight = 11.sp
-            ),
-            color = CosmicAppTheme.colors.textPrimary,
-            textAlign = TextAlign.Center,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis
-        )
     }
 }
 
@@ -3030,50 +3267,142 @@ fun StickyFooterButtons(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // Chat with Astrologer Button (Solid Yellow, Black text)
-        Button(
-            onClick = {
-                if (isGuest) onLoginClick() else onTabSelected(1, "chat")
-            },
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFD600)), // AstroTalk Yellow
-            shape = RoundedCornerShape(28.dp),
+        // Chat Button (Gold/Yellow Gradient)
+        Box(
             modifier = Modifier
                 .weight(1f)
-                .height(48.dp)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Rounded.Chat, null, modifier = Modifier.size(16.dp), tint = Color.Black)
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = if (isTamil) "ஜோதிடருடன் அரட்டை" else "Chat with Astrologer",
-                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                    color = Color.Black
+                .height(68.dp)
+                .clip(RoundedCornerShape(20.dp))
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(Color(0xFFFDBA16), Color(0xFFE59400))
+                    )
                 )
+                .clickable {
+                    if (isGuest) onLoginClick() else onTabSelected(1, "chat")
+                }
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                // Speech bubble icon
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(Color.White.copy(alpha = 0.2f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Chat,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = if (isTamil) "அரட்டை" else "Chat with\nAstrologer",
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            lineHeight = 14.sp
+                        ),
+                        color = Color.White
+                    )
+                    Text(
+                        text = if (isTamil) "உடனடி பதில்" else "Get instant answers",
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                        color = Color.White.copy(alpha = 0.8f)
+                    )
+                }
+                // Arrow
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .background(Color.White.copy(alpha = 0.25f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.ChevronRight,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
             }
         }
 
-        // Call with Astrologer Button (Solid Yellow, Black text)
-        Button(
-            onClick = {
-                if (isGuest) onLoginClick() else onTabSelected(1, "call")
-            },
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFD600)), // AstroTalk Yellow
-            shape = RoundedCornerShape(28.dp),
+        // Call Button (Red/Crimson Gradient)
+        Box(
             modifier = Modifier
                 .weight(1f)
-                .height(48.dp)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Rounded.Call, null, modifier = Modifier.size(16.dp), tint = Color.Black)
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = if (isTamil) "ஜோதிடருடன் அழைப்பு" else "Call with Astrologer",
-                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                    color = Color.Black
+                .height(68.dp)
+                .clip(RoundedCornerShape(20.dp))
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(Color(0xFFE1353C), Color(0xFFB31217))
+                    )
                 )
+                .clickable {
+                    if (isGuest) onLoginClick() else onTabSelected(1, "call")
+                }
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                // Phone icon
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(Color.White.copy(alpha = 0.2f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Call,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = if (isTamil) "அழைப்பு" else "Call with\nAstrologer",
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            lineHeight = 14.sp
+                        ),
+                        color = Color.White
+                    )
+                    Text(
+                        text = if (isTamil) "பேசுங்கள்" else "Talk to expert now",
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                        color = Color.White.copy(alpha = 0.8f)
+                    )
+                }
+                // Arrow
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .background(Color.White.copy(alpha = 0.25f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.ChevronRight,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
             }
         }
     }
@@ -3374,8 +3703,8 @@ fun ReferralScreen(
                     shape = RoundedCornerShape(12.dp),
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
+                        focusedTextColor = CosmicAppTheme.colors.textPrimary,
+                        unfocusedTextColor = CosmicAppTheme.colors.textPrimary,
                         focusedBorderColor = CosmicAppTheme.colors.accent,
                         unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f),
                         focusedPlaceholderColor = Color.Gray,
@@ -3422,43 +3751,68 @@ fun CalendarQuickLinks(isTamil: Boolean, onAction: (String) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         val items = listOf(
-            Triple("today_cal", if (isTamil) "இன்றைய காலண்டர்" else "Today Calendar", androidx.compose.material.icons.Icons.Rounded.Today),
-            Triple("month_cal", if (isTamil) "மாதாந்திர காலண்டர்" else "Monthly Calendar", androidx.compose.material.icons.Icons.Rounded.CalendarMonth),
-            Triple("muhurtham", if (isTamil) "சுபமுகூர்த்தம்" else "Subha Muhurtham", androidx.compose.material.icons.Icons.Rounded.Spa)
+            Triple("today_cal", if (isTamil) "நாட்காட்டி" else "Today Calendar", if (isTamil) "இன்றைய பார்வை" else "See your day overview"),
+            Triple("month_cal", if (isTamil) "மாதாந்திர" else "Monthly", if (isTamil) "மாதாந்திர பார்வை" else "See your month ahead"),
+            Triple("muhurtham", if (isTamil) "சுபமுகூர்த்தம்" else "Subha Muhurat", if (isTamil) "சுப நேரங்கள்" else "Auspicious timings")
         )
-        items.forEach { (action, label, icon) ->
+        items.forEach { (action, label, description) ->
             Card(
                 modifier = Modifier
                     .weight(1f)
+                    .height(58.dp)
                     .clickable { onAction(action) },
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFDE7)),
-                border = BorderStroke(1.dp, Color(0xFFFDBA16).copy(alpha = 0.5f))
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, Color(0xFFF9EFE5).copy(alpha = 0.8f)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
-                Column(
+                Row(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(10.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                        .fillMaxSize()
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
+                    val icon = if (action == "muhurtham") Icons.Rounded.Spa else Icons.Rounded.Today
                     Icon(
                         imageVector = icon,
                         contentDescription = label,
-                        tint = Color(0xFFE1353C),
-                        modifier = Modifier.size(24.dp)
+                        tint = Color(0xFFB3262A), // Brand Red
+                        modifier = Modifier.size(20.dp)
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp),
-                        color = Color(0xFF2C251D),
-                        textAlign = TextAlign.Center,
-                        maxLines = 1
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 10.sp,
+                                lineHeight = 11.sp
+                            ),
+                            color = Color(0xFF2B2516),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = description,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 7.sp,
+                                lineHeight = 8.sp,
+                                fontWeight = FontWeight.Normal
+                            ),
+                            color = Color.Gray,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    Icon(
+                        imageVector = Icons.Rounded.ChevronRight,
+                        contentDescription = null,
+                        tint = Color.Gray,
+                        modifier = Modifier.size(10.dp)
                     )
                 }
             }

@@ -69,40 +69,40 @@
   </script>
   <style>
     :root {
-      /* Premium Light Celestial UI Architecture Tokens */
-      --bg-body: #FFFDF9;
+      /* Premium Light Celestial UI Architecture Tokens - Audit Aligned */
+      --bg-body: #FFFBF4;
       --bg-card: #FFFFFF;
       --bg-card-hover: #FFFBF0;
-      --bg-glass: rgba(255, 253, 249, 0.85);
+      --bg-glass: rgba(255, 251, 244, 0.85);
       --bg-glass-heavy: rgba(255, 255, 255, 0.95);
 
-      --primary: #E1353C;
-      --primary-rgb: 255, 127, 0;
-      --primary-glow: rgba(225, 53, 60, 0.1);
+      --primary: #D4A017; /* Primary Gold */
+      --primary-rgb: 212, 160, 23;
+      --primary-glow: rgba(212, 160, 23, 0.08);
 
-      --accent: #E5A900;
-      --accent-rgb: 229, 169, 0;
-      --accent-glow: rgba(229, 169, 0, 0.1);
+      --accent: #E53935; /* Accent Red */
+      --accent-rgb: 229, 57, 53;
+      --accent-glow: rgba(229, 57, 53, 0.1);
 
-      --text-main: #2C251D;
-      --text-secondary: #5C5248;
-      --text-muted: #8E7C6E;
-      --text-dim: #A89687;
+      --text-main: #1F2937; /* Title Color */
+      --text-secondary: #5B6472; /* Body Color */
+      --text-muted: #8E9AA8;
+      --text-dim: #A8B2BD;
 
-      --border-soft: rgba(225, 53, 60, 0.08);
-      --border-medium: rgba(225, 53, 60, 0.15);
-      --border-accent: rgba(225, 53, 60, 0.3);
+      --border-soft: #F0E5D0; /* Border Color */
+      --border-medium: #EADDBA;
+      --border-accent: rgba(212, 160, 23, 0.3);
 
-      --radius-lg: 16px;
-      --radius-md: 12px;
+      --radius-lg: 18px; /* Unified radius from audit */
+      --radius-md: 14px;
       --radius-sm: 8px;
 
       --glass-blur: blur(12px);
-      --shadow-glow: 0 4px 20px rgba(225, 53, 60, 0.05);
-      --shadow-elevation: 0 10px 40px -10px rgba(225, 53, 60, 0.08);
+      --shadow-glow: 0 4px 20px rgba(212, 160, 23, 0.05);
+      --shadow-elevation: 0 10px 30px rgba(212, 160, 23, 0.08); /* Audit card shadow */
 
       --font-heading: 'Poppins', sans-serif;
-      --font-body: 'Poppins', sans-serif;
+      --font-body: 'Inter', sans-serif; /* Inter for body, Poppins for headings */
       --font-display: 'Poppins', sans-serif;
       --font-poppins: 'Poppins', sans-serif;
       --font-inter: 'Inter', sans-serif;
@@ -1933,7 +1933,7 @@
       <div class="app-header">
         <div style="display: flex; align-items: center; gap: 40px;">
           <img src="images/astroeleven_logo.svg" alt="Astro Eleven"
-            style="height: 39px; cursor: pointer;"
+            style="height: 48px; cursor: pointer;"
             onclick="location.reload()">
 
           <!-- Desktop Header Nav -->
@@ -2036,7 +2036,7 @@
                 <div class="center-glow"></div>
               </div>
               <div class="astrologer-overlay-image" style="position: absolute; display: flex; align-items: center; justify-content: center; z-index: 5;">
-                <img src="images/ganesha.png" style="width: 170px; height: 170px; border-radius: 50%; box-shadow: 0 10px 30px rgba(225,53,60,0.15); border: 4px solid var(--accent); background: white; object-fit: contain;">
+                <img src="images/ganesha.png" style="width: 190px; height: 190px; border-radius: 50%; box-shadow: 0 10px 30px rgba(212,160,23,0.12); border: 4px solid #D4A017; background: white; object-fit: contain;">
               </div>
             </div>
           </div>
@@ -2163,7 +2163,7 @@
             <div class="section-line"></div>
           </div>
           <div class="services-grid-container" style="margin-bottom: 40px; overflow-x: auto; padding: 10px 5px;">
-            <div style="display: flex; gap: 20px; padding: 5px 0;">
+            <div style="display: flex; gap: 24px; padding: 5px 0;">
               <!-- Kundali -->
               <div class="service-item-card" onclick="openUniversalChartModal()">
                 <div class="service-icon-wrapper">
@@ -2269,31 +2269,31 @@
             }
 
             .service-item-card {
-              min-width: 140px;
+              min-width: 142px;
               background: var(--bg-card);
-              border: 1px solid var(--border);
-              border-radius: 12px;
-              padding: 24px 16px;
+              border: 1px solid #F4E7CF;
+              border-radius: 18px;
+              padding: 24px 20px;
               display: flex;
               flex-direction: column;
               align-items: center;
               justify-content: center;
               text-align: center;
               cursor: pointer;
-              transition: all 0.2s ease;
-              box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+              transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+              box-shadow: 0 10px 30px rgba(212, 160, 23, 0.08);
             }
 
             .service-item-card:hover {
               transform: translateY(-4px);
-              border-color: var(--primary);
-              box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+              border-color: #D4A017;
+              box-shadow: 0 15px 35px rgba(212, 160, 23, 0.15);
             }
 
             .service-icon-wrapper {
-              width: 50px;
-              height: 50px;
-              background: rgba(225, 53, 60, 0.05);
+              width: 64px;
+              height: 64px;
+              background: linear-gradient(135deg, #D4A017, #F6C453) !important;
               border-radius: 50%;
               display: flex;
               align-items: center;
@@ -2301,27 +2301,28 @@
               margin-bottom: 15px;
               transition: all 0.3s;
               border: 1px solid transparent;
+              box-shadow: 0 4px 10px rgba(212, 160, 23, 0.15);
             }
 
             .service-item-card:hover .service-icon-wrapper {
-              background: rgba(225, 53, 60, 0.1);
-              border-color: var(--primary);
-              transform: scale(1.1);
+              transform: scale(1.08);
+              box-shadow: 0 6px 15px rgba(212, 160, 23, 0.25);
             }
 
             .service-item-card img {
-              width: 30px;
-              height: 30px;
+              width: 34px;
+              height: 34px;
               object-fit: contain;
+              filter: brightness(0) invert(1); /* Render SVG icons white on gold gradient */
             }
 
             .service-icon-wrapper i {
-              font-size: 1.3rem;
-              color: var(--primary);
+              font-size: 1.4rem;
+              color: #FFFFFF; /* High contrast white icon on gold gradient */
             }
 
             .service-item-card span {
-              font-size: 0.85rem;
+              font-size: 0.9rem;
               font-weight: 600;
               color: var(--text-main);
               line-height: 1.2;
@@ -2341,17 +2342,17 @@
 
             <!-- Horoscope Container -->
             <div
-              class="bg-white/95 backdrop-blur-md rounded-2xl border border-orange-200/60 p-6 lg:p-8 shadow-xl">
+              class="bg-white rounded-[18px] border border-[#F4E7CF] p-6 lg:p-8 shadow-[0_10px_30px_rgba(212,160,23,0.08)]">
 
               <!-- Header Row -->
               <div class="flex items-center justify-between mb-6">
                 <div class="flex items-center gap-4">
-                  <span id="activeSignIcon" class="text-4xl text-orange-500 drop-shadow-md animate-bounce"
+                  <span id="activeSignIcon" class="text-4xl text-[#D4A017] drop-shadow-sm animate-bounce"
                     style="animation-duration: 3s;">♈</span>
-                  <h3 id="activeSignName" class="font-playfair text-3xl font-bold text-gray-800 tracking-tight">மேஷம்</h3>
+                  <h3 id="activeSignName" class="font-poppins text-3xl font-bold text-[#1F2937] tracking-tight">மேஷம்</h3>
                 </div>
                 <span id="horoscopeDate"
-                  class="font-inter text-sm font-medium text-gray-600 bg-orange-50 border border-orange-100 px-4 py-1.5 rounded-full">Today</span>
+                  class="font-inter text-sm font-medium text-[#D4A017] bg-[#FFFBF4] border border-[#F4E7CF] px-4 py-1.5 rounded-full">Today</span>
               </div>
 
               <!-- Zodiac Scroller -->
@@ -2360,12 +2361,12 @@
               </div>
 
               <!-- Horoscope Content Card -->
-              <div class="bg-[#FFFDF4] border border-orange-100 rounded-xl p-6 relative">
-                <div id="horoscopeLoading" class="loading-spinner hidden">
-                  <i class="fas fa-circle-notch fa-spin text-orange-500 text-2xl"></i>
+              <div class="relative min-h-[200px]">
+                <div id="horoscopeLoading" class="loading-spinner absolute inset-0 flex items-center justify-center bg-white/50 z-10 hidden">
+                  <i class="fas fa-circle-notch fa-spin text-[#D4A017] text-3xl"></i>
                 </div>
                 <div class="horoscope-content-box" id="horoscopeContent">
-                  <div id="horoscopeText" class="font-inter text-base leading-relaxed text-gray-800"></div>
+                  <div id="horoscopeText" class="font-inter text-base leading-relaxed text-[#5B6472]"></div>
                 </div>
               </div>
             </div>
@@ -2796,20 +2797,20 @@
         position: sticky;
         top: 0;
         z-index: 100;
-        padding: 15px 40px;
-        background: rgba(11, 15, 26, 0.8);
-        /* Dark Glass */
+        height: 72px;
+        padding: 0 40px;
+        background: #FFFDF8;
         backdrop-filter: blur(12px);
-        border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+        border-bottom: 1px solid #F1E5C8;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        transition: all 0.3s ease;
+        transition: all 0.25s ease;
       }
 
       .app-header.scrolled {
-        background: rgba(11, 15, 26, 0.95);
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        background: #FFFDF8;
+        box-shadow: 0 4px 20px rgba(212, 160, 23, 0.04);
       }
 
       /* Logo Styling */
@@ -2817,7 +2818,7 @@
         font-family: var(--font-heading);
         font-weight: 700;
         font-size: 1.5rem;
-        background: linear-gradient(135deg, #FFD700, #B8860B);
+        background: linear-gradient(135deg, #D4A017, #F6C453);
         -webkit-background-clip: text;
         background-clip: text;
         -webkit-text-fill-color: transparent;
@@ -2836,29 +2837,28 @@
       .desktop-header-nav .nav-item {
         display: flex;
         align-items: center;
-        gap: 15px;
-        padding: 5px 12px;
-        border-radius: 6px;
-        color: var(--text-main);
+        gap: 8px;
+        padding: 0 16px;
+        height: 72px;
+        color: var(--text-secondary);
         text-decoration: none;
         transition: all 0.2s ease;
         cursor: pointer;
         font-weight: 600;
-        font-size: 0.9rem;
-        border: 1px solid transparent;
+        font-size: 0.95rem;
+        border-bottom: 3px solid transparent;
         letter-spacing: 0.3px;
       }
 
       .desktop-header-nav .nav-item:hover {
-        color: var(--primary);
-        background: rgba(225, 53, 60, 0.05);
+        color: #D4A017;
       }
 
       .desktop-header-nav .nav-item.active {
         background: transparent;
-        color: var(--primary);
+        color: #D4A017;
         font-weight: 700;
-        border-bottom: 3px solid var(--primary);
+        border-bottom: 3px solid #D4A017;
         border-radius: 0;
         box-shadow: none;
       }
@@ -5278,64 +5278,67 @@
 
           <!-- Top Row: Avatar & Basic Info -->
           <div style="display: flex; gap: 16px; align-items: flex-start; width: 100%;">
-             <div style="position: relative; width: 80px; height: 80px; flex-shrink: 0;">
-                <img src="${a.image || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(a.name) + '&background=f4b400&color=fff'}"
-                     style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2.5px solid var(--primary); box-shadow: 0 4px 10px rgba(244, 180, 0, 0.1);" alt="${a.name}">
-                <div class="online-indicator ${a.isOnline ? 'active' : ''}" style="position: absolute; bottom: 2px; right: 2px; width: 14px; height: 14px; background: ${a.isOnline ? '#10B981' : '#9CA3AF'}; border: 2px solid #FFFFFF; border-radius: 50%; box-shadow: ${a.isOnline ? '0 0 8px #10B981' : 'none'};"></div>
+             <div style="position: relative; width: 72px; height: 72px; flex-shrink: 0;">
+                <img src="${a.image || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(a.name) + '&background=f6c453&color=fff'}"
+                     style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2.5px solid #D4A017; box-shadow: 0 4px 10px rgba(212, 160, 23, 0.15);" alt="${a.name}">
+                <div class="online-indicator ${a.isOnline ? 'active' : ''}" style="position: absolute; bottom: 1px; right: 1px; width: 14px; height: 14px; background: ${a.isOnline ? '#16A34A' : '#9CA3AF'}; border: 2px solid #FFFFFF; border-radius: 50%; box-shadow: ${a.isOnline ? '0 0 8px #16A34A' : 'none'};"></div>
              </div>
              <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
                 <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-                   <h3 style="font-size: 1.15rem; font-weight: 700; color: #111827; margin: 0; font-family: var(--font-poppins);">${a.name}</h3>
-                   ${isVerified ? '<i class="fas fa-check-circle verified-gold" style="color:var(--primary); font-size: 0.95rem;"></i>' : ''}
+                   <h3 style="font-size: 1.15rem; font-weight: 700; color: #1F2937; margin: 0; font-family: var(--font-poppins);">${a.name}</h3>
+                   ${isVerified ? '<i class="fas fa-check-circle verified-gold" style="color:#D4A017; font-size: 1rem;" title="Verified Professional"></i>' : ''}
                 </div>
-                <div style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;">
-                   <i class="fas fa-star" style="color:#F4B400; font-size:0.8rem;"></i>
-                   <span style="font-weight:700; color:#374151;">4.8</span>
+                <div style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: #5B6472; margin-top: 2px;">
+                   <i class="fas fa-star" style="color:#D4A017; font-size:0.85rem;"></i>
+                   <span style="font-weight:700; color:#1F2937; font-size:0.9rem;">4.8</span>
                    <span style="color:#d1d5db;">·</span>
-                   <span>${orderCount} Orders</span>
+                   <span>${orderCount} Consultations</span>
                 </div>
-                <div style="font-size:0.85rem; color:var(--text-muted); margin-top: 2px; font-weight: 500;">${languages.slice(0, 2).join(', ')}</div>
+                <div style="font-size:0.85rem; color:#5B6472; margin-top: 2px; font-weight: 500;">${languages.slice(0, 2).join(', ')}</div>
              </div>
           </div>
 
           <!-- Middle Row: Experience & Skills -->
-          <div style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: #4b5563; border-top: 1px solid #f3f4f6; border-bottom: 1px solid #f3f4f6; padding: 10px 0; width: 100%;">
-             <i class="fas fa-briefcase" style="color: var(--primary); font-size: 0.9rem;"></i>
-             <span style="font-weight: 600; color: #374151;">Exp: ${a.experience || 5} Years</span>
-             <span style="color:#e5e7eb; margin: 0 4px;">|</span>
-             <span style="color: var(--text-muted); font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">${skills.slice(0, 2).join(', ')}</span>
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: #5B6472; border-top: 1px solid #F0E5D0; border-bottom: 1px solid #F0E5D0; padding: 10px 0; width: 100%;">
+             <i class="fas fa-briefcase" style="color: #D4A017; font-size: 0.9rem;"></i>
+             <span style="font-weight: 600; color: #1F2937;">Exp: ${a.experience || 5} Years</span>
+             <span style="color:#F0E5D0; margin: 0 4px;">|</span>
+             <span style="color: #5B6472; font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">${skills.slice(0, 2).join(', ')}</span>
           </div>
 
           <!-- Bottom Row: Price & Actions -->
           <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 4px;">
              <div style="display: flex; align-items: baseline; gap: 2px;">
-                <span style="font-size: 1.5rem; font-weight: 800; color: var(--primary);">₹${a.price}</span>
-                <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">/min</span>
+                <span style="font-size: 1.55rem; font-weight: 800; color: #E53935;">₹${a.price}</span>
+                <span style="font-size: 0.85rem; color: #5B6472; font-weight: 500;">/min</span>
              </div>
              <div class="action-buttons-stack" style="display: flex; gap: 8px; flex-direction: row; width: auto; align-items: center;">
                  ${(state.selectedService === 'all' || state.selectedService === 'chat') && a.isChatOnline ? `
-                 <button class="btn-premium-chat" style="display: flex; align-items: center; gap: 6px; background: var(--primary); color: #000; border: none; font-weight: 700; padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 10px rgba(244, 180, 0, 0.15); height: 36px; white-space: nowrap;"
-                      onclick="event.stopPropagation(); checkGuestAction('chat', '${a.userId}')">
+                 <button class="btn-premium-chat" style="display: flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #D4A017, #F6C453) !important; color: #FFFFFF !important; border: none; font-weight: 700; padding: 8px 16px; border-radius: 10px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(212,160,23,0.15); height: 36px; white-space: nowrap;"
+                      onclick="event.stopPropagation(); checkGuestAction('chat', '${a.userId}')"
+                      onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
                       <i class="fas fa-comment-dots"></i> Chat Now
                  </button>
                  ` : ''}
 
                  ${((state.selectedService === 'all' || state.selectedService === 'call') && a.isAudioOnline) ? `
-                 <button class="btn-premium-call" style="display: flex; align-items: center; gap: 6px; background: var(--primary); color: #000; border: none; font-weight: 700; padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 10px rgba(244, 180, 0, 0.15); height: 36px; white-space: nowrap;"
-                      onclick="event.stopPropagation(); checkGuestAction('call', '${a.userId}')">
+                 <button class="btn-premium-call" style="display: flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #D4A017, #F6C453) !important; color: #FFFFFF !important; border: none; font-weight: 700; padding: 8px 16px; border-radius: 10px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(212,160,23,0.15); height: 36px; white-space: nowrap;"
+                      onclick="event.stopPropagation(); checkGuestAction('call', '${a.userId}')"
+                      onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
                       <i class="fas fa-phone-alt"></i> Call Now
                  </button>
                  ` : ''}
 
                  ${((state.selectedService === 'all' || state.selectedService === 'video') && a.isVideoOnline) ? `
-                 <button class="btn-premium-video" style="display: flex; align-items: center; gap: 6px; background: var(--primary); color: #000; border: none; font-weight: 700; padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 10px rgba(244, 180, 0, 0.15); height: 36px; white-space: nowrap;"
-                      onclick="event.stopPropagation(); checkGuestAction('video', '${a.userId}')">
+                 <button class="btn-premium-video" style="display: flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #D4A017, #F6C453) !important; color: #FFFFFF !important; border: none; font-weight: 700; padding: 8px 16px; border-radius: 10px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(212,160,23,0.15); height: 36px; white-space: nowrap;"
+                      onclick="event.stopPropagation(); checkGuestAction('video', '${a.userId}')"
+                      onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
                       <i class="fas fa-video"></i> Video Now
                  </button>
                  ` : ''}
 
                  ${(!a.isChatOnline && !a.isAudioOnline && !a.isVideoOnline) ? `
-                 <button class="btn-premium-chat disabled" style="display: flex; align-items: center; gap: 6px; background: #e5e7eb; color: #9ca3af; border: none; font-weight: 700; padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; cursor: not-allowed; height: 36px; white-space: nowrap;" disabled>
+                 <button class="btn-premium-chat disabled" style="display: flex; align-items: center; gap: 6px; background: #F3F4F6; color: #9CA3AF; border: 1px dashed #D1D5DB; font-weight: 700; padding: 8px 16px; border-radius: 10px; font-size: 0.85rem; cursor: not-allowed; height: 36px; white-space: nowrap;" disabled>
                       Offline
                  </button>
                  ` : ''}
@@ -7387,52 +7390,106 @@
       document.getElementById('horoscopeDate').innerText = data.date || 'இன்று';
 
       const prediction = data.forecast_ta || data.horoscope_data || 'இன்று உங்களுக்கு நற்பலன்கள் கிடைக்கும்.';
+      const career = data.details?.career_ta || 'வழக்கமான பணிகள் சிறப்பாக நடைபெறும்.';
+      const love = data.details?.love_ta || data.details?.finance_ta || 'குடும்ப உறவுகள் சுமுகமாக இருக்கும்.';
+      const health = data.details?.health_ta || 'ஆரோக்கியம் சீராக இருக்கும்.';
+      const luckyNum = data.details?.lucky_number || '3';
+      const luckyCol = data.details?.lucky_color_ta || 'மஞ்சள் (Yellow)';
+      const luckyTime = data.details?.lucky_time || '10:30 AM - 12:00 PM';
 
       let html = `
-        <div id="horoscopeWrapper" class="relative overflow-hidden transition-all duration-700 ease-in-out" style="max-height: 120px; transition: max-height 0.5s ease-in-out;">
-          <p class="font-inter text-base lg:text-lg leading-relaxed text-gray-200 font-light tracking-wide">${prediction}</p>
-          <div id="fadeMask" class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black/60 to-transparent pointer-events-none"></div>
-        </div>
-        <button id="readMoreAction" onclick="toggleReadMore()"
-          style="margin-top:20px; font-family:var(--font-body); font-size: 0.8rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--primary); background:rgba(255,127,0,0.1); border:1px solid var(--border-accent); padding:8px 20px; rounded-md:8px; cursor:pointer; transition:all 0.3s ease; border-radius: 8px;">
-          Read More <i class="fas fa-chevron-down" style="margin-left:5px;"></i>
-        </button>
-      `;
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-stretch text-[#1F2937] font-inter">
+          <!-- Left Column: Lucky Stats (4 cols) -->
+          <div class="md:col-span-4 bg-[#FFFBF4] border border-[#F4E7CF] rounded-[18px] p-6 flex flex-col justify-center gap-6">
+            <h4 class="font-poppins text-xs font-bold text-[#D4A017] uppercase tracking-wider mb-2 border-b border-[#F0E5D0] pb-2">
+              <i class="fas fa-stars"></i> அதிர்ஷ்ட விவரங்கள்
+            </h4>
+            
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[#D4A017] to-[#F6C453] flex items-center justify-center text-white text-lg font-bold shadow-md shadow-[#D4A017]/10">
+                #
+              </div>
+              <div>
+                <span class="text-xs text-[#5B6472] font-semibold block uppercase">அதிர்ஷ்ட எண்</span>
+                <span class="text-base font-bold text-[#1F2937]">${luckyNum}</span>
+              </div>
+            </div>
 
-      if (data.details) {
-        html += `
-          <div class="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-white/10">
-            <div class="flex items-start gap-2">
-              <i class="fas fa-briefcase text-cosmic-green text-sm mt-1"></i>
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[#D4A017] to-[#F6C453] flex items-center justify-center text-white text-lg shadow-md shadow-[#D4A017]/10">
+                <i class="fas fa-palette"></i>
+              </div>
               <div>
-                <span class="font-poppins text-xs font-semibold text-cosmic-muted uppercase tracking-wider block mb-0.5">தொழில்</span>
-                <span class="font-inter text-sm text-white/90">${data.details.career_ta}</span>
+                <span class="text-xs text-[#5B6472] font-semibold block uppercase">அதிர்ஷ்ட வண்ணம்</span>
+                <span class="text-base font-bold text-[#1F2937]">${luckyCol}</span>
               </div>
             </div>
-            <div class="flex items-start gap-2">
-              <i class="fas fa-coins text-cosmic-green text-sm mt-1"></i>
-              <div>
-                <span class="font-poppins text-xs font-semibold text-cosmic-muted uppercase tracking-wider block mb-0.5">நிதி</span>
-                <span class="font-inter text-sm text-white/90">${data.details.finance_ta}</span>
+
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[#D4A017] to-[#F6C453] flex items-center justify-center text-white text-lg shadow-md shadow-[#D4A017]/10">
+                <i class="fas fa-clock"></i>
               </div>
-            </div>
-            <div class="flex items-start gap-2">
-              <i class="fas fa-heartbeat text-red-400 text-sm mt-1"></i>
               <div>
-                <span class="font-poppins text-xs font-semibold text-cosmic-muted uppercase tracking-wider block mb-0.5">ஆரோக்கியம்</span>
-                <span class="font-inter text-sm text-white/90">${data.details.health_ta}</span>
-              </div>
-            </div>
-            <div class="flex items-start gap-2">
-              <i class="fas fa-magic text-milk-green text-sm mt-1"></i>
-              <div>
-                <span class="font-poppins text-xs font-semibold text-cosmic-muted uppercase tracking-wider block mb-0.5">அதிர்ஷ்டம்</span>
-                <span class="font-inter text-sm text-white/90">${data.details.lucky_number} (${data.details.lucky_color_ta})</span>
+                <span class="text-xs text-[#5B6472] font-semibold block uppercase">அதிர்ஷ்ட நேரம்</span>
+                <span class="text-base font-bold text-[#1F2937]">${luckyTime}</span>
               </div>
             </div>
           </div>
-        `;
-      }
+
+          <!-- Right Column: Predictions & Sectors (8 cols) -->
+          <div class="md:col-span-8 flex flex-col gap-6">
+            <!-- Main Prediction -->
+            <div class="bg-white border border-[#F4E7CF] rounded-[18px] p-6 shadow-sm">
+              <h4 class="font-poppins text-xs font-bold text-[#D4A017] uppercase tracking-wider mb-3 border-b border-[#F0E5D0] pb-2">
+                <i class="fas fa-bullseye"></i> இன்றைய பலன்கள்
+              </h4>
+              <div id="horoscopeWrapper" class="relative overflow-hidden transition-all duration-500 ease-in-out" style="max-height: 110px;">
+                <p class="text-base leading-relaxed text-[#5B6472]">${prediction}</p>
+                <div id="fadeMask" class="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-white to-transparent pointer-events-none"></div>
+              </div>
+              <button id="readMoreAction" onclick="toggleReadMore()" class="mt-3 text-xs font-bold text-[#D4A017] hover:text-[#B8860B] transition-colors uppercase tracking-wider flex items-center gap-2" style="background:transparent; border:none; cursor:pointer;">
+                Read More <i class="fas fa-chevron-down text-[10px]"></i>
+              </button>
+            </div>
+
+            <!-- Categories -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <!-- Career -->
+              <div class="bg-white border border-[#F4E7CF] rounded-[18px] p-5 shadow-sm">
+                <div class="flex items-center gap-3 mb-3">
+                  <div class="w-8 h-8 rounded-lg bg-[#FFFBF4] border border-[#F4E7CF] flex items-center justify-center text-[#D4A017]">
+                    <i class="fas fa-briefcase"></i>
+                  </div>
+                  <span class="font-poppins text-xs font-bold text-[#1F2937] uppercase tracking-wider">தொழில்</span>
+                </div>
+                <p class="text-xs text-[#5B6472] leading-relaxed line-clamp-2" title="${career}">${career}</p>
+              </div>
+
+              <!-- Love/Finance -->
+              <div class="bg-white border border-[#F4E7CF] rounded-[18px] p-5 shadow-sm">
+                <div class="flex items-center gap-3 mb-3">
+                  <div class="w-8 h-8 rounded-lg bg-[#FFFBF4] border border-[#F4E7CF] flex items-center justify-center text-[#E53935]">
+                    <i class="fas fa-heart"></i>
+                  </div>
+                  <span class="font-poppins text-xs font-bold text-[#1F2937] uppercase tracking-wider">உறவு/நிதி</span>
+                </div>
+                <p class="text-xs text-[#5B6472] leading-relaxed line-clamp-2" title="${love}">${love}</p>
+              </div>
+
+              <!-- Health -->
+              <div class="bg-white border border-[#F4E7CF] rounded-[18px] p-5 shadow-sm">
+                <div class="flex items-center gap-3 mb-3">
+                  <div class="w-8 h-8 rounded-lg bg-[#FFFBF4] border border-[#F4E7CF] flex items-center justify-center text-emerald-600">
+                    <i class="fas fa-heartbeat"></i>
+                  </div>
+                  <span class="font-poppins text-xs font-bold text-[#1F2937] uppercase tracking-wider">ஆரோக்கியம்</span>
+                </div>
+                <p class="text-xs text-[#5B6472] leading-relaxed line-clamp-2" title="${health}">${health}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
 
       document.getElementById('horoscopeText').innerHTML = html;
 
@@ -9102,10 +9159,11 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 60px 0;
+      padding: 80px 0;
       min-height: 500px;
       position: relative;
       overflow: visible;
+      background: radial-gradient(circle, rgba(212, 160, 23, 0.05) 0%, transparent 70%);
     }
 
     .hero-content {
@@ -9232,17 +9290,24 @@
       background: rgba(255, 255, 255, 0.1);
     }
 
+    @keyframes float-subtle {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-8px); }
+      100% { transform: translateY(0px); }
+    }
+
     .hero-visual {
       flex: 1;
       display: flex;
       justify-content: center;
       align-items: center;
       position: relative;
+      animation: float-subtle 4s ease-in-out infinite;
     }
 
     .zodiac-circle {
-      width: 400px;
-      height: 400px;
+      width: 440px;
+      height: 440px;
       border: 1px solid rgba(212, 175, 55, 0.2);
       border-radius: 50%;
       position: relative;
@@ -9398,27 +9463,27 @@
       width: 55px;
       height: 55px;
       border-radius: 50%;
-      background: rgba(225, 53, 60, 0.05);
+      background: rgba(212, 160, 23, 0.05);
       border: 1px solid var(--border-soft);
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 1.5rem;
-      color: var(--primary);
+      color: #D4A017;
       transition: all 0.2s;
     }
 
     .zodiac-item:hover .zodiac-icon {
-      border-color: var(--primary);
-      background: rgba(225, 53, 60, 0.1);
+      border-color: #D4A017;
+      background: rgba(212, 160, 23, 0.1);
       transform: translateY(-2px);
     }
 
     .zodiac-item.active .zodiac-icon {
-      background: var(--primary);
+      background: linear-gradient(135deg, #D4A017, #F6C453) !important;
       color: #FFFFFF;
-      border-color: var(--primary);
-      box-shadow: 0 0 15px rgba(225, 53, 60, 0.3);
+      border-color: #D4A017;
+      box-shadow: 0 4px 15px rgba(212, 160, 23, 0.25);
       transform: scale(1.05);
     }
 
@@ -9478,10 +9543,10 @@
     }
 
     .premium-footer {
-      margin-top: 50px;
+      margin-top: 80px;
       padding: 50px 25px 30px;
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
-      background: #090D1A;
+      border-top: 1px solid #F3E2BC;
+      background: #FFF8ED;
     }
 
     .footer-content {
@@ -9500,15 +9565,15 @@
     .brand-logo {
       font-family: var(--font-heading);
       font-size: 1.2rem;
-      color: var(--primary);
+      color: #D4A017;
       margin-bottom: 8px;
     }
 
     .footer-brand p {
-      color: var(--text-muted);
-      line-height: 1.4;
+      color: #5B6472;
+      line-height: 1.5;
       margin-bottom: 12px;
-      font-size: 0.8rem;
+      font-size: 0.85rem;
     }
 
     .social-links {
@@ -9520,17 +9585,19 @@
       width: 36px;
       height: 36px;
       border-radius: 50%;
-      background: rgba(255, 255, 255, 0.05);
+      background: #FFFFFF;
+      border: 1px solid #F3E2BC;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--text-muted);
+      color: #5B6472;
       transition: all 0.3s;
     }
 
     .social-links a:hover {
-      background: var(--primary);
+      background: #D4A017;
       color: #FFFFFF;
+      border-color: #D4A017;
       transform: translateY(-3px);
     }
 
@@ -9540,7 +9607,7 @@
     }
 
     .footer-links-col h4 {
-      color: #fff;
+      color: #1F2937;
       margin-bottom: 10px;
       font-family: var(--font-heading);
       font-size: 0.95rem;
@@ -9548,28 +9615,23 @@
 
     .footer-links-col a {
       display: block;
-      color: var(--text-muted);
+      color: #5B6472;
       margin-bottom: 6px;
       text-decoration: none;
       transition: color 0.3s;
-      font-size: 0.8rem;
+      font-size: 0.85rem;
     }
 
     .footer-links-col a:hover {
-      color: var(--primary);
+      color: #D4A017;
       padding-left: 3px;
-    }
-
-    .footer-links-col h4 {
-      color: #fff;
-      /* Green heading */
     }
 
     .footer-bottom {
       text-align: center;
       padding-top: 15px;
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
-      color: var(--text-muted);
+      border-top: 1px solid #F3E2BC;
+      color: #5B6472;
       font-size: 0.75rem;
     }
 
@@ -9578,23 +9640,23 @@
         ========================================= */
      .premium-astro-card {
        background: #FFFFFF;
-       border: 1.5px solid rgba(244, 180, 0, 0.15);
-       border-radius: 16px;
+       border: 1px solid #F4E7CF;
+       border-radius: 18px;
        padding: 20px;
        display: flex;
        flex-direction: column;
        align-items: center;
        gap: 16px;
        position: relative;
-       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+       transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
        cursor: pointer;
-       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+       box-shadow: 0 10px 30px rgba(212, 160, 23, 0.08);
      }
 
      .premium-astro-card:hover {
        transform: translateY(-4px);
-       border-color: rgba(244, 180, 0, 0.6);
-       box-shadow: 0 12px 30px rgba(244, 180, 0, 0.15);
+       border-color: #D4A017;
+       box-shadow: 0 15px 35px rgba(212, 160, 23, 0.15);
      }
 
     /* Premium Astrologer Cards */

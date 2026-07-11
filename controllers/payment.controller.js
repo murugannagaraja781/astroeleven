@@ -5,10 +5,20 @@ const Payment = require('../models/Payment');
 const { paymentTokens, userSockets } = require('../services/socketStore');
 const razorpayConfig = require('../config/razorpay');
 
-const razorpay = new Razorpay({
-    key_id: razorpayConfig.KEY_ID,
-    key_secret: razorpayConfig.KEY_SECRET,
-});
+let razorpay = null;
+if (razorpayConfig.KEY_ID && razorpayConfig.KEY_SECRET) {
+    try {
+        razorpay = new Razorpay({
+            key_id: razorpayConfig.KEY_ID,
+            key_secret: razorpayConfig.KEY_SECRET,
+        });
+        console.log("✓ Razorpay SDK initialized successfully.");
+    } catch (e) {
+        console.error("✗ Failed to initialize Razorpay SDK:", e.message);
+    }
+} else {
+    console.warn("⚠️ Razorpay KEY_ID or KEY_SECRET is missing. Payment flow will not work.");
+}
 
 exports.createToken = async (req, res) => {
     try {
@@ -107,8 +117,8 @@ exports.createPayment = async (req, res) => {
 
         console.log(`[Razorpay Debug] Attempting order creation with KeyID: ${keyId?.substring(0, 10)}... (Secret length: ${keySecret?.length})`);
 
-        if (!keyId || !keySecret) {
-            console.error("Razorpay Error: KEY_ID or KEY_SECRET is missing from environment variables!");
+        if (!keyId || !keySecret || !razorpay) {
+            console.error("Razorpay Error: KEY_ID or KEY_SECRET is missing or Razorpay client is not initialized!");
             return res.json({ ok: false, error: 'Payment gateway configuration error' });
         }
 

@@ -874,48 +874,6 @@
                     .wf-healthy { border-left-color: #10B981 !important; background: rgba(16,185,129,0.02); }
                     .wf-warning { border-left-color: #FFB300 !important; background: rgba(245,158,11,0.02); }
                     .wf-error { border-left-color: #EF4444 !important; background: rgba(239,68,68,0.02); }
-
-                    /* Collapsible Admin Sidebar Categories */
-                    .nav-category-header {
-                        display: flex;
-                        align-items: center;
-                        justify-content: space-between;
-                        padding: 12px 24px;
-                        color: var(--primary);
-                        font-weight: 700;
-                        font-size: 0.72rem;
-                        text-transform: uppercase;
-                        letter-spacing: 0.08em;
-                        cursor: pointer;
-                        border-bottom: 1px solid var(--border-soft);
-                        user-select: none;
-                        transition: background 0.2s ease;
-                        margin-top: 10px;
-                    }
-                    .nav-category-header:hover {
-                        background: rgba(255, 204, 0, 0.03);
-                    }
-                    .nav-category-header i.toggle-icon {
-                        font-size: 0.65rem;
-                        transition: transform 0.2s ease;
-                        color: var(--text-muted);
-                    }
-                    .nav-category-header.open i.toggle-icon {
-                        transform: rotate(90deg);
-                    }
-                    .nav-subcategory-list {
-                        max-height: 0;
-                        overflow: hidden;
-                        transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                        background: rgba(0, 0, 0, 0.15);
-                    }
-                    .nav-category-header.open + .nav-subcategory-list {
-                        max-height: 500px;
-                    }
-                    .admin-nav-item {
-                        padding: 10px 32px !important;
-                        border-left-width: 3px !important;
-                    }
                 </style>
             </div>
 
@@ -1303,7 +1261,7 @@
             </div>
 
             <!-- Category: Astrologers -->
-            <div class="nav-category-header" onclick="toggleNavCategory(this)">
+            <div class="nav-category-header open" onclick="toggleNavCategory(this)">
                 <span>Astrologers</span>
                 <i class="fas fa-chevron-right toggle-icon"></i>
             </div>
@@ -1315,7 +1273,7 @@
             </div>
 
             <!-- Category: Users & Notifs -->
-            <div class="nav-category-header" onclick="toggleNavCategory(this)">
+            <div class="nav-category-header open" onclick="toggleNavCategory(this)">
                 <span>Users & Notifications</span>
                 <i class="fas fa-chevron-right toggle-icon"></i>
             </div>
@@ -1325,7 +1283,7 @@
             </div>
 
             <!-- Category: Content Layouts -->
-            <div class="nav-category-header" onclick="toggleNavCategory(this)">
+            <div class="nav-category-header open" onclick="toggleNavCategory(this)">
                 <span>App Layouts</span>
                 <i class="fas fa-chevron-right toggle-icon"></i>
             </div>
@@ -1338,7 +1296,7 @@
             </div>
 
             <!-- Category: Shop & Referrals -->
-            <div class="nav-category-header" onclick="toggleNavCategory(this)">
+            <div class="nav-category-header open" onclick="toggleNavCategory(this)">
                 <span>E-Commerce</span>
                 <i class="fas fa-chevron-right toggle-icon"></i>
             </div>
@@ -1348,7 +1306,7 @@
             </div>
 
             <!-- Category: System Configuration -->
-            <div class="nav-category-header" onclick="toggleNavCategory(this)">
+            <div class="nav-category-header open" onclick="toggleNavCategory(this)">
                 <span>System Config</span>
                 <i class="fas fa-chevron-right toggle-icon"></i>
             </div>
@@ -3143,7 +3101,12 @@
                         </div>
                     `).join('');
                 } else {
-             let adminSessionsCache = [];
+                    container.innerHTML = `<div style="color:#EF4444; padding:20px;">Error: ${res.error || 'Failed to load'}</div>`;
+                }
+            });
+        };
+
+        let adminSessionsCache = [];
         let top3AstrologersCache = [];
 
         window.loadSessionsHistory = () => {

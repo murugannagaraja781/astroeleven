@@ -33,20 +33,20 @@ data class ThemeColors(
 
 object ThemePalette {
 
-    // Premium Light Theme Palette (Red/Yellow/Light theme)
-    private val LightBg = Color(0xFFFCFCFC)      // Clean White/Light gray
-    private val LightSurface = Color(0xFFFFFFFF) // Pure White
-    private val LightAccent = Color(0xFFE1353C)  // Brand Red
-    private val LightTextPrimary = Color(0xFF1A1A1A) // Near Black
-    private val LightTextSecondary = Color(0xFF616161) // Slate Gray
-    private val LightBorder = Color(0xFFE2E8F0) // Soft Border
-    private val DarkCoffee = Color(0xFFE0E0E0)  // Soft Gray Border
+    // Premium Light Theme Palette (Yellow/Green/Red Theme)
+    private val LightBg = Color(0xFFFFFFFF)      // Pure White Background
+    private val LightSurface = Color(0xFFFFFFFF) // Pure White Cards
+    private val LightAccent = Color(0xFFFFC700)  // Sunlight Yellow
+    private val LightTextPrimary = Color(0xFF1C1B1F) // Near Black
+    private val LightTextSecondary = Color(0xFF757575) // Slate Gray
+    private val LightBorder = Color(0xFFE5E5E5) // Soft Border
+    private val DarkCoffee = Color(0xFFE5E5E5)  // Unified Border
 
-    // Premium Dark Theme Palette (Red/Yellow/Dark theme)
-    private val DarkBg = Color(0xFF121212)       // Modern Dark
+    // Premium Dark Theme Palette (Modern Dark Theme)
+    private val DarkBg = Color(0xFF121212)       // Dark Background
     private val DarkSurface = Color(0xFF1E1E1E)  // Dark Card Surface
-    private val DarkAccent = Color(0xFFE1353C)   // Brand Red
-    private val DarkTextPrimary = Color(0xFFFFFFFF) // White
+    private val DarkAccent = Color(0xFFFFCA28)   // Vibrant Yellow Gold
+    private val DarkTextPrimary = Color(0xFFFFFFFF) // White Text
     private val DarkTextSecondary = Color(0xFFB0B0B0) // Muted Gray
 
     // Base Premium Template

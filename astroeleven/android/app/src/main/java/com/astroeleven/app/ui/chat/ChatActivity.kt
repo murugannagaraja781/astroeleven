@@ -1187,8 +1187,8 @@ fun ChatInputBar(
                                 unfocusedContainerColor = Color.Transparent,
                                 focusedIndicatorColor = Color.Transparent,
                                 unfocusedIndicatorColor = Color.Transparent,
-                                focusedTextColor = Color.White,
-                                unfocusedTextColor = Color.White,
+                                focusedTextColor = CosmicAppTheme.colors.textPrimary,
+                                unfocusedTextColor = CosmicAppTheme.colors.textPrimary,
                                 cursorColor = CosmicAppTheme.colors.accent
                             )
                         )

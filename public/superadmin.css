@@ -661,3 +661,45 @@ body {
     min-width: 60px;
     text-align: center;
 }
+
+/* Collapsible Admin Sidebar Categories */
+.nav-category-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 24px;
+    color: var(--primary);
+    font-weight: 700;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border-soft);
+    user-select: none;
+    transition: background 0.2s ease;
+    margin-top: 10px;
+}
+.nav-category-header:hover {
+    background: rgba(255, 204, 0, 0.03);
+}
+.nav-category-header i.toggle-icon {
+    font-size: 0.65rem;
+    transition: transform 0.2s ease;
+    color: var(--text-muted);
+}
+.nav-category-header.open i.toggle-icon {
+    transform: rotate(90deg);
+}
+.nav-subcategory-list {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: rgba(0, 0, 0, 0.15);
+}
+.nav-category-header.open + .nav-subcategory-list {
+    max-height: 500px;
+}
+.admin-nav-item {
+    padding: 10px 32px !important;
+    border-left-width: 3px !important;
+}

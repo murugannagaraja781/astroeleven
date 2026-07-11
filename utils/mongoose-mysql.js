@@ -690,7 +690,39 @@ const mongooseEmulator = {
     },
     Schema,
     model: (name, schema) => {
-        return new CustomModel(name, schema);
+        const modelInstance = new CustomModel(name, schema);
+        
+        function ModelConstructor(data) {
+            return new WrappedDocument(modelInstance, data || {});
+        }
+        
+        // Copy methods from CustomModel prototype
+        const proto = Object.getPrototypeOf(modelInstance);
+        for (const key of Object.getOwnPropertyNames(proto)) {
+            if (key === 'constructor') continue;
+            if (typeof modelInstance[key] === 'function') {
+                ModelConstructor[key] = modelInstance[key].bind(modelInstance);
+            }
+        }
+        
+        // Copy properties directly on modelInstance
+        for (const key of Object.getOwnPropertyNames(modelInstance)) {
+            if (typeof modelInstance[key] === 'function') {
+                ModelConstructor[key] = modelInstance[key].bind(modelInstance);
+            } else {
+                Object.defineProperty(ModelConstructor, key, {
+                    get: () => modelInstance[key],
+                    set: (v) => { modelInstance[key] = v; },
+                    configurable: true,
+                    enumerable: true
+                });
+            }
+        }
+        
+        // Add wrap helper specifically
+        ModelConstructor.wrap = (row) => modelInstance.wrap(row);
+        
+        return ModelConstructor;
     },
     // Raw pool access helper
     pool

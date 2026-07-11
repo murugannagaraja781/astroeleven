@@ -25,12 +25,17 @@ import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import androidx.compose.runtime.collectAsState
+import com.astroeleven.app.data.model.Banner
+import com.astroeleven.app.data.model.GridService
+import com.astroeleven.app.data.api.ApiClient
 
 class GuestDashboardActivity : AppCompatActivity() {
 
     private val _horoscope = MutableStateFlow<String>("Loading Horoscope...")
     private val _astrologers = MutableStateFlow<List<Astrologer>>(emptyList())
     private val _isLoading = MutableStateFlow<Boolean>(true)
+    private val _banners = MutableStateFlow<List<Banner>>(emptyList())
+    private val _services = MutableStateFlow<List<GridService>>(emptyList())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,6 +46,8 @@ class GuestDashboardActivity : AppCompatActivity() {
                 val horoscope by _horoscope.collectAsState()
                 val astrologers by _astrologers.collectAsState()
                 val isLoading by _isLoading.collectAsState()
+                val banners by _banners.collectAsState()
+                val services by _services.collectAsState()
 
                 var selectedRasiItem by remember { mutableStateOf<ComposeRasiItem?>(null) }
 
@@ -57,7 +64,8 @@ class GuestDashboardActivity : AppCompatActivity() {
                     horoscope = horoscope,
                     astrologers = astrologers,
                     isLoading = isLoading,
-                    banners = emptyList(),
+                    banners = banners,
+                    services = services,
                     onBannerClick = { _ -> redirectToLogin() },
                     onChatClick = { redirectToLogin() },
                     onCallClick = { _, _ -> redirectToLogin() },
@@ -76,6 +84,7 @@ class GuestDashboardActivity : AppCompatActivity() {
 
         loadDailyHoroscope()
         loadAstrologers()
+        fetchHomeData()
         setupSocket()
     }
 
@@ -252,6 +261,33 @@ class GuestDashboardActivity : AppCompatActivity() {
             }
             else -> {
                 Toast.makeText(this, "$serviceName clicked", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        fetchHomeData()
+    }
+
+    private fun fetchHomeData() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val response = ApiClient.api.getHomeData()
+                if (response.isSuccessful && response.body()?.ok == true) {
+                    val homeData = response.body()?.data
+                    val banners = homeData?.banners ?: emptyList()
+                    val services = homeData?.homeConfig?.gridServices ?: emptyList()
+                    
+                    Log.d("GuestDashboard", "Home data fetched: banners=${banners.size}, services=${services.size}")
+                    
+                    _banners.value = banners
+                    _services.value = services
+                } else {
+                    Log.e("GuestDashboard", "Home data fetch failed: ${response.errorBody()?.string()}")
+                }
+            } catch (e: Exception) {
+                Log.e("GuestDashboard", "Error fetching home data: ${e.message}")
             }
         }
     }
