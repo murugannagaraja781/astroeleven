@@ -27,7 +27,7 @@
   <meta property="twitter:image" content="https://astroeleven.com/images/astroeleven-banner.jpg">
 
   <link rel="canonical" href="https://astroeleven.com/">
-  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="icon" type="image/svg+xml" href="images/astroeleven_icon.svg">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/smoothness/jquery-ui.css">
@@ -1205,6 +1205,11 @@
       border: 1px solid var(--border-soft);
       cursor: pointer;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
     }
 
     .zodiac-item:hover {
@@ -1221,7 +1226,7 @@
 
     .zodiac-icon {
       font-size: 1.6rem;
-      margin-bottom: 8px;
+      margin-bottom: 0px;
       display: block;
       transition: transform 0.3s;
     }
@@ -1237,11 +1242,11 @@
     }
 
     .horoscope-card {
-      background: var(--bg-card);
-      backdrop-filter: var(--glass-blur);
+      background: linear-gradient(135deg, #FFFDF9 0%, #FFF3D6 100%);
+      border: 1px solid rgba(212, 160, 23, 0.3);
+      box-shadow: 0 8px 24px rgba(212, 160, 23, 0.05);
       border-radius: var(--radius-lg);
       padding: 24px;
-      border: 1px solid var(--border-medium);
       margin-bottom: 30px;
       position: relative;
       overflow: hidden;
@@ -1587,18 +1592,18 @@
 
   <!-- App Download Header (Guest/Login) -->
   <div id="staticHeader"
-    style="position: fixed; top: 0; left: 0; right: 0; z-index: 10001; background: var(--bg-glass); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); padding: 10px 20px; border-bottom: 1px solid var(--border-soft); display: flex; justify-content: space-between; align-items: center;">
+    style="position: fixed; top: 0; left: 0; right: 0; z-index: 10001; background: rgba(255, 253, 247, 0.95); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); padding: 10px 20px; border-bottom: 1px solid var(--border-soft); display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 20px rgba(212, 160, 23, 0.05);">
     <div
-      style="font-family: var(--font-heading); font-weight: bold; color: var(--primary); font-size: 1.1rem; letter-spacing: 1px;">
-      ✨ Astro Eleven</div>
+      style="font-family: var(--font-heading); font-weight: 800; color: #B3262A; font-size: 1.25rem; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
+      <img src="images/astroeleven_icon.svg" style="height: 28px; width: 28px;" /> Astro Eleven</div>
     <div style="display: flex; align-items: center; gap: 10px;">
-      <a href="/downloads/astroeleven-v6.0.0.apk" class="download-header-btn" style="color: var(--primary) !important;">
-        <i class="fas fa-download"></i> App
+      <a href="/downloads/astroeleven-v6.0.0.apk" class="download-header-btn" style="background: linear-gradient(135deg, #FFCC00 0%, #D48F00 100%) !important; color: #2B2516 !important; font-weight: 700; border: none; padding: 6px 12px; border-radius: var(--radius-sm); font-size: 0.85rem; text-decoration: none; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 5px rgba(212,160,23,0.2);">
+        <i class="fas fa-download"></i> Get App
       </a>
       <button id="staticLoginBtn" onclick="window.location.reload()" class="cosmic-btn"
-        style="width:auto; padding:6px 15px; margin-top:0; font-size:0.85rem;">Login</button>
+        style="width:auto; padding:6px 15px; margin-top:0; font-size:0.85rem; background: linear-gradient(135deg, #FFCC00 0%, #D48F00 100%); color: #2B2516; border: none; font-weight: 700;">Login</button>
       <button id="staticLogoutBtn" onclick="clearSession()"
-        style="background:rgba(239, 68, 68, 0.1); color:#EF4444; border:1px solid rgba(239, 68, 68, 0.2); padding:6px 15px; border-radius:var(--radius-sm); cursor:pointer; font-weight:bold; font-size:0.85rem; display:none;">Logout</button>
+        style="background: linear-gradient(135deg, #E53935 0%, #B71C1C 100%); color: white; border: none; padding:6px 15px; border-radius:var(--radius-sm); cursor:pointer; font-weight:bold; font-size:0.85rem; display:none; box-shadow: 0 2px 5px rgba(229,57,53,0.2);">Logout</button>
       <script>
         try {
           if (localStorage.getItem('astro_session')) {
@@ -1657,12 +1662,14 @@
       bottom: 0;
       left: 0;
       width: 100%;
-      background: rgba(255, 255, 255, 0.9);
-      backdrop-filter: blur(5px);
+      background: rgba(255, 253, 247, 0.9);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       padding: 15px 10px;
       text-align: center;
-      border-top: 1px solid rgba(0, 0, 0, 0.05);
+      border-top: 1px solid var(--border-soft);
       z-index: 50;
+      box-shadow: 0 -4px 20px rgba(212, 160, 23, 0.05);
     }
 
     .footer-links {
@@ -2146,41 +2153,41 @@
           style="margin-bottom: 25px; overflow-x: auto; -webkit-overflow-scrolling: touch;">
           <div style="display: flex; gap: 12px; padding: 5px 0;">
             <div class="service-item-card" onclick="selectQuickService('chat')">
-              <i class="fas fa-comment-dots"></i>
+              <div class="service-icon-wrapper"><i class="fas fa-comment-dots"></i></div>
               <span>Chat with Astro</span>
             </div>
             <div class="service-item-card" onclick="selectQuickService('call')">
-              <i class="fas fa-phone-alt"></i>
+              <div class="service-icon-wrapper"><i class="fas fa-phone-alt"></i></div>
               <span>Call with Astro</span>
             </div>
             <div class="service-item-card" onclick="selectQuickService('video')">
-              <i class="fas fa-video"></i>
+              <div class="service-icon-wrapper"><i class="fas fa-video"></i></div>
               <span>Video with Astro</span>
             </div>
             <div class="service-item-card" onclick="selectQuickService('all')">
-              <i class="fas fa-th-large"></i>
+              <div class="service-icon-wrapper"><i class="fas fa-th-large"></i></div>
               <span>All Services</span>
             </div>
             <div class="service-item-card"
               onclick="document.getElementById('screen-chart-helper').classList.remove('hidden')">
-              <img src="images/kundali_icon.png" alt="Kundali">
+              <div class="service-icon-wrapper"><img src="images/kundali_icon.png" alt="Kundali"></div>
               <span>Free Horoscope</span>
             </div>
             <div class="service-item-card" onclick="openPoruthamModal()">
-              <img src="images/match_icon_new.png" alt="Match">
+              <div class="service-icon-wrapper"><img src="images/match_icon_new.png" alt="Match"></div>
               <span>Horoscope Match</span>
             </div>
             <div class="service-item-card"
               onclick="document.getElementById('dailyHoroscopeSection').scrollIntoView({behavior:'smooth'})">
-              <img src="images/daily_horoscope_new.png" alt="Daily">
+              <div class="service-icon-wrapper"><img src="images/daily_horoscope_new.png" alt="Daily"></div>
               <span>Daily Horoscope</span>
             </div>
             <div class="service-item-card" onclick="openAcademyModal()">
-              <img src="images/academy_icon_new.png" alt="Academy">
+              <div class="service-icon-wrapper"><img src="images/academy_icon_new.png" alt="Academy"></div>
               <span>Astro Academy</span>
             </div>
             <div class="service-item-card" onclick="alert('For free services, please contact: info@astroeleven.com')">
-              <img src="images/free_services_icon.png" alt="Free">
+              <div class="service-icon-wrapper"><img src="images/free_services_icon.png" alt="Free"></div>
               <span>Free Services</span>
             </div>
           </div>
@@ -2211,21 +2218,32 @@
             transform: scale(0.95);
           }
 
-          .service-item-card img {
-            width: 45px;
-            height: 45px;
-            margin-bottom: 8px;
-            object-fit: contain;
-          }
-
-          .service-item-card i {
-            font-size: 1.8rem;
-            color: var(--primary);
-            margin-bottom: 12px;
+          .service-icon-wrapper {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #D4A017, #F6C453) !important;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            height: 45px;
+            margin-bottom: 8px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 10px rgba(212, 160, 23, 0.15);
+          }
+
+          .service-item-card img {
+            width: 24px;
+            height: 24px;
+            object-fit: contain;
+            filter: brightness(0) invert(1);
+          }
+
+          .service-icon-wrapper i {
+            font-size: 1.2rem;
+            color: #FFFFFF !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
           }
 
           .service-item-card span {
@@ -2362,7 +2380,7 @@
           </div>
           <div style="display:flex; justify-content:center; gap:10px;">
             <button
-              style="background: var(--bg-card); color:#e07e0c; border:none; padding:10px 25px; border-radius:25px; font-weight:bold; font-size:1rem; cursor:pointer; box-shadow:0 4px 6px rgba(0,0,0,0.1);"
+              style="background: linear-gradient(135deg, #FFCC00 0%, #D48F00 100%); color: #2B2516; border:none; padding:10px 25px; border-radius:25px; font-weight:bold; font-size:1rem; cursor:pointer; box-shadow: 0 4px 15px rgba(212, 160, 23, 0.25);"
               onclick="initiateRecharge()">
               <i class="fas fa-plus-circle"></i> Add Money
             </button>
@@ -2854,7 +2872,7 @@
       </p>
 
       <button class="cosmic-btn" onclick="openRechargeFromMain()"
-        style="width: 100%; padding: 16px; border-radius: 12px; font-weight: bold; font-size: 1.1rem; border:none; background: #FFCC00; color: #FFFFFF;">
+        style="width: 100%; padding: 16px; border-radius: 12px; font-weight: bold; font-size: 1.1rem; border:none; background: linear-gradient(135deg, #FFCC00 0%, #D48F00 100%); color: #2B2516; box-shadow: 0 4px 15px rgba(212, 160, 23, 0.25);">
         <i class="fas fa-plus-circle"></i> Add Money
       </button>
     </div>
@@ -5008,31 +5026,29 @@
           </div>
 
            <div class="card-actions" style="border-top: 1px solid rgba(244, 180, 0, 0.15); padding-top:10px;">
-              ${(specificService === null || specificService === 'chat') ? (
-                a.isChatOnline ? `
+              ${a.isChatOnline ? `
                  <div class="cta-btn active-chat"
                       style="background: linear-gradient(135deg, #FFCC00 0%, #D48F00 100%); color: #2B2516; border: none; border-radius: 6px; flex:1; font-weight:700; height:32px; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 6px rgba(212,175,55,0.15); cursor:pointer;"
                       onclick="event.stopPropagation(); checkGuestAction('chat', '${a.userId}')">
                       Chat
                  </div>
-                ` : (specificService === 'chat' ? `<div class="cta-btn disabled" style="background: transparent; border: 1px solid #444; color: #666; border-radius: 6px; flex:1; pointer-events:none;">Chat</div>` : '')
-              ) : ''}
+              ` : `<div class="cta-btn disabled" style="background: transparent; border: 1px solid #444; color: #666; border-radius: 6px; flex:1; pointer-events:none; height:32px; display:flex; align-items:center; justify-content:center; font-size:0.85rem;">Chat</div>`}
               
-              ${(specificService === null || specificService === 'call') && a.isAudioOnline ? `
+              ${a.isAudioOnline ? `
                 <div class="cta-btn active-audio"
                      style="background: linear-gradient(135deg, #FFCC00 0%, #D48F00 100%); color: #2B2516; border: none; border-radius: 6px; flex:1; font-weight:700; height:32px; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 6px rgba(212,175,55,0.15); cursor:pointer;"
                      onclick="event.stopPropagation(); checkGuestAction('call', '${a.userId}')">
                      Call
                 </div>
-              ` : ''}
+              ` : `<div class="cta-btn disabled" style="background: transparent; border: 1px solid #444; color: #666; border-radius: 6px; flex:1; pointer-events:none; height:32px; display:flex; align-items:center; justify-content:center; font-size:0.85rem;">Call</div>`}
 
-              ${(specificService === null || specificService === 'video') && a.isVideoOnline ? `
+              ${a.isVideoOnline ? `
                 <div class="cta-btn active-video"
                      style="background: linear-gradient(135deg, #FFCC00 0%, #D48F00 100%); color: #2B2516; border: none; border-radius: 6px; flex:1; font-weight:700; height:32px; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 6px rgba(212,175,55,0.15); cursor:pointer;"
                      onclick="event.stopPropagation(); checkGuestAction('video', '${a.userId}')">
                      Video
                 </div>
-              ` : ''}
+              ` : `<div class="cta-btn disabled" style="background: transparent; border: 1px solid #444; color: #666; border-radius: 6px; flex:1; pointer-events:none; height:32px; display:flex; align-items:center; justify-content:center; font-size:0.85rem;">Video</div>`}
            </div>
         `;
         container.appendChild(div);

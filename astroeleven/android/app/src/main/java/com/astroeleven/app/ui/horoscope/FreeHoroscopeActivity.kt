@@ -11,41 +11,42 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.animation.*
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.rounded.CalendarToday
-import androidx.compose.material.icons.rounded.AccessTime
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import com.astroeleven.app.ui.theme.*
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.google.gson.JsonObject
 import java.util.Calendar
 import java.util.TimeZone
 import kotlin.math.abs
+import kotlin.math.cos
 import kotlin.math.roundToInt
+import kotlin.math.sin
 
 class FreeHoroscopeActivity : ComponentActivity() {
 
@@ -53,7 +54,7 @@ class FreeHoroscopeActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            CosmicAppTheme {
+            MaterialTheme {
                 FreeHoroscopeScreen(
                     onBackClick = { finish() },
                     onGenerateChart = { data -> launchChart(data) }
@@ -63,7 +64,6 @@ class FreeHoroscopeActivity : ComponentActivity() {
     }
 
     private fun launchChart(data: BirthData) {
-        // Prepare payload as JSON String for VipChartActivity
         val payload = JsonObject().apply {
             addProperty("name", data.name)
             addProperty("day", data.day)
@@ -84,7 +84,6 @@ class FreeHoroscopeActivity : ComponentActivity() {
             putExtra("birthData", payload.toString())
         }
         startActivity(intent)
-        // do not finish() so user can come back
     }
 }
 
@@ -114,7 +113,7 @@ fun FreeHoroscopeScreen(
 
     // Form State
     var name by remember { mutableStateOf("") }
-    var gender by remember { mutableStateOf("Male") }
+    var gender by remember { mutableStateOf("Female") } // Default female matching mockup
 
     // Date
     var day by remember { mutableStateOf("") }
@@ -139,7 +138,7 @@ fun FreeHoroscopeScreen(
     val placeLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-         if (result.resultCode == Activity.RESULT_OK && result.data != null) {
+        if (result.resultCode == Activity.RESULT_OK && result.data != null) {
             val d = result.data!!
             val fullName = d.getStringExtra("name") ?: ""
             val cityRes = d.getStringExtra("city") ?: ""
@@ -156,10 +155,9 @@ fun FreeHoroscopeScreen(
             latitude = latRes.takeIf { it != 0.0 }
             longitude = lonRes.takeIf { it != 0.0 }
 
-             // Compute timezone immediately
             val computed = computeTimezoneOffsetHours(timezoneId, day, month, year, hour, minute)
             if (computed != null) timezone = computed
-         }
+        }
     }
 
     val computedTimezone = remember(timezoneId, day, month, year, hour, minute) {
@@ -168,6 +166,20 @@ fun FreeHoroscopeScreen(
     val timezoneOffset = computedTimezone ?: timezone
     val timezoneDisplay = timezoneOffset?.let { formatUtcOffset(it) } ?: ""
 
+    val showDatePicker = {
+        val cal = Calendar.getInstance()
+        DatePickerDialog(context, com.astroeleven.app.R.style.DialogPickerTheme, { _, py, pm, pd ->
+            year = py.toString(); month = String.format("%02d", pm + 1); day = String.format("%02d", pd)
+        }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
+    }
+
+    val showTimePicker = {
+        TimePickerDialog(context, com.astroeleven.app.R.style.DialogPickerTheme, { _, ph, pm ->
+            val hTyped = if (ph > 12) (ph - 12) else if (ph == 0) 12 else ph
+            hour = String.format("%02d", hTyped); minute = String.format("%02d", pm); amPm = if (ph >= 12) "PM" else "AM"
+        }, 12, 0, false).show()
+    }
+
     val launchLocationPicker = {
         val intent = Intent(context, com.astroeleven.app.ui.city.CitySearchActivity::class.java)
         placeLauncher.launch(intent)
@@ -175,229 +187,642 @@ fun FreeHoroscopeScreen(
 
     var isLoading by remember { mutableStateOf(false) }
 
+    // Premium Color Palette
+    val royalOrange = Color(0xFFFF8C00)
+    val goldenYellow = Color(0xFFFFC107)
+    val softCream = Color(0xFFFFF9F0)
+    val lightGold = Color(0xFFF8E8C2)
+    val textDark = Color(0xFF3E2723)
+    val textGrey = Color(0xFF7D6F5C)
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(CosmicAppTheme.backgroundBrush)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(softCream, Color.White)
+                )
+            )
     ) {
-        Scaffold(
-            containerColor = Color.Transparent,
-            topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            "Free Horoscope",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = CosmicAppTheme.colors.textPrimary,
-                            fontWeight = FontWeight.Bold
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onBackClick) {
-                            Icon(
-                                Icons.Default.ArrowBack,
-                                contentDescription = "Back",
-                                tint = CosmicAppTheme.colors.textPrimary
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent,
-                        titleContentColor = CosmicAppTheme.colors.textPrimary
-                    )
+        // Subtle Background Zodiac patterns & Sparkling Stars
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            // Draw background stars
+            val starPositions = listOf(
+                Offset(size.width * 0.1f, size.height * 0.2f),
+                Offset(size.width * 0.85f, size.height * 0.15f),
+                Offset(size.width * 0.2f, size.height * 0.45f),
+                Offset(size.width * 0.9f, size.height * 0.55f),
+                Offset(size.width * 0.15f, size.height * 0.8f),
+                Offset(size.width * 0.75f, size.height * 0.85f)
+            )
+            starPositions.forEach { pos ->
+                drawCircle(color = goldenYellow.copy(alpha = 0.4f), radius = 3.dp.toPx(), center = pos)
+                drawCircle(color = Color.White, radius = 1.5.dp.toPx(), center = pos)
+            }
+        }
+
+        // Top Right Zodiac Wheel Illustration
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .offset(x = 40.dp, y = (-20).dp)
+        ) {
+            Canvas(modifier = Modifier.size(190.dp)) {
+                val center = Offset(size.width / 2, size.height / 2)
+                val radius = size.width / 2
+                // Outer ring
+                drawCircle(color = lightGold.copy(alpha = 0.5f), radius = radius, style = Stroke(width = 1.5.dp.toPx()))
+                drawCircle(color = lightGold.copy(alpha = 0.3f), radius = radius - 12.dp.toPx(), style = Stroke(width = 1.dp.toPx()))
+                drawCircle(color = lightGold.copy(alpha = 0.2f), radius = radius - 30.dp.toPx(), style = Stroke(width = 1.dp.toPx()))
+                // Radiating divisions
+                for (i in 0 until 12) {
+                    val angle = (i * 30) * (Math.PI / 180)
+                    val startX = center.x + (radius - 30.dp.toPx()) * cos(angle).toFloat()
+                    val startY = center.y + (radius - 30.dp.toPx()) * sin(angle).toFloat()
+                    val endX = center.x + radius * cos(angle).toFloat()
+                    val endY = center.y + radius * sin(angle).toFloat()
+                    drawLine(color = lightGold.copy(alpha = 0.4f), start = Offset(startX, startY), end = Offset(endX, endY), strokeWidth = 1.dp.toPx())
+                }
+                // Center Glowing Sun
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(goldenYellow, royalOrange, Color.Transparent),
+                        center = center,
+                        radius = 24.dp.toPx()
+                    ),
+                    radius = 24.dp.toPx()
                 )
             }
-        ) { padding ->
-            Column(
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(bottom = 24.dp)
+        ) {
+            // Header Bar
+            Row(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .imePadding()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                // Back Button Square rounded
                 Card(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = CosmicAppTheme.colors.cardBg),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    onClick = onBackClick,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, lightGold),
+                    modifier = Modifier
+                        .size(46.dp)
+                        .shadow(2.dp, RoundedCornerShape(12.dp))
                 ) {
-                    Column(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 20.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Rounded.ArrowBack,
+                            contentDescription = "Back",
+                            tint = royalOrange,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.width(16.dp))
+
+                Column {
+                    Text(
+                        text = "Free Horoscope",
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = textDark
+                    )
+                    Text(
+                        text = "Create your birth chart and unlock your destiny ✨",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = textGrey
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Main Glassmorphism Card
+            Card(
+                shape = RoundedCornerShape(28.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.95f)),
+                border = BorderStroke(1.dp, Color.White),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .shadow(12.dp, RoundedCornerShape(28.dp))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    // Section header
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(royalOrange.copy(alpha = 0.1f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Rounded.Person,
+                                contentDescription = "User details",
+                                tint = royalOrange,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Column {
+                            Text(
+                                text = "Personal Details",
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = textDark
+                            )
+                            Text(
+                                text = "Please enter your details accurately",
+                                fontSize = 12.sp,
+                                color = textGrey
+                            )
+                        }
+                    }
+
+                    // Decorative Orange indicator line
+                    Box(
+                        modifier = Modifier
+                            .width(36.dp)
+                            .height(3.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(royalOrange)
+                    )
+
+                    // Text Field Design System
+                    val inputColors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = textDark,
+                        unfocusedTextColor = textDark,
+                        focusedBorderColor = royalOrange,
+                        unfocusedBorderColor = lightGold,
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White,
+                        cursorColor = royalOrange
+                    )
+
+                    // Full Name Input
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        placeholder = { Text("Full Name", color = textGrey, fontSize = 14.sp) },
+                        leadingIcon = {
+                            Icon(Icons.Rounded.Person, contentDescription = null, tint = royalOrange)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(58.dp),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = inputColors,
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            capitalization = KeyboardCapitalization.Words,
+                            imeAction = ImeAction.Next,
+                            keyboardType = KeyboardType.Text
+                        )
+                    )
+
+                    // Gender Segmented Picker
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
-                            text = "Personal Details",
-                            style = MaterialTheme.typography.titleMedium,
+                            text = "Gender",
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            color = CosmicAppTheme.colors.accent
+                            color = textDark
                         )
-
-                        val textFieldColors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = CosmicAppTheme.colors.textPrimary, 
-                            unfocusedTextColor = CosmicAppTheme.colors.textPrimary,
-                            disabledTextColor = CosmicAppTheme.colors.textSecondary,
-                            focusedBorderColor = CosmicAppTheme.colors.accent,
-                            unfocusedBorderColor = CosmicAppTheme.colors.cardStroke,
-                            disabledBorderColor = CosmicAppTheme.colors.cardStroke.copy(alpha = 0.5f),
-                            cursorColor = CosmicAppTheme.colors.accent,
-                            focusedPlaceholderColor = CosmicAppTheme.colors.textSecondary.copy(alpha = 0.5f),
-                            unfocusedPlaceholderColor = CosmicAppTheme.colors.textSecondary.copy(alpha = 0.5f)
-                        )
-
-                        OutlinedTextField(
-                            value = name,
-                            onValueChange = { name = it },
-                            placeholder = { Text("Full Name", fontSize = 14.sp) }, 
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(56.dp),
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(
-                                capitalization = KeyboardCapitalization.Words,
-                                imeAction = ImeAction.Next,
-                                keyboardType = KeyboardType.Text
-                            ),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = textFieldColors,
-                            enabled = true
+                                .height(52.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            val genders = listOf("Male", "Female", "Other")
+                            genders.forEach { item ->
+                                val isSelected = gender == item
+                                val buttonBg = if (isSelected) {
+                                    Brush.horizontalGradient(colors = listOf(goldenYellow, royalOrange))
+                                } else {
+                                    Brush.linearGradient(colors = listOf(Color.White, Color.White))
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight()
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .background(buttonBg)
+                                        .border(
+                                            width = 1.dp,
+                                            color = if (isSelected) Color.Transparent else lightGold,
+                                            shape = RoundedCornerShape(16.dp)
+                                        )
+                                        .clickable { gender = item },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = item,
+                                        color = if (isSelected) Color.White else textGrey,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        fontSize = 14.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Date of Birth - 3 Columns selector
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "Date of Birth",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = textDark
                         )
-
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                            Text("Gender:", style = MaterialTheme.typography.bodySmall, color = Color.White)
-                            Spacer(Modifier.width(8.dp))
-                            RadioButton(
-                                selected = gender == "Male",
-                                onClick = { gender = "Male" },
-                                colors = RadioButtonDefaults.colors(selectedColor = CosmicAppTheme.colors.accent)
-                            )
-                            Text("Male", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.7f))
-                            Spacer(Modifier.width(12.dp))
-                            RadioButton(
-                                selected = gender == "Female",
-                                onClick = { gender = "Female" },
-                                colors = RadioButtonDefaults.colors(selectedColor = CosmicAppTheme.colors.accent)
-                            )
-                            Text("Female", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.7f))
-                        }
-
-                        Text("Date of Birth", style = MaterialTheme.typography.labelSmall, color = CosmicAppTheme.colors.accent)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            OutlinedTextField(value = day, onValueChange = { if (it.length <= 2) day = it }, placeholder = { Text("DD", fontSize = 12.sp) }, modifier = Modifier.weight(1f).height(52.dp), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next), shape = RoundedCornerShape(12.dp), colors = textFieldColors)
-                            OutlinedTextField(value = month, onValueChange = { if (it.length <= 2) month = it }, placeholder = { Text("MM", fontSize = 12.sp) }, modifier = Modifier.weight(1f).height(52.dp), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next), shape = RoundedCornerShape(12.dp), colors = textFieldColors)
-                            OutlinedTextField(value = year, onValueChange = { if (it.length <= 4) year = it }, placeholder = { Text("YYYY", fontSize = 12.sp) }, modifier = Modifier.weight(1.3f).height(52.dp), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next), shape = RoundedCornerShape(12.dp), colors = textFieldColors)
-                            IconButton(
-                                onClick = {
-                                    val cal = Calendar.getInstance()
-                                    DatePickerDialog(context, com.astroeleven.app.R.style.DialogPickerTheme, { _, py, pm, pd ->
-                                        year = py.toString(); month = (pm + 1).toString(); day = pd.toString()
-                                    }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
-                                },
-                                modifier = Modifier.size(40.dp)
+                            // DD box
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(58.dp)
+                                    .border(1.dp, lightGold, RoundedCornerShape(18.dp))
+                                    .background(Color.White, RoundedCornerShape(18.dp))
+                                    .clickable { showDatePicker() }
+                                    .padding(horizontal = 12.dp),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Rounded.CalendarToday, "Pick", tint = CosmicAppTheme.colors.accent, modifier = Modifier.size(24.dp))
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(Icons.Rounded.CalendarToday, contentDescription = null, tint = royalOrange, modifier = Modifier.size(16.dp))
+                                    Text(text = day.ifBlank { "DD" }, color = if (day.isNotBlank()) textDark else textGrey, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                    Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null, tint = textGrey, modifier = Modifier.size(16.dp))
+                                }
+                            }
+
+                            // MM box
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(58.dp)
+                                    .border(1.dp, lightGold, RoundedCornerShape(18.dp))
+                                    .background(Color.White, RoundedCornerShape(18.dp))
+                                    .clickable { showDatePicker() }
+                                    .padding(horizontal = 12.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(Icons.Rounded.CalendarToday, contentDescription = null, tint = royalOrange, modifier = Modifier.size(16.dp))
+                                    Text(text = month.ifBlank { "MM" }, color = if (month.isNotBlank()) textDark else textGrey, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                    Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null, tint = textGrey, modifier = Modifier.size(16.dp))
+                                }
+                            }
+
+                            // YYYY box
+                            Box(
+                                modifier = Modifier
+                                    .weight(1.3f)
+                                    .height(58.dp)
+                                    .border(1.dp, lightGold, RoundedCornerShape(18.dp))
+                                    .background(Color.White, RoundedCornerShape(18.dp))
+                                    .clickable { showDatePicker() }
+                                    .padding(horizontal = 12.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(Icons.Rounded.CalendarToday, contentDescription = null, tint = royalOrange, modifier = Modifier.size(16.dp))
+                                    Text(text = year.ifBlank { "YYYY" }, color = if (year.isNotBlank()) textDark else textGrey, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                    Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null, tint = textGrey, modifier = Modifier.size(16.dp))
+                                }
                             }
                         }
+                    }
 
-                        Text("Time of Birth", style = MaterialTheme.typography.labelSmall, color = CosmicAppTheme.colors.accent)
+                    // Time of Birth - 3 Columns selector
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "Time of Birth",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = textDark
+                        )
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            OutlinedTextField(value = hour, onValueChange = { if (it.length <= 2) hour = it }, placeholder = { Text("HH", fontSize = 12.sp) }, modifier = Modifier.weight(1f).height(52.dp), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), shape = RoundedCornerShape(12.dp), colors = textFieldColors)
-                            OutlinedTextField(value = minute, onValueChange = { if (it.length <= 2) minute = it }, placeholder = { Text("MM", fontSize = 12.sp) }, modifier = Modifier.weight(1f).height(52.dp), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), shape = RoundedCornerShape(12.dp), colors = textFieldColors)
-                            TextButton(onClick = { amPm = if (amPm == "AM") "PM" else "AM" }, modifier = Modifier.height(44.dp)) {
-                                Text(amPm, color = CosmicAppTheme.colors.accent, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                            }
-                            IconButton(
-                                onClick = {
-                                    TimePickerDialog(context, com.astroeleven.app.R.style.DialogPickerTheme, { _, ph, pm ->
-                                        val hTyped = if (ph > 12) (ph - 12) else if (ph == 0) 12 else ph
-                                        hour = hTyped.toString(); minute = String.format("%02d", pm); amPm = if (ph >= 12) "PM" else "AM"
-                                    }, 12, 0, false).show()
-                                },
-                                modifier = Modifier.size(40.dp)
+                            // HH box
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(58.dp)
+                                    .border(1.dp, lightGold, RoundedCornerShape(18.dp))
+                                    .background(Color.White, RoundedCornerShape(18.dp))
+                                    .clickable { showTimePicker() }
+                                    .padding(horizontal = 12.dp),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Rounded.AccessTime, "Pick", tint = CosmicAppTheme.colors.accent, modifier = Modifier.size(24.dp))
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(Icons.Rounded.AccessTime, contentDescription = null, tint = royalOrange, modifier = Modifier.size(16.dp))
+                                    Text(text = hour.ifBlank { "HH" }, color = if (hour.isNotBlank()) textDark else textGrey, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                    Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null, tint = textGrey, modifier = Modifier.size(16.dp))
+                                }
+                            }
+
+                            // MM box
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(58.dp)
+                                    .border(1.dp, lightGold, RoundedCornerShape(18.dp))
+                                    .background(Color.White, RoundedCornerShape(18.dp))
+                                    .clickable { showTimePicker() }
+                                    .padding(horizontal = 12.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(Icons.Rounded.AccessTime, contentDescription = null, tint = royalOrange, modifier = Modifier.size(16.dp))
+                                    Text(text = minute.ifBlank { "MM" }, color = if (minute.isNotBlank()) textDark else textGrey, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                    Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null, tint = textGrey, modifier = Modifier.size(16.dp))
+                                }
+                            }
+
+                            // AM/PM box
+                            Box(
+                                modifier = Modifier
+                                    .weight(1.3f)
+                                    .height(58.dp)
+                                    .border(1.dp, lightGold, RoundedCornerShape(18.dp))
+                                    .background(Color.White, RoundedCornerShape(18.dp))
+                                    .clickable { amPm = if (amPm == "AM") "PM" else "AM" }
+                                    .padding(horizontal = 12.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(Icons.Rounded.AccessTime, contentDescription = null, tint = royalOrange, modifier = Modifier.size(16.dp))
+                                    Text(text = amPm, color = textDark, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                    Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null, tint = textGrey, modifier = Modifier.size(16.dp))
+                                }
                             }
                         }
+                    }
 
-                        Text("Place of Birth", style = MaterialTheme.typography.labelSmall, color = CosmicAppTheme.colors.accent)
-                        Box(modifier = Modifier.fillMaxWidth().clickable { launchLocationPicker() }) {
-                            OutlinedTextField(
-                                value = cityName,
-                                onValueChange = {},
-                                placeholder = { Text("City of Birth", fontSize = 14.sp) },
-                                readOnly = true,
-                                enabled = false,
-                                modifier = Modifier.fillMaxWidth().height(52.dp),
-                                trailingIcon = { Icon(Icons.Default.LocationOn, "Pick", tint = CosmicAppTheme.colors.accent, modifier = Modifier.size(22.dp)) },
-                                shape = RoundedCornerShape(12.dp),
-                                colors = textFieldColors
-                            )
+                    // Place of Birth
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "Place of Birth",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = textDark
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(58.dp)
+                                .clickable { launchLocationPicker() }
+                                .border(1.dp, lightGold, RoundedCornerShape(18.dp))
+                                .background(Color.White, RoundedCornerShape(18.dp))
+                                .padding(horizontal = 16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        Icons.Rounded.Place,
+                                        contentDescription = null,
+                                        tint = royalOrange,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Text(
+                                        text = cityName.ifBlank { "City of Birth" },
+                                        color = if (cityName.isNotBlank()) textDark else textGrey,
+                                        fontSize = 14.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                Icon(Icons.Rounded.Search, contentDescription = null, tint = textGrey)
+                            }
                         }
-
+                        
                         if (timezoneDisplay.isNotBlank()) {
                             Text(
                                 text = "Timezone: $timezoneDisplay",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color.White.copy(alpha = 0.6f),
+                                fontSize = 11.sp,
+                                color = textGrey,
                                 modifier = Modifier.padding(start = 4.dp)
                             )
                         }
+                    }
 
-                        Spacer(Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                        Button(
-                            onClick = {
-                                if (validateInputs(name, day, month, year, hour, minute, cityName, timezoneOffset)) {
-                                    isLoading = true
-                                    val h = hour.toIntOrNull() ?: 0
-                                    val hour24 = if (amPm == "PM" && h < 12) h + 12
-                                                else if (amPm == "AM" && h == 12) 0
-                                                else h
+                    // Generate Rasi Chart Button (Glossy orange gradient)
+                    Button(
+                        onClick = {
+                            if (validateInputs(name, day, month, year, hour, minute, cityName, timezoneOffset)) {
+                                isLoading = true
+                                val h = hour.toIntOrNull() ?: 0
+                                val hour24 = if (amPm == "PM" && h < 12) h + 12
+                                            else if (amPm == "AM" && h == 12) 0
+                                            else h
 
-                                    onGenerateChart(BirthData(
-                                        name = name,
-                                        day = day.toIntOrNull() ?: 0,
-                                        month = month.toIntOrNull() ?: 0,
-                                        year = year.toIntOrNull() ?: 0,
-                                        hour = hour24,
-                                        minute = minute.toIntOrNull() ?: 0,
-                                        gender = gender,
-                                        country = countryName,
-                                        state = stateName,
-                                        city = cityName,
-                                        timezone = timezoneOffset ?: 5.5,
-                                        latitude = latitude ?: 0.0,
-                                        longitude = longitude ?: 0.0
-                                    ))
-                                } else {
-                                    Toast.makeText(context, "Please fill all details", Toast.LENGTH_SHORT).show()
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth().height(54.dp).shadow(8.dp, RoundedCornerShape(12.dp)),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = CosmicAppTheme.colors.accent)
+                                onGenerateChart(BirthData(
+                                    name = name,
+                                    day = day.toIntOrNull() ?: 0,
+                                    month = month.toIntOrNull() ?: 0,
+                                    year = year.toIntOrNull() ?: 0,
+                                    hour = hour24,
+                                    minute = minute.toIntOrNull() ?: 0,
+                                    gender = gender,
+                                    country = countryName,
+                                    state = stateName,
+                                    city = cityName,
+                                    timezone = timezoneOffset ?: 5.5,
+                                    latitude = latitude ?: 0.0,
+                                    longitude = longitude ?: 0.0
+                                ))
+                            } else {
+                                Toast.makeText(context, "Please fill all details", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(60.dp)
+                            .shadow(8.dp, RoundedCornerShape(20.dp)),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                        contentPadding = PaddingValues()
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Brush.horizontalGradient(
+                                        colors = listOf(goldenYellow, royalOrange)
+                                    )
+                                ),
+                            contentAlignment = Alignment.Center
                         ) {
                             if (isLoading) {
                                 CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
                             } else {
-                                Text("GENERATE RASI CHART", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Text(
+                                        text = "✨ GENERATE RASI CHART",
+                                        color = Color.White,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 16.sp
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Icon(
+                                        Icons.Rounded.ChevronRight,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
                             }
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(24.dp))
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Bottom Badges Section (Horizontally aligned, wrapping text aligned to center)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                BadgeItem(
+                    title = "100% Secure",
+                    desc = "Your Data is Safe",
+                    icon = Icons.Rounded.VerifiedUser,
+                    color = royalOrange
+                )
+                BadgeItem(
+                    title = "Instant Results",
+                    desc = "Get it in Seconds",
+                    icon = Icons.Rounded.ElectricBolt,
+                    color = royalOrange
+                )
+                BadgeItem(
+                    title = "Vedic Astrology",
+                    desc = "Accurate Prediction",
+                    icon = Icons.Rounded.AutoAwesome,
+                    color = royalOrange
+                )
+                BadgeItem(
+                    title = "Millions Trusted",
+                    desc = "Happy Customers",
+                    icon = Icons.Rounded.People,
+                    color = royalOrange
+                )
             }
         }
+    }
+}
+
+@Composable
+fun RowScope.BadgeItem(
+    title: String,
+    desc: String,
+    icon: ImageVector,
+    color: Color
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.weight(1f)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(46.dp)
+                .clip(CircleShape)
+                .background(color.copy(alpha = 0.1f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(22.dp)
+            )
+        }
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = title,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF3E2723),
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            lineHeight = 13.sp
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = desc,
+            fontSize = 9.sp,
+            color = Color(0xFF7D6F5C),
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            lineHeight = 11.sp
+        )
     }
 }
 
@@ -421,7 +846,6 @@ private fun validateInputs(
             timezone != null
 }
 
-
 private fun computeTimezoneOffsetHours(
     timezoneId: String?,
     day: String,
@@ -432,7 +856,6 @@ private fun computeTimezoneOffsetHours(
 ): Double? {
     if (timezoneId.isNullOrBlank()) return null
     val tz = TimeZone.getTimeZone(timezoneId)
-    // Basic filter for invalid timezone IDs if necessary
 
     val dayInt = day.toIntOrNull()
     val monthInt = month.toIntOrNull()

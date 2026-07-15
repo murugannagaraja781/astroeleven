@@ -21,6 +21,7 @@ val LocalThemeColors = staticCompositionLocalOf { ThemePalette.CosmicPurple }
 
 @Composable
 fun CosmicAppTheme(
+    forceLight: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
@@ -35,7 +36,8 @@ fun CosmicAppTheme(
     val customBg by ThemeManager.customBgColor.collectAsState()
 
     // Determine if we should use dark mode colors for the background
-    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
+    val isSystemDark = androidx.compose.foundation.isSystemInDarkTheme()
+    val isDark = if (forceLight) false else isSystemDark
 
     // Get Base Colors (now contains both light and dark options)
     val baseColors = ThemePalette.getColors(theme)

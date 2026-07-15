@@ -15,6 +15,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material.icons.Icons
@@ -376,6 +377,8 @@ fun HomeScreen(
     var selectedFilter by remember { mutableStateOf("Chat") }
     var searchQuery by remember { mutableStateOf("") }
     var showReferralDialog by remember { mutableStateOf(false) }
+    var showPoojaDialog by remember { mutableStateOf(false) }
+    var adsBannerImageUrl by remember { mutableStateOf<String?>(null) }
     var referralInput by remember { mutableStateOf("") }
     var isApplyingReferral by remember { mutableStateOf(false) }
     var selectedLiveAstro by remember { mutableStateOf<Astrologer?>(null) }
@@ -399,6 +402,7 @@ fun HomeScreen(
     var referralBannerTitle by remember { mutableStateOf("Refer Your Friend & Earn Upto ₹5000") }
     var referralBannerImage by remember { mutableStateOf("") }
     var customRasiIcons by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    var matrimonialUrl by remember { mutableStateOf("https://play.google.com/store/apps/details?id=com.astroeleven.app") }
 
     LaunchedEffect(Unit) {
         try {
@@ -410,6 +414,25 @@ fun HomeScreen(
                     if (config.has("shareLink")) {
                         shareLink = config.get("shareLink").getAsString()
                     }
+                    if (config.has("matrimonialUrl")) {
+                        matrimonialUrl = config.get("matrimonialUrl").getAsString()
+                    }
+                    // Fetch dynamic ads banner for listing screens
+                    try {
+                        val adsResponse = ApiClient.api.getAdsBanner()
+                        if (adsResponse.isSuccessful) {
+                            val json = adsResponse.body()
+                            if (json != null && json.has("ok") && json.get("ok").asBoolean && !json.get("data").isJsonNull) {
+                                val data = json.getAsJsonObject("data")
+                                if (data.has("imageUrl")) {
+                                    adsBannerImageUrl = data.get("imageUrl").getAsString()
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+
                     if (config.has("showBanner")) {
                         showBanner = config.get("showBanner").getAsBoolean()
                     }
@@ -571,6 +594,156 @@ fun HomeScreen(
         )
     }
 
+
+    if (showPoojaDialog) {
+        var poojaName by remember { mutableStateOf("") }
+        var poojaRasi by remember { mutableStateOf("") }
+        var poojaNakshatra by remember { mutableStateOf("") }
+        var poojaType by remember { mutableStateOf("Ganapathy Homam / கணபதி ஹோமம்") }
+        var poojaPhone by remember { mutableStateOf("") }
+        var poojaNotes by remember { mutableStateOf("") }
+        var showTypeDropdown by remember { mutableStateOf(false) }
+
+        val poojaTypesList = listOf(
+            "Ganapathy Homam / கணபதி ஹோமம்",
+            "Sudarshana Homam / சுதர்சன ஹோமம்",
+            "Ayush Homam / ஆயுஷ் ஹோமம்",
+            "Navagraha Pooja / நவக்கிரக பூஜை",
+            "Satyanarayana Pooja / சத்யநாராயண பூஜை",
+            "Lakshmi Kubera Pooja / லட்சுமி குபேர பூஜை",
+            "Other / இதர பூஜை"
+        )
+
+        AlertDialog(
+            onDismissRequest = { showPoojaDialog = false },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (poojaName.isBlank() || poojaPhone.isBlank()) {
+                            Toast.makeText(context, if (isTamil) "பெயர் மற்றும் மொபைல் எண் கட்டாயம்!" else "Name and Phone are required!", Toast.LENGTH_SHORT).show()
+                        } else {
+                            val message = """
+                                🕉️ *AstroEleven Pooja Booking* 🕉️
+                                ----------------------------------
+                                👤 *Name / பெயர்:* $poojaName
+                                🌟 *Rasi / ராசி:* $poojaRasi
+                                🌙 *Nakshatram:* $poojaNakshatra
+                                🔱 *Pooja / பூஜை:* $poojaType
+                                📞 *Phone / எண்:* $poojaPhone
+                                📝 *Notes / குறிப்புகள்:* $poojaNotes
+                            """.trimIndent()
+
+                            try {
+                                val url = "https://api.whatsapp.com/send?phone=917305307369&text=${java.net.URLEncoder.encode(message, "UTF-8")}"
+                                val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                                context.startActivity(intent)
+                                showPoojaDialog = false
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "WhatsApp not installed!", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB3262A))
+                ) {
+                    Text(if (isTamil) "அனுப்புக (WhatsApp)" else "Submit (WhatsApp)", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPoojaDialog = false }) {
+                    Text(if (isTamil) "ரத்து" else "Cancel", color = Color.Gray)
+                }
+            },
+            title = {
+                Text(
+                    text = if (isTamil) "பூஜை முன்பதிவு" else "Pooja Booking",
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFB3262A),
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedTextField(
+                        value = poojaName,
+                        onValueChange = { poojaName = it },
+                        label = { Text(if (isTamil) "பெயர் (Name)" else "Name") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    OutlinedTextField(
+                        value = poojaPhone,
+                        onValueChange = { poojaPhone = it },
+                        label = { Text(if (isTamil) "மொபைல் எண் (Phone)" else "Phone Number") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(
+                            value = poojaType,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text(if (isTamil) "பூஜை வகை (Pooja Type)" else "Pooja Type") },
+                            trailingIcon = {
+                                IconButton(onClick = { showTypeDropdown = true }) {
+                                    Icon(Icons.Rounded.ArrowDropDown, contentDescription = "Pooja Dropdown")
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth().clickable { showTypeDropdown = true }
+                        )
+                        DropdownMenu(
+                            expanded = showTypeDropdown,
+                            onDismissRequest = { showTypeDropdown = false },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            poojaTypesList.forEach { type ->
+                                DropdownMenuItem(
+                                    text = { Text(type) },
+                                    onClick = {
+                                        poojaType = type
+                                        showTypeDropdown = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = poojaRasi,
+                            onValueChange = { poojaRasi = it },
+                            label = { Text(if (isTamil) "ராசி (Rasi)" else "Rasi") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = poojaNakshatra,
+                            onValueChange = { poojaNakshatra = it },
+                            label = { Text(if (isTamil) "நட்சத்திரம்" else "Nakshatra") },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    OutlinedTextField(
+                        value = poojaNotes,
+                        onValueChange = { poojaNotes = it },
+                        label = { Text(if (isTamil) "கூடுதல் குறிப்புகள்" else "Additional Notes") },
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 3
+                    )
+                }
+            },
+            containerColor = Color(0xFFFFFDF9),
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
 
     if (showReferralDialog) {
         AlertDialog(
@@ -903,6 +1076,20 @@ fun HomeScreen(
                                     selectedTab = 4
                                 } else if (action == "referral_share") {
                                     showReferralDialog = true
+                                } else if (action == "shop") {
+                                    selectedTab = 2
+                                } else if (action == "remedies") {
+                                    val intent = Intent(context, com.astroeleven.app.ui.rituals.RemediesActivity::class.java)
+                                    context.startActivity(intent)
+                                } else if (action == "pooja") {
+                                    showPoojaDialog = true
+                                } else if (action == "matrimony") {
+                                    try {
+                                        val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(matrimonialUrl))
+                                        context.startActivity(intent)
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, "Opening matrimonial page...", Toast.LENGTH_SHORT).show()
+                                    }
                                 } else {
                                     if (action == "chat" || action == "call" || action == "video") {
                                         activeServiceView = action
@@ -915,7 +1102,7 @@ fun HomeScreen(
                                 }
                             }
                         )
-                        1 -> ConsultTab(filteredAstros, { astro -> checkBalanceAndProceed { onChatClick(astro) } }, { astro, type -> checkBalanceAndProceed { onCallClick(astro, type) } }, isTamil, searchQuery, { searchQuery = it }, selectedFilter, activeServiceView, onBack = { activeServiceView = null; selectedFilter = "All"; selectedTab = 0 })
+                        1 -> ConsultTab(filteredAstros, { astro -> checkBalanceAndProceed { onChatClick(astro) } }, { astro, type -> checkBalanceAndProceed { onCallClick(astro, type) } }, isTamil, searchQuery, { searchQuery = it }, selectedFilter, activeServiceView, adsBannerImageUrl = adsBannerImageUrl, onBack = { activeServiceView = null; selectedFilter = "All"; selectedTab = 0 })
                         3 -> ProfileTab(walletBalance, isTamil, onWalletClick, onDrawerItemClick, onLogoutClick)
                         4 -> ReferralTab(referralCode, shareLink, isTamil, isNewUser, onApplyReferral)
                     }
@@ -1081,7 +1268,7 @@ fun LazyListScope.HomeTab(
     // 2. Unified Banner Slider (Referral Poster + Dynamic Banners)
     item {
         BannerSection(
-            banners = banners,
+            banners = banners.take(3),
             onBannerClick = onBannerClick,
             onReferClick = { onAction("referral") },
             onShareClick = { onAction("referral_share") },
@@ -1090,9 +1277,33 @@ fun LazyListScope.HomeTab(
         )
     }
 
+    // Calendar Details Section (Above Rasi Palan)
+    item {
+        CalendarSection(isTamil)
+    }
+
+    // Promo Banners Section (Below Calendar)
+    item {
+        PromoBannersSection(isTamil, onAction)
+    }
+
     // 2.5 12 Rasi Palan Daily Horoscope Grid
     item {
         RasiGridSection(isTamil, customRasiIcons, onRasiClick)
+    }
+
+    // Secondary Banner Carousel (Below Rasi Palan Grid)
+    if (banners.size > 3) {
+        item {
+            BannerSection(
+                banners = banners.drop(3),
+                onBannerClick = onBannerClick,
+                onReferClick = { onAction("referral") },
+                onShareClick = { onAction("referral_share") },
+                referralBannerTitle = referralBannerTitle,
+                referralBannerImage = referralBannerImage
+            )
+        }
     }
 
     // 3. Live Astrologers
@@ -1556,6 +1767,7 @@ fun LazyListScope.ConsultTab(
     onSearchChange: (String) -> Unit,
     selectedFilter: String = "All",
     activeServiceView: String? = null,
+    adsBannerImageUrl: String? = null,
     onBack: () -> Unit = {}
 ) {
     if (activeServiceView != null) {
@@ -1580,6 +1792,29 @@ fun LazyListScope.ConsultTab(
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                     color = Color.Black
                 )
+            }
+        }
+        
+        // Render dynamic ads promo banner if configured
+        if (adsBannerImageUrl != null) {
+            item {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, Color(0xFFF9EFE5)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .height(130.dp)
+                        .shadow(4.dp, RoundedCornerShape(16.dp))
+                ) {
+                    AsyncImage(
+                        model = getImageUrl(adsBannerImageUrl),
+                        contentDescription = "Promo Banner",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
             }
         }
     }
@@ -1833,7 +2068,8 @@ fun HomeTopBar(
             // User Info (Circular Logo + "Hi Name")
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.weight(1f)
             ) {
                 // Circular Logo with dark border for contrast
                 Box(
@@ -1869,7 +2105,9 @@ fun HomeTopBar(
                     Text(
                         text = if (isTamil) "Hi நான்" else "Hi $userName",
                         style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
-                        color = Color(0xFF2B2516) // Dark bronze for high contrast
+                        color = Color(0xFF2B2516), // Dark bronze for high contrast
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
                 }
             }
@@ -1923,7 +2161,7 @@ fun HomeTopBar(
                 // Translate Icon (A -> அ)
                 IconButton(
                     onClick = onToggleLanguage,
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.requiredSize(36.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Translate,
@@ -1936,7 +2174,7 @@ fun HomeTopBar(
                 // Notification Bell with Red Badge
                 Box(
                     modifier = Modifier
-                        .size(36.dp)
+                        .requiredSize(36.dp)
                         .background(Color.White, CircleShape)
                         .border(1.dp, Color(0xFFB3262A).copy(alpha = 0.2f), CircleShape)
                         .clickable {
@@ -2158,6 +2396,9 @@ fun AstrologerCard(
                     putExtra("astro_skills", astro.skills.joinToString(", "))
                     putExtra("astro_image", astro.image)
                     putExtra("astro_price", astro.price)
+                    putExtra("chat_price", astro.chatPrice)
+                    putExtra("call_price", astro.callPrice)
+                    putExtra("video_price", astro.videoPrice)
                     putExtra("is_chat_online", astro.isChatOnline)
                     putExtra("is_audio_online", astro.isAudioOnline)
                     putExtra("is_video_online", astro.isVideoOnline)
@@ -2302,9 +2543,15 @@ fun AstrologerCard(
                         Spacer(modifier = Modifier.height(4.dp))
 
                         // Dual price comparison
+                        val activePrice = when (activeServiceView) {
+                            "chat" -> astro.chatPrice
+                            "call" -> astro.callPrice
+                            "video" -> astro.videoPrice
+                            else -> astro.price
+                        }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "₹${(astro.price * 1.5).toInt()}",
+                                text = "₹${(activePrice * 1.5).toInt()}",
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     textDecoration = TextDecoration.LineThrough,
                                     color = Color.Gray,
@@ -2313,7 +2560,7 @@ fun AstrologerCard(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "₹${astro.price.toInt()}/${Localization.get("min", isTamil)}",
+                                text = "₹${activePrice}/${Localization.get("min", isTamil)}",
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Black,
                                     fontSize = 12.sp
@@ -2866,18 +3113,22 @@ fun RasiGridSection(isTamil: Boolean, customRasiIcons: Map<String, String>, onCl
                     Box(
                         modifier = Modifier
                             .size(64.dp)
-                            .shadow(2.dp, CircleShape)
-                            .background(Color.White, CircleShape)
-                            .border(1.dp, Color(0xFFF9EFE5), CircleShape)
-                            .padding(8.dp),
+                            .shadow(3.dp, CircleShape)
+                            .background(
+                                brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                                    colors = listOf(Color(0xFFFFFDF5), Color(0xFFFFF3D6))
+                                ),
+                                shape = CircleShape
+                            )
+                            .border(1.dp, Color(0xFFEADDBA), CircleShape)
+                            .padding(10.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Image(
                             painter = painterResource(id = item.iconRes),
                             contentDescription = item.name,
                             modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Fit,
-                            colorFilter = ColorFilter.tint(Color(0xFFB3262A)) // red outline
+                            contentScale = ContentScale.Fit
                         )
                     }
                     Spacer(modifier = Modifier.height(8.dp))
@@ -3136,62 +3387,64 @@ fun ServiceItem(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    Card(
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, Color(0xFFF9EFE5).copy(alpha = 0.8f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
         modifier = modifier
-            .height(98.dp)
+            .clip(RoundedCornerShape(12.dp))
             .clickable { onClick() }
+            .padding(vertical = 6.dp)
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(6.dp)
+                .size(56.dp)
+                .background(
+                    brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                        colors = listOf(Color(0xFFD4A017), Color(0xFFF6C453))
+                    ),
+                    shape = CircleShape
+                )
+                .padding(2.dp),
+            contentAlignment = Alignment.Center
         ) {
-            Box(modifier = Modifier.size(44.dp), contentAlignment = Alignment.Center) {
-                if (icon.startsWith("http") || icon.contains("uploads/")) {
-                    AsyncImage(
-                        model = getImageUrl(icon),
-                        contentDescription = name,
-                        modifier = Modifier.fillMaxSize().padding(2.dp),
-                        contentScale = ContentScale.Fit,
-                        error = painterResource(id = com.astroeleven.app.R.drawable.ic_kundali_matching),
-                        placeholder = painterResource(id = com.astroeleven.app.R.drawable.ic_kundali_matching)
-                    )
-                } else {
-                    val localIconRes = when (icon) {
-                        "kundeli" -> com.astroeleven.app.R.drawable.ic_kundali_matching
-                        "horoscope" -> com.astroeleven.app.R.drawable.ic_daily_horoscope_v2
-                        "matching" -> com.astroeleven.app.R.drawable.ic_match_v2
-                        "academy" -> com.astroeleven.app.R.drawable.ic_academy_v2
-                        else -> com.astroeleven.app.R.drawable.ic_kundali_matching
-                    }
-                    Image(
-                        painter = painterResource(id = localIconRes),
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize().padding(6.dp),
-                        contentScale = ContentScale.Fit
-                    )
+            if (icon.startsWith("http") || icon.contains("uploads/")) {
+                AsyncImage(
+                    model = getImageUrl(icon),
+                    contentDescription = name,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Fit,
+                    error = painterResource(id = com.astroeleven.app.R.drawable.ic_kundali_matching),
+                    placeholder = painterResource(id = com.astroeleven.app.R.drawable.ic_kundali_matching)
+                )
+            } else {
+                val localIconRes = when (icon) {
+                    "kundeli" -> com.astroeleven.app.R.drawable.ic_kundali_matching
+                    "horoscope" -> com.astroeleven.app.R.drawable.ic_daily_horoscope_v2
+                    "matching" -> com.astroeleven.app.R.drawable.ic_match_v2
+                    "academy" -> com.astroeleven.app.R.drawable.ic_academy_v2
+                    else -> com.astroeleven.app.R.drawable.ic_kundali_matching
                 }
+                Image(
+                    painter = painterResource(id = localIconRes),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Fit
+                )
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = name,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 11.sp,
-                    lineHeight = 12.sp
-                ),
-                color = Color(0xFF2B2516), // Dark warm bronze
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
         }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = name,
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontWeight = FontWeight.Bold,
+                fontSize = 11.sp,
+                lineHeight = 12.sp
+            ),
+            color = Color(0xFF2B2516), // Dark warm bronze
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
@@ -3849,12 +4102,25 @@ fun PromoServiceGrid(isTamil: Boolean, onAction: (String) -> Unit) {
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = label,
-                        tint = Color(0xFFE1353C),
-                        modifier = Modifier.size(28.dp)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(
+                                brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                                    colors = listOf(Color(0xFFB3262A), Color(0xFFE53935))
+                                ),
+                                shape = CircleShape
+                            )
+                            .padding(8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = label,
+                            tint = Color.White,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = label,
@@ -3863,6 +4129,160 @@ fun PromoServiceGrid(isTamil: Boolean, onAction: (String) -> Unit) {
                         textAlign = TextAlign.Center,
                         maxLines = 1
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CalendarSection(isTamil: Boolean) {
+    val context = LocalContext.current
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Text(
+            text = if (isTamil) "இன்றைய பஞ்சாங்கம் & காலண்டர்" else "Panchangam & Calendar",
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp
+            ),
+            color = Color(0xFF2B2516),
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            val chips = listOf(
+                Triple(if (isTamil) "இன்றைய காலண்டர்" else "Today Calendar", com.astroeleven.app.R.drawable.ic_today_calendar, "today"),
+                Triple(if (isTamil) "மாதாந்திர காலண்டர்" else "Monthly Calendar", com.astroeleven.app.R.drawable.ic_monthly_calendar, "monthly"),
+                Triple(if (isTamil) "சுபமுகூர்த்த நாட்கள்" else "Subamuhurtham Days", com.astroeleven.app.R.drawable.ic_subamuhurtham_days, "muhurtham")
+            )
+            
+            chips.forEach { (label, iconRes, type) ->
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, Color(0xFFF9EFE5)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                    onClick = {
+                        if (type == "today") {
+                            val intent = Intent(context, com.astroeleven.app.ui.calendar.CalendarActivity::class.java)
+                            context.startActivity(intent)
+                        } else if (type == "monthly") {
+                            val intent = Intent(context, com.astroeleven.app.ui.calendar.MonthlyCalendarActivity::class.java)
+                            context.startActivity(intent)
+                        } else if (type == "muhurtham") {
+                            val intent = Intent(context, com.astroeleven.app.ui.calendar.MuhurthamActivity::class.java)
+                            context.startActivity(intent)
+                        }
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 10.dp, horizontal = 4.dp)
+                    ) {
+                        Image(
+                            painter = painterResource(id = iconRes),
+                            contentDescription = label,
+                            modifier = Modifier.size(36.dp)
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 9.sp,
+                                lineHeight = 10.sp
+                            ),
+                            color = Color(0xFF2B2516),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            maxLines = 2
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PromoBannersSection(isTamil: Boolean, onAction: (String) -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Text(
+            text = if (isTamil) "அஸ்ட்ரோ பிரத்தியேக சேவைகள்" else "Exclusive Astro Services",
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp
+            ),
+            color = Color(0xFF2B2516),
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            val services = listOf(
+                Triple(if (isTamil) "மேட்ரிமோனியல்" else "Matrimonial", com.astroeleven.app.R.drawable.ic_exclusive_matrimony, "matrimony"),
+                Triple(if (isTamil) "பூஜை முன்பதிவு" else "Pooja Booking", com.astroeleven.app.R.drawable.ic_exclusive_pooja, "pooja"),
+                Triple(if (isTamil) "அஸ்ட்ரோ ஷாப்" else "Astro Shop", com.astroeleven.app.R.drawable.ic_exclusive_shop, "shop")
+            )
+            
+            services.forEach { (label, iconRes, action) ->
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, Color(0xFFEADDBA)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    onClick = { onAction(action) },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                                    colors = listOf(Color(0xFFFFFDF5), Color(0xFFFFFAEE))
+                                )
+                            )
+                            .padding(vertical = 12.dp, horizontal = 4.dp)
+                    ) {
+                        Image(
+                            painter = painterResource(id = iconRes),
+                            contentDescription = label,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp)
+                                .padding(horizontal = 8.dp),
+                            contentScale = ContentScale.Fit
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 11.sp
+                            ),
+                            color = Color(0xFFB3262A),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            maxLines = 1
+                        )
+                    }
                 }
             }
         }

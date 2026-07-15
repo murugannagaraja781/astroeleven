@@ -60,6 +60,7 @@ exports.getAppConfig = async (req, res) => {
             ok: true,
             config: {
                 shareLink: process.env.PLAYSTORE_URL || (shareLinkRecord ? shareLinkRecord.value : "https://play.google.com/store/apps/details?id=com.astroeleven.app"),
+                matrimonialUrl: process.env.MATRIMONIAL_URL || "https://play.google.com/store/apps/details?id=com.astroeleven.app",
                 deepLinkPrefix: process.env.DEEP_LINK_PREFIX || "astroeleven://referral/",
                 showBanner: process.env.SHOW_BANNER === 'true',
                 appBackgroundColor: process.env.APP_BG_COLOR || "#FEF9F3",

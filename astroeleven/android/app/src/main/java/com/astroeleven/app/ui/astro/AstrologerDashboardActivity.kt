@@ -386,6 +386,10 @@ fun AstrologerDashboardScreen(
     var walletBalance by remember { mutableDoubleStateOf(initialWallet) }
     var profileImage by remember { mutableStateOf(initialImage) }
     var isUploading by remember { mutableStateOf(false) }
+    var chatRate by remember { mutableStateOf("15") }
+    var callRate by remember { mutableStateOf("15") }
+    var videoRate by remember { mutableStateOf("20") }
+    var showAddRateDialog by remember { mutableStateOf(false) }
 
     // Separate service states
     var isChatOnline by remember { mutableStateOf(false) }
@@ -408,32 +412,6 @@ fun AstrologerDashboardScreen(
     var reviewsCount by remember { mutableIntStateOf(42) }
     var starsRating by remember { mutableFloatStateOf(4.9f) }
 
-    val actions = listOf(
-        "Call" to Icons.Default.Call,
-        "History" to Icons.Default.History,
-        "Earnings" to Icons.Default.MonetizationOn,
-        "Profile" to Icons.Default.Person,
-        "Star" to Icons.Default.Star,
-        "Settings" to Icons.Default.Settings
-    )
-
-    val colors = remember {
-        object {
-            val accent = Color(0xFFE1353C) // Brand Red
-            val goldAccent = Color(0xFFFDBA16) // Brand Gold
-            val cardBg = Color(0xFFFFFFFF) // White Card
-            val cardStroke = Color(0xFFE1353C).copy(alpha = 0.15f) // Soft Red Border
-            val textPrimary = Color(0xFF1A1A1A) // Near Black
-            val textSecondary = Color(0xFF616161) // Slate Gray
-            val headerGradient = Brush.verticalGradient(
-                colors = listOf(Color(0xFFE1353C), Color(0xFFB71C1C)) // Red Gradient
-            )
-            val bgGradient = Brush.verticalGradient(
-                colors = listOf(Color(0xFFFCFCFC), Color(0xFFFFFFFF)) // Light background gradient
-            )
-        }
-    }
-
     fun refreshBalanceAndHistory() {
         scope.launch(kotlinx.coroutines.Dispatchers.IO) {
             try {
@@ -445,6 +423,12 @@ fun AstrologerDashboardScreen(
                 if (response.isSuccessful) {
                     val json = JSONObject(response.body?.string() ?: "{}")
                     walletBalance = json.optDouble("walletBalance", walletBalance)
+                    val chatPriceFromDb = json.optDouble("chatPrice", 15.0)
+                    val callPriceFromDb = json.optDouble("callPrice", 15.0)
+                    val videoPriceFromDb = json.optDouble("videoPrice", 20.0)
+                    chatRate = chatPriceFromDb.toInt().toString()
+                    callRate = callPriceFromDb.toInt().toString()
+                    videoRate = videoPriceFromDb.toInt().toString()
 
                     val chatFromDb = json.optBoolean("isChatOnline", false)
                     val audioFromDb = json.optBoolean("isAudioOnline", false)
@@ -470,6 +454,140 @@ fun AstrologerDashboardScreen(
             }
         }
     }
+
+    fun updateAstroRatesOnServer(cRate: Int, aRate: Int, vRate: Int) {
+        scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val jsonBody = com.google.gson.JsonObject().apply {
+                    addProperty("userId", sessionId)
+                    addProperty("chatPrice", cRate)
+                    addProperty("callPrice", aRate)
+                    addProperty("videoPrice", vRate)
+                    addProperty("price", cRate) // Sync default price with chatRate
+                }
+                val response = ApiClient.api.updateAstroRate(jsonBody)
+                withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    if (response.isSuccessful && response.body()?.get("ok")?.asBoolean == true) {
+                        chatRate = cRate.toString()
+                        callRate = aRate.toString()
+                        videoRate = vRate.toString()
+                        Toast.makeText(context, "Rates updated successfully!", Toast.LENGTH_SHORT).show()
+                        refreshBalanceAndHistory()
+                    } else {
+                        Toast.makeText(context, "Failed to update rates", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    Toast.makeText(context, "Connection error: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+
+    if (showAddRateDialog) {
+        var chatRateInput by remember { mutableStateOf(chatRate) }
+        var callRateInput by remember { mutableStateOf(callRate) }
+        var videoRateInput by remember { mutableStateOf(videoRate) }
+
+        AlertDialog(
+            onDismissRequest = { showAddRateDialog = false },
+            title = {
+                Text(
+                    "Set Service Rates",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = Color(0xFFFF7A00)
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        "Configure your per-minute charging rates (₹) below:",
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
+                    
+                    OutlinedTextField(
+                        value = chatRateInput,
+                        onValueChange = { if (it.all { c -> c.isDigit() }) chatRateInput = it },
+                        label = { Text("Chat Rate (₹/min)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    OutlinedTextField(
+                        value = callRateInput,
+                        onValueChange = { if (it.all { c -> c.isDigit() }) callRateInput = it },
+                        label = { Text("Call Rate (₹/min)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    OutlinedTextField(
+                        value = videoRateInput,
+                        onValueChange = { if (it.all { c -> c.isDigit() }) videoRateInput = it },
+                        label = { Text("Video Call Rate (₹/min)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val cRate = chatRateInput.toIntOrNull() ?: 15
+                        val aRate = callRateInput.toIntOrNull() ?: 15
+                        val vRate = videoRateInput.toIntOrNull() ?: 20
+                        updateAstroRatesOnServer(cRate, aRate, vRate)
+                        showAddRateDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF7A00))
+                ) {
+                    Text("Save Rates", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddRateDialog = false }) {
+                    Text("Cancel", color = Color.Gray)
+                }
+            }
+        )
+    }
+
+
+    val actions = listOf(
+        "Call" to Icons.Default.Call,
+        "History" to Icons.Default.History,
+        "Earnings" to Icons.Default.MonetizationOn,
+        "Profile" to Icons.Default.Person,
+        "Star" to Icons.Default.Star,
+        "Add Rate" to Icons.Default.MonetizationOn
+    )
+
+    val colors = remember {
+        object {
+            val accent = Color(0xFFE1353C) // Brand Red
+            val goldAccent = Color(0xFFFDBA16) // Brand Gold
+            val cardBg = Color(0xFFFFFFFF) // White Card
+            val cardStroke = Color(0xFFE1353C).copy(alpha = 0.15f) // Soft Red Border
+            val textPrimary = Color(0xFF1A1A1A) // Near Black
+            val textSecondary = Color(0xFF616161) // Slate Gray
+            val headerGradient = Brush.verticalGradient(
+                colors = listOf(Color(0xFFE1353C), Color(0xFFB71C1C)) // Red Gradient
+            )
+            val bgGradient = Brush.verticalGradient(
+                colors = listOf(Color(0xFFFCFCFC), Color(0xFFFFFFFF)) // Light background gradient
+            )
+        }
+    }
+
+// Deprecated local function removed
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -1017,6 +1135,13 @@ fun AstrologerDashboardScreen(
                 }
             )
 
+            ServiceRatesCard(
+                chatRate = chatRate,
+                callRate = callRate,
+                videoRate = videoRate,
+                onEditRates = { showAddRateDialog = true }
+            )
+
             Card(
                 colors = CardDefaults.cardColors(containerColor = colors.cardBg),
                 shape = RoundedCornerShape(22.dp),
@@ -1083,6 +1208,9 @@ fun AstrologerDashboardScreen(
                                                      putExtra("astro_exp", "5")
                                                      putExtra("astro_skills", "Vedic, Tarot")
                                                      putExtra("astro_price", 15)
+                                                      putExtra("chat_price", chatRate.toIntOrNull() ?: 15)
+                                                      putExtra("call_price", callRate.toIntOrNull() ?: 15)
+                                                      putExtra("video_price", videoRate.toIntOrNull() ?: 20)
                                                      putExtra("is_chat_online", isChatOnline)
                                                      putExtra("is_audio_online", isAudioOnline)
                                                      putExtra("is_video_online", isVideoOnline)
@@ -1091,7 +1219,7 @@ fun AstrologerDashboardScreen(
                                              }
                                              "History" -> context.startActivity(Intent(context, com.astroeleven.app.ui.astro.AstrologerHistoryActivity::class.java))
                                              "Earnings" -> Toast.makeText(context, "Redirecting to detailed reports...", Toast.LENGTH_SHORT).show()
-                                             "Settings" -> context.startActivity(Intent(context, com.astroeleven.app.ui.settings.SettingsActivity::class.java))
+                                             "Add Rate" -> { showAddRateDialog = true }
                                              "Star" -> Toast.makeText(context, "Feedback metrics panel", Toast.LENGTH_SHORT).show()
                                          }
                                      }
@@ -1368,5 +1496,146 @@ fun shareRecording(context: android.content.Context, file: File) {
         context.startActivity(Intent.createChooser(intent, "Share Recording"))
     } catch (e: Exception) {
         Toast.makeText(context, "Share failed: ${e.message}", Toast.LENGTH_SHORT).show()
+    }
+}
+
+@Composable
+fun ServiceRatesCard(
+    chatRate: String,
+    callRate: String,
+    videoRate: String,
+    onEditRates: () -> Unit
+) {
+    val colors = remember {
+        object {
+            val accent = Color(0xFFFF7A00)
+            val cardBg = Color(0xFFFFFFFF)
+            val cardStroke = Color(0xFFFF7A00).copy(alpha = 0.15f)
+            val textPrimary = Color(0xFF2E1A0F)
+            val textSecondary = Color(0xFF8C7364)
+        }
+    }
+    Card(
+        colors = CardDefaults.cardColors(containerColor = colors.cardBg),
+        shape = RoundedCornerShape(24.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(12.dp, RoundedCornerShape(24.dp)),
+        border = BorderStroke(1.dp, colors.cardStroke)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        "My Service Rates",
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 17.sp,
+                        color = colors.textPrimary,
+                        letterSpacing = 0.5.sp
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "Charges applied per minute to customers",
+                        fontSize = 12.sp,
+                        color = colors.textSecondary
+                    )
+                }
+                Button(
+                    onClick = onEditRates,
+                    colors = ButtonDefaults.buttonColors(containerColor = colors.accent),
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                    modifier = Modifier.height(32.dp)
+                ) {
+                    Text("Change", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(18.dp))
+
+            RateRow(
+                label = "Chat Rate",
+                icon = Icons.Default.Chat,
+                rate = chatRate
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            RateRow(
+                label = "Voice Call Rate",
+                icon = Icons.Default.Call,
+                rate = callRate
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            RateRow(
+                label = "Video Call Rate",
+                icon = Icons.Default.VideoCall,
+                rate = videoRate
+            )
+        }
+    }
+}
+
+@Composable
+fun RateRow(
+    label: String,
+    icon: ImageVector,
+    rate: String
+) {
+    val colors = remember {
+        object {
+            val accent = Color(0xFFFF7A00)
+            val textPrimary = Color(0xFF2E1A0F)
+            val textSecondary = Color(0xFF8C7364)
+        }
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFFFFFDFB), RoundedCornerShape(16.dp))
+            .border(1.dp, Color(0xFFF3F4F6), RoundedCornerShape(16.dp))
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .background(colors.accent.copy(alpha = 0.08f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                icon,
+                contentDescription = label,
+                tint = colors.accent,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(14.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                label,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = colors.textPrimary
+            )
+            Text(
+                "Rate configured",
+                fontSize = 11.sp,
+                color = colors.textSecondary,
+                fontWeight = FontWeight.Medium
+            )
+        }
+        Text(
+            "₹$rate/min",
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Black,
+            color = colors.accent
+        )
     }
 }

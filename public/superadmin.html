@@ -514,6 +514,65 @@
 
 
 
+            <!-- Tab: Ads Banner -->
+            <div id="admin-sect-ads-banner" class="admin-tab-section">
+                <h2 style="margin-bottom:20px;"><i class="fas fa-ad"></i> App List Ads Banner</h2>
+                <p style="color:var(--text-dim); margin-bottom:20px; font-size:0.85rem;">
+                    <i class="fas fa-info-circle"></i> Upload a promo banner that will display dynamically at the top of the Chat list, Call list, and Video Call list inside the application.
+                </p>
+
+                <div class="admin-card" style="margin-bottom: 30px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+                        <h4 style="margin:0; color:var(--primary);"><i class="fas fa-plus-circle"></i> <span id="adsBannerFormTitle">Add New Ads Banner</span></h4>
+                        <button class="btn-admin" style="min-width:auto; padding:6px 14px; font-size:0.75rem;" onclick="resetAdsBannerForm()"><i class="fas fa-plus"></i> New Banner</button>
+                    </div>
+
+                    <!-- Image Preview -->
+                    <div id="adsBannerPreviewBox" style="display:none; margin-bottom:15px; border-radius:10px; overflow:hidden; border:2px dashed var(--border-soft); background:rgba(255,255,255,0.03);">
+                        <img id="adsBannerPreviewImg" src="" style="width:100%; max-height:200px; object-fit:cover; display:block;">
+                        <div style="padding:8px 12px; font-size:0.7rem; color:var(--text-dim);">↑ Ads Banner Preview (App list header will show this image)</div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
+                        <input type="text" id="adsBannerTitle" class="app-input" placeholder="Title (e.g. Video Call Special Offer)">
+                        <input type="text" id="adsBannerSubtitle" class="app-input" placeholder="Subtitle (short description e.g. Flat 20% Off)">
+                    </div>
+
+                    <div style="margin-bottom:15px;">
+                        <label class="app-label" style="font-size:0.7rem; margin-bottom:6px; display:block;">Banner Image</label>
+                        <div style="display:flex; gap:10px;">
+                            <input type="text" id="adsBannerImageUrl" class="app-input" placeholder="Paste image URL or upload file" style="flex:1;"
+                                oninput="updateAdsBannerPreview(this.value)">
+                            <input type="file" id="adsBannerImageFile" accept="image/*" style="display:none;" onchange="handleAdsBannerFileSelect(this)">
+                            <button class="btn-admin" onclick="document.getElementById('adsBannerImageFile').click()" title="Upload Image">
+                                <i class="fas fa-upload"></i> Upload
+                            </button>
+                        </div>
+                        <small style="color:var(--text-dim); font-size:0.65rem; margin-top:4px; display:block;">Recommended: 1200 × 400 px (3:1 ratio) · JPG/PNG/WebP</small>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:20px; align-items:end;">
+                        <input type="text" id="adsBannerCta" class="app-input" placeholder="CTA Button Text (e.g. Call Now)">
+                        <div>
+                            <label class="app-label" style="font-size:0.7rem;">Expiry Date (optional)</label>
+                            <input type="date" id="adsBannerExpiry" class="app-input">
+                        </div>
+                        <div style="display:flex; align-items:center; padding-bottom:5px;">
+                            <label style="cursor:pointer; display:flex; align-items:center; gap:8px; font-size:0.85rem;">
+                                <input type="checkbox" id="adsBannerActive" checked> Active
+                            </label>
+                        </div>
+                    </div>
+
+                    <button class="cosmic-btn" style="width:100%;" onclick="saveAdsBanner(event)"><i class="fas fa-save"></i> Save Ads Banner</button>
+                </div>
+
+                <h3 style="margin-bottom:15px; color:var(--text-dim); font-size:0.9rem;"><i class="fas fa-list"></i> All Ads Banners (DB)</h3>
+                <div id="adminAdsBannerList" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap:15px;">
+                    <div class="loader"></div>
+                </div>
+            </div>
+
             <!-- Tab: App Banners -->
             <div id="admin-sect-slider" class="admin-tab-section">
                 <h2 style="margin-bottom:20px;"><i class="fas fa-images"></i> App Slider Banners</h2>
@@ -1289,6 +1348,7 @@
             </div>
             <div class="nav-subcategory-list">
                 <div class="admin-nav-item" onclick="navAdmin('slider', event)"><i class="fas fa-images"></i><span>Slider Banners</span></div>
+                <div class="admin-nav-item" onclick="navAdmin('ads-banner', event)"><i class="fas fa-ad" style="color:#3B82F6;"></i><span>Ads Banner</span></div>
                 <div class="admin-nav-item" onclick="navAdmin('services', event)"><i class="fas fa-th-large"></i><span>Services Icons</span></div>
                 <div class="admin-nav-item" onclick="navAdmin('rituals', event)"><i class="fas fa-magic"></i><span>Rituals / Pujas</span></div>
                 <div class="admin-nav-item" onclick="navAdmin('rasi-icons', event)"><i class="fas fa-star" style="color:#FDBA16;"></i><span>Rasi Icons</span></div>
@@ -1620,6 +1680,7 @@
             if (id === 'history') loadSessionsHistory();
             if (id === 'referrals') loadReferralStats();
             if (id === 'rasi-icons') loadRasiIconsConfig();
+            if (id === 'ads-banner') fetchBanners();
 
             document.querySelectorAll('.admin-nav-item').forEach(i => i.classList.remove('active'));
             if (ev) ev.currentTarget.classList.add('active');
@@ -1893,7 +1954,12 @@
         // Banners
         async function fetchBanners() {
             const res = await fetch('/api/admin/banners').then(r => r.json());
-            if (res.ok) renderBanners(res.banners);
+            if (res.ok) {
+                const sliderBanners = res.banners.filter(x => !x.type || x.type === 'home_slider');
+                const adsBanners = res.banners.filter(x => x.type === 'ads_banner');
+                renderBanners(sliderBanners);
+                renderAdsBanners(adsBanners);
+            }
         }
         function renderBanners(banners) {
             if (banners.length === 0) {
@@ -2008,6 +2074,152 @@
         };
 
         // Image preview helpers
+        
+        function renderAdsBanners(banners) {
+            if (banners.length === 0) {
+                document.getElementById('adminAdsBannerList').innerHTML = `<div style="grid-column:1/-1; text-align:center; color:var(--text-dim); padding:40px;"><i class="fas fa-ad" style="font-size:2rem; margin-bottom:10px; display:block;"></i>No Ads banners yet. Add your first ads banner above.</div>`;
+                return;
+            }
+            document.getElementById('adminAdsBannerList').innerHTML = banners.map((b, i) => {
+                const img = b.imageUrl ? (b.imageUrl.startsWith('http') ? b.imageUrl : '/' + b.imageUrl) : '';
+                return `
+                    <div class="admin-card" style="padding:0; overflow:hidden;">
+                        ${img ? `<div style="position:relative;"><img src="${img}" style="width:100%; height:160px; object-fit:cover; display:block;" onerror="this.src='https://placehold.co/600x200/1a1a2e/FFD700?text=Banner+${i+1}'">
+                        <div style="position:absolute; top:8px; right:8px; display:flex; gap:6px;">
+                            ${b.isActive ? '<span style="background:rgba(16,185,129,0.9); color:#fff; padding:3px 8px; border-radius:12px; font-size:0.65rem;"><i class="fas fa-check-circle"></i> Active</span>' : '<span style="background:rgba(239,68,68,0.9); color:#fff; padding:3px 8px; border-radius:12px; font-size:0.65rem;"><i class="fas fa-times-circle"></i> Inactive</span>'}
+                        </div></div>` : `<div style="width:100%; height:80px; background:rgba(255,255,255,0.05); display:flex; align-items:center; justify-content:center; color:var(--text-dim);"><i class="fas fa-image" style="font-size:2rem;"></i></div>`}
+                        <div style="padding:14px;">
+                            <div style="font-weight:bold; color:var(--text-main); margin-bottom:4px;">${b.title || 'Untitled Banner'}</div>
+                            <div style="font-size:0.78rem; color:var(--text-dim); margin-bottom:10px;">${b.subtitle || ''}</div>
+                            <div style="display:flex; gap:8px; justify-content:space-between; align-items:center;">
+                                <span style="font-size:0.7rem; color:var(--text-dim);">CTA: ${b.ctaText || '-'}</span>
+                                <div style="display:flex; gap:6px;">
+                                    <button class="btn-admin" style="min-width:auto; padding:5px 10px; font-size:0.75rem;" onclick="editAdsBannerData('${b._id}')"><i class="fas fa-edit"></i> Edit</button>
+                                    <button class="btn-admin btn-delete" style="min-width:auto; padding:5px 10px; font-size:0.75rem;" onclick="deleteAdsBanner('${b._id}')"><i class="fas fa-trash"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.editAdsBannerData = async (id) => {
+            const res = await fetch('/api/admin/banners').then(r => r.json());
+            const b = res.banners.find(x => x._id === id);
+            if (!b) return;
+            
+            if (!document.getElementById('editAdsBannerId')) {
+                const hidden = document.createElement('input');
+                hidden.type = 'hidden';
+                hidden.id = 'editAdsBannerId';
+                document.getElementById('admin-sect-ads-banner').appendChild(hidden);
+            }
+            document.getElementById('editAdsBannerId').value = b._id;
+            document.getElementById('adsBannerTitle').value = b.title || '';
+            document.getElementById('adsBannerSubtitle').value = b.subtitle || '';
+            document.getElementById('adsBannerImageUrl').value = b.imageUrl || '';
+            document.getElementById('adsBannerCta').value = b.ctaText || '';
+            document.getElementById('adsBannerExpiry').value = b.expiryDate ? b.expiryDate.split('T')[0] : '';
+            document.getElementById('adsBannerActive').checked = b.isActive;
+            document.getElementById('adsBannerFormTitle').textContent = 'Edit Ads Banner';
+
+            if (b.imageUrl) updateAdsBannerPreview(b.imageUrl);
+            document.getElementById('admin-sect-ads-banner').querySelector('.admin-card').scrollIntoView({ behavior: 'smooth' });
+        };
+
+        window.saveAdsBanner = async (event) => {
+            const formData = new FormData();
+            const id = document.getElementById('editAdsBannerId')?.value;
+            if (id) formData.append('id', id);
+            
+            formData.append('title', document.getElementById('adsBannerTitle').value);
+            formData.append('subtitle', document.getElementById('adsBannerSubtitle').value);
+            formData.append('imageUrl', document.getElementById('adsBannerImageUrl').value);
+            formData.append('ctaText', document.getElementById('adsBannerCta').value);
+            formData.append('order', 0);
+            formData.append('offerPercentage', 0);
+            formData.append('expiryDate', document.getElementById('adsBannerExpiry').value);
+            formData.append('isActive', document.getElementById('adsBannerActive').checked);
+            formData.append('ctaButtonSize', 'small');
+            formData.append('type', 'ads_banner');
+
+            const fileInput = document.getElementById('adsBannerImageFile');
+            if (fileInput.files[0]) {
+                formData.append('bannerImage', fileInput.files[0]);
+            }
+
+            const btn = event ? event.target : document.querySelector('#admin-sect-ads-banner .cosmic-btn');
+            const oldText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/admin/banners', {
+                    method: 'POST',
+                    body: formData
+                }).then(r => r.json());
+
+                if (res.ok) {
+                    fetchBanners();
+                    resetAdsBannerForm();
+                    const toast = document.createElement('div');
+                    toast.textContent = '✅ Ads Banner saved successfully!';
+                    toast.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#10B981;color:#fff;padding:12px 20px;border-radius:10px;font-weight:bold;z-index:9999;box-shadow:0 4px 15px rgba(0,0,0,0.3);';
+                    document.body.appendChild(toast);
+                    setTimeout(() => toast.remove(), 3000);
+                } else {
+                    alert('Error: ' + (res.error || 'Unknown error'));
+                }
+            } catch (e) {
+                alert('Connection Error: ' + e.message);
+            } finally {
+                btn.innerHTML = oldText;
+                btn.disabled = false;
+            }
+        };
+
+        window.updateAdsBannerPreview = (url) => {
+            if (!url) { document.getElementById('adsBannerPreviewBox').style.display = 'none'; return; }
+            const fullUrl = url.startsWith('http') ? url : '/' + url;
+            document.getElementById('adsBannerPreviewImg').src = fullUrl;
+            document.getElementById('adsBannerPreviewBox').style.display = 'block';
+        };
+
+        window.handleAdsBannerFileSelect = (input) => {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('adsBannerPreviewImg').src = e.target.result;
+                document.getElementById('adsBannerPreviewBox').style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+            document.getElementById('adsBannerImageUrl').value = file.name;
+        };
+
+        window.resetAdsBannerForm = () => {
+            const editId = document.getElementById('editAdsBannerId');
+            if (editId) editId.value = '';
+            document.getElementById('adsBannerTitle').value = '';
+            document.getElementById('adsBannerSubtitle').value = '';
+            document.getElementById('adsBannerImageUrl').value = '';
+            document.getElementById('adsBannerCta').value = '';
+            document.getElementById('adsBannerExpiry').value = '';
+            document.getElementById('adsBannerActive').checked = true;
+            document.getElementById('adsBannerImageFile').value = '';
+            document.getElementById('adsBannerPreviewBox').style.display = 'none';
+            document.getElementById('adsBannerFormTitle').textContent = 'Add New Ads Banner';
+        };
+
+        window.deleteAdsBanner = async (id) => {
+            if (confirm('Delete this ads banner?')) {
+                const res = await fetch('/api/admin/banners/' + id, { method: 'DELETE' }).then(r => r.json());
+                if (res.ok) fetchBanners();
+                else alert('Delete failed: ' + res.error);
+            }
+        };
+
         window.updateBannerPreview = (url) => {
             if (!url) { document.getElementById('bannerPreviewBox').style.display = 'none'; return; }
             const fullUrl = url.startsWith('http') ? url : '/' + url;

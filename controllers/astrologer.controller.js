@@ -141,3 +141,51 @@ exports.toggleService = async (req, res) => {
         res.json({ ok: false });
     }
 };
+
+exports.updateRate = async (req, res) => {
+    const { userId, price, chatPrice, callPrice, videoPrice } = req.body;
+    if (!userId) return res.json({ ok: false, error: 'Missing userId' });
+    const io = req.app.get('io');
+    const SERVER_URL = req.app.get('SERVER_URL');
+
+    try {
+        const user = await User.findOne({ userId });
+        if (user) {
+            if (price !== undefined) {
+                const val = parseFloat(price);
+                if (!isNaN(val) && val >= 0) {
+                    user.price = val;
+                    user.ratePerMinute = val;
+                }
+            }
+            if (chatPrice !== undefined) {
+                const val = parseFloat(chatPrice);
+                if (!isNaN(val) && val >= 0) user.chatPrice = val;
+            }
+            if (callPrice !== undefined) {
+                const val = parseFloat(callPrice);
+                if (!isNaN(val) && val >= 0) user.callPrice = val;
+            }
+            if (videoPrice !== undefined) {
+                const val = parseFloat(videoPrice);
+                if (!isNaN(val) && val >= 0) user.videoPrice = val;
+            }
+
+            await user.save();
+
+            broadcastAstroUpdate(io, SERVER_URL);
+            res.json({
+                ok: true,
+                price: user.price,
+                chatPrice: user.chatPrice,
+                callPrice: user.callPrice,
+                videoPrice: user.videoPrice
+            });
+        } else {
+            res.json({ ok: false, error: 'User not found' });
+        }
+    } catch (e) {
+        console.error(e);
+        res.json({ ok: false, error: e.message });
+    }
+};

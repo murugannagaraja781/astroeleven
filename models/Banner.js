@@ -10,6 +10,7 @@ const BannerSchema = new mongoose.Schema({
     offerPercentage: { type: Number, default: 0 },
     expiryDate: { type: Date },
     ctaButtonSize: { type: String, default: 'small' }, 
+    type: { type: String, default: 'home_slider' }, // 'home_slider' or 'ads_banner'
     createdAt: { type: Date, default: Date.now }
 });
 

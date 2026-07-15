@@ -5,5 +5,6 @@ const astrologerController = require('../controllers/astrologer.controller');
 router.post('/register', astrologerController.register);
 router.post('/online', astrologerController.toggleOnline);
 router.post('/service-toggle', astrologerController.toggleService);
+router.post('/update-rate', astrologerController.updateRate);
 
 module.exports = router;

@@ -46,6 +46,12 @@ interface ApiInterface {
     @retrofit2.http.GET("api/home/banners")
     suspend fun getBanners(): Response<com.astroeleven.app.data.model.BannerResponse>
 
+    @retrofit2.http.GET("api/home/ads-banner")
+    suspend fun getAdsBanner(): Response<com.google.gson.JsonObject>
+
+    @POST("api/astrologer/update-rate")
+    suspend fun updateAstroRate(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+
     @POST("api/charts/birth-chart")
     suspend fun getBirthChart(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
 
@@ -74,6 +80,15 @@ interface ApiInterface {
 
     @POST("api/horoscope/generate-chart")
     suspend fun generateRasiChart(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+
+    @POST("api/rasi-eng/panchanga")
+    suspend fun getPanchanga(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+
+    @POST("api/rasi-eng/tamil-date")
+    suspend fun getTamilDate(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+
+    @POST("api/rasi-eng/panchanga/monthly")
+    suspend fun getMonthlyPanchanga(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
     @retrofit2.http.GET("api/payment/history/{userId}")
     suspend fun getPaymentHistory(@retrofit2.http.Path("userId") userId: String): Response<com.google.gson.JsonObject>
     @POST("api/astrologer/register")

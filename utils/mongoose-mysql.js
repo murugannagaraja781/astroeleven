@@ -314,6 +314,10 @@ class WrappedDocument {
         return this.toObject();
     }
 
+    markModified(path) {
+        // Mock method for compatibility with standard Mongoose schemas
+    }
+
     async save() {
         const rawData = this.toObject();
         const docId = rawData.id;

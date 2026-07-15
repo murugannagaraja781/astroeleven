@@ -50,12 +50,15 @@ class AstrologerProfileActivity : ComponentActivity() {
         val astroId = intent.getStringExtra("astro_id") ?: ""
         val astroImage = intent.getStringExtra("astro_image") ?: ""
         val astroPrice = intent.getIntExtra("astro_price", 15)
+        val chatPrice = intent.getIntExtra("chat_price", 15)
+        val callPrice = intent.getIntExtra("call_price", 15)
+        val videoPrice = intent.getIntExtra("video_price", 20)
         val isChatOnline = intent.getBooleanExtra("is_chat_online", false)
         val isAudioOnline = intent.getBooleanExtra("is_audio_online", false)
         val isVideoOnline = intent.getBooleanExtra("is_video_online", false)
 
         setContent {
-            CosmicAppTheme {
+            CosmicAppTheme(forceLight = true) {
                 AstrologerProfileScreen(
                     id = astroId,
                     name = astroName,
@@ -63,6 +66,9 @@ class AstrologerProfileActivity : ComponentActivity() {
                     skills = astroSkills,
                     image = astroImage,
                     price = astroPrice,
+                    chatPrice = chatPrice,
+                    callPrice = callPrice,
+                    videoPrice = videoPrice,
                     isChatOnline = isChatOnline,
                     isAudioOnline = isAudioOnline,
                     isVideoOnline = isVideoOnline,
@@ -73,6 +79,13 @@ class AstrologerProfileActivity : ComponentActivity() {
                             putExtra("partnerName", astroName)
                             putExtra("partnerImage", astroImage)
                             putExtra("type", type)
+                            val selectedPrice = when(type) {
+                                "chat" -> chatPrice
+                                "audio" -> callPrice
+                                "video" -> videoPrice
+                                else -> astroPrice
+                            }
+                            putExtra("partnerPrice", selectedPrice)
                         }
                         startActivity(intent)
                     }
@@ -91,6 +104,9 @@ fun AstrologerProfileScreen(
     skills: String,
     image: String,
     price: Int,
+    chatPrice: Int,
+    callPrice: Int,
+    videoPrice: Int,
     isChatOnline: Boolean,
     isAudioOnline: Boolean,
     isVideoOnline: Boolean,
@@ -203,19 +219,71 @@ fun AstrologerProfileScreen(
                     textAlign = TextAlign.Center
                 )
 
-                Surface(
-                    shape = RoundedCornerShape(AstroDimens.RadiusSmall),
-                    color = CosmicAppTheme.colors.accent.copy(alpha = 0.15f),
-                    border = BorderStroke(1.dp, CosmicAppTheme.colors.accent.copy(alpha = 0.3f)),
-                    modifier = Modifier.padding(top = 10.dp)
+                Row(
+                    modifier = Modifier.padding(top = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "₹$price/min",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = CosmicAppTheme.colors.accent,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                    )
+                    if (isChatOnline) {
+                        Surface(
+                            shape = RoundedCornerShape(AstroDimens.RadiusSmall),
+                            color = Color(0xFFE8F5E9),
+                            border = BorderStroke(1.dp, Color(0xFF81C784)),
+                        ) {
+                            Text(
+                                text = "Chat: ₹$chatPrice/min",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF2E7D32),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+                    if (isAudioOnline) {
+                        Surface(
+                            shape = RoundedCornerShape(AstroDimens.RadiusSmall),
+                            color = Color(0xFFFFF3E0),
+                            border = BorderStroke(1.dp, Color(0xFFFFB74D)),
+                        ) {
+                            Text(
+                                text = "Call: ₹$callPrice/min",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFE65100),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+                    if (isVideoOnline) {
+                        Surface(
+                            shape = RoundedCornerShape(AstroDimens.RadiusSmall),
+                            color = Color(0xFFE1F5FE),
+                            border = BorderStroke(1.dp, Color(0xFF4FC3F7)),
+                        ) {
+                            Text(
+                                text = "Video: ₹$videoPrice/min",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0277BD),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+                    if (!isChatOnline && !isAudioOnline && !isVideoOnline) {
+                        Surface(
+                            shape = RoundedCornerShape(AstroDimens.RadiusSmall),
+                            color = CosmicAppTheme.colors.accent.copy(alpha = 0.15f),
+                            border = BorderStroke(1.dp, CosmicAppTheme.colors.accent.copy(alpha = 0.3f)),
+                        ) {
+                            Text(
+                                text = "Rate: ₹$price/min",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = CosmicAppTheme.colors.accent,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
                 }
 
                 // Stats Section

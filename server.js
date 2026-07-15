@@ -964,10 +964,12 @@ app.get('/api/daily-horoscope', async (req, res) => {
 // --- Banner APIs (Admin & App) ---
 
 // Get Active Banners (Public)
+// Get Active Banners (Public)
 app.get('/api/home/banners', async (req, res) => {
   try {
     const banners = await Banner.find({
       isActive: true,
+      type: { $ne: 'ads_banner' },
       $or: [
         { expiryDate: { $gt: new Date() } },
         { expiryDate: null },
@@ -995,6 +997,35 @@ app.get('/api/home/banners', async (req, res) => {
   }
 });
 
+// Get Active Ads Banner (Public)
+app.get('/api/home/ads-banner', async (req, res) => {
+  try {
+    const banner = await Banner.findOne({
+      isActive: true,
+      type: 'ads_banner',
+      $or: [
+        { expiryDate: { $gt: new Date() } },
+        { expiryDate: null },
+        { expiryDate: '' },
+        { expiryDate: '0000-00-00 00:00:00' },
+        { expiryDate: '0000-00-00' }
+      ]
+    }).sort({ order: 1 });
+    if (!banner) {
+      return res.json({ ok: true, data: null });
+    }
+    res.json({
+      ok: true,
+      data: {
+        ...banner.toObject ? banner.toObject() : banner,
+        imageUrl: formatImageUrl(banner.imageUrl, 'Banner')
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // Get All Banners (Admin)
 app.get('/api/admin/banners', async (req, res) => {
   try {
@@ -1008,7 +1039,7 @@ app.get('/api/admin/banners', async (req, res) => {
 // Create/Update Banner (Admin)
 app.post('/api/admin/banners', upload.single('bannerImage'), async (req, res) => {
   try {
-    const { id, title, subtitle, ctaText, ctaButtonSize, order, offerPercentage, expiryDate, isActive, imageUrl } = req.body;
+    const { id, title, subtitle, ctaText, ctaButtonSize, order, offerPercentage, expiryDate, isActive, imageUrl, type } = req.body;
     let finalImageUrl = imageUrl;
 
     if (req.file) {
@@ -1021,7 +1052,8 @@ app.post('/api/admin/banners', upload.single('bannerImage'), async (req, res) =>
         offerPercentage: parseFloat(offerPercentage || 0),
         expiryDate: expiryDate || null,
         isActive: isActive === 'true' || isActive === true,
-        imageUrl: finalImageUrl
+        imageUrl: finalImageUrl,
+        type: type || 'home_slider'
       }, { returnDocument: 'after' });
       io.emit('banners-updated'); // Broadcast update
       return res.json({ ok: true, banner });
@@ -1031,7 +1063,8 @@ app.post('/api/admin/banners', upload.single('bannerImage'), async (req, res) =>
         offerPercentage: parseFloat(offerPercentage || 0),
         expiryDate: expiryDate || null,
         isActive: isActive === 'true' || isActive === true,
-        imageUrl: finalImageUrl
+        imageUrl: finalImageUrl,
+        type: type || 'home_slider'
       });
       io.emit('banners-updated'); // Broadcast update
       return res.json({ ok: true, banner });

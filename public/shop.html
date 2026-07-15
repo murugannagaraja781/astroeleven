@@ -274,7 +274,16 @@
     }
 
     // Auto load items
-    window.onload = loadStoreItems;
+    window.onload = () => {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        if (code) {
+          localStorage.setItem('referred_astro_code', code.trim().toUpperCase());
+        }
+      } catch (err) {}
+      loadStoreItems();
+    };
   </script>
 </body>
 </html>
