@@ -20,6 +20,21 @@ const SIGN_NAME_MAP = {
     "Pisces": "Meenam"
 };
 
+const RASI_CLASSIFICATIONS = [
+    { subhargal: "சூரியன், சந்திரன், குரு", paabargal: "புதன், சுக்கிரன், சனி", maaragar: "சுக்கிரன்" },
+    { subhargal: "சனி, புதன், சூரியன்", paabargal: "சந்திரன், குரு, செவ்வாய்", maaragar: "சந்திரன், குரு, புதன்" },
+    { subhargal: "சுக்கிரன், புதன்", paabargal: "சூரியன், செவ்வாய், குரு", maaragar: "குரு, செவ்வாய்" },
+    { subhargal: "சந்திரன், செவ்வாய், குரு", paabargal: "புதன், சுக்கிரன்", maaragar: "சனி, சூரியன், சுக்கிரன்" },
+    { subhargal: "சூரியன், செவ்வாய், குரு", paabargal: "புதன், சுக்கிரன்", maaragar: "சுக்கிரன், குரு, புதன்" },
+    { subhargal: "புதன், சுக்கிரன்", paabargal: "சந்திரன், செவ்வாய், குரு", maaragar: "குரு, சந்திரன்" },
+    { subhargal: "சுக்கிரன், சனி, புதன்", paabargal: "சூரியன், சந்திரன், குரு", maaragar: "செவ்வாய்" },
+    { subhargal: "சந்திரன், குரு, சூரியன்", paabargal: "புதன், சுக்கிரன்", maaragar: "சுக்கிரன், புதன், குரு" },
+    { subhargal: "குரு, சூரியன், செவ்வாய்", paabargal: "சுக்கிரன், புதன்", maaragar: "புதன், சுக்கிரன்" },
+    { subhargal: "சுக்கிரன், சனி, புதன்", paabargal: "சந்திரன், செவ்வாய், குரு", maaragar: "சந்திரன், செவ்வாய்" },
+    { subhargal: "சுக்கிரன், சனி", paabargal: "சூரியன், சந்திரன், குரு", maaragar: "சூரியன், செவ்வாய், புதன்" },
+    { subhargal: "சந்திரன், செவ்வாய், குரு", paabargal: "சூரியன், சுக்கிரன், சனி", maaragar: "புதன், சனி" }
+];
+
 router.get('/', async (req, res) => {
     try {
         const today = DateTime.now().setZone('Asia/Kolkata').toFormat('yyyy-MM-dd');
@@ -45,6 +60,8 @@ router.get('/', async (req, res) => {
                                      (isValidStr(item.horoscope) ? item.horoscope : null) || 
                                      "Today will be a great day.";
 
+                const classification = RASI_CLASSIFICATIONS[index] || { subhargal: "", paabargal: "", maaragar: "" };
+
                 return {
                     signId: index + 1,
                     signNameEn: item.sign_en || SIGN_NAME_MAP[Object.keys(SIGN_NAME_MAP)[index]] || "Sign",
@@ -67,7 +84,10 @@ router.get('/', async (req, res) => {
                         },
                         luckyTime: item.lucky_time || item.amrita_time || item.amirtha_time || "-",
                         unluckyTime: item.unlucky_time || item.rahukalam || item.rahu_kal_ta || "-"
-                    }
+                    },
+                    subhargal: classification.subhargal,
+                    paabargal: classification.paabargal,
+                    maaragar: classification.maaragar
                 };
             });
 

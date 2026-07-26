@@ -4,7 +4,7 @@ const { formatImageUrl } = require('../utils/formatImage');
 async function getFormattedAstrologers(SERVER_URL) {
     try {
         const astros = await User.find({ role: 'astrologer', approvalStatus: 'approved' })
-            .select('userId name phone skills price isOnline isChatOnline isAudioOnline isVideoOnline experience isVerified image walletBalance totalEarnings isBusy languages orderCount isDocumentVerified')
+            .select('userId name phone skills price chatPrice callPrice videoPrice isOnline isChatOnline isAudioOnline isVideoOnline experience isVerified image walletBalance totalEarnings isBusy languages orderCount isDocumentVerified')
             .lean();
 
         return astros.map(a => ({
@@ -12,6 +12,9 @@ async function getFormattedAstrologers(SERVER_URL) {
             name: a.name,
             skills: a.skills || [],
             price: a.price || 15,
+            chatPrice: a.chatPrice || a.price || 15,
+            callPrice: a.callPrice || a.price || 15,
+            videoPrice: a.videoPrice || a.price || 20,
             isOnline: a.isOnline || false,
             isChatOnline: a.isChatOnline || false,
             isAudioOnline: a.isAudioOnline || false,
@@ -48,7 +51,7 @@ async function broadcastSingleAstroUpdate(io, userId, SERVER_URL) {
     if (!io) return;
     try {
         const a = await User.findOne({ userId })
-            .select('userId name phone skills price isOnline isChatOnline isAudioOnline isVideoOnline experience isVerified image walletBalance totalEarnings isBusy languages orderCount isDocumentVerified')
+            .select('userId name phone skills price chatPrice callPrice videoPrice isOnline isChatOnline isAudioOnline isVideoOnline experience isVerified image walletBalance totalEarnings isBusy languages orderCount isDocumentVerified')
             .lean();
         if (!a) return;
 
@@ -57,6 +60,9 @@ async function broadcastSingleAstroUpdate(io, userId, SERVER_URL) {
             name: a.name,
             skills: a.skills || [],
             price: a.price || 15,
+            chatPrice: a.chatPrice || a.price || 15,
+            callPrice: a.callPrice || a.price || 15,
+            videoPrice: a.videoPrice || a.price || 20,
             isOnline: a.isOnline || false,
             isChatOnline: a.isChatOnline || false,
             isAudioOnline: a.isAudioOnline || false,

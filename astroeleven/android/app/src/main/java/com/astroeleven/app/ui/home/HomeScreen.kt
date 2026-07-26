@@ -2580,7 +2580,7 @@ fun AstrologerCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     AstrologerActionButton(
-                        text = Localization.get("chat", isTamil),
+                        text = "${Localization.get("chat", isTamil)} ₹${astro.chatPrice}",
                         icon = Icons.Rounded.Chat,
                         active = (astro.isChatOnline && !astro.isBusy),
                         borderColor = Color(0xFF2196F3),
@@ -2588,7 +2588,7 @@ fun AstrologerCard(
                         modifier = Modifier.weight(1f)
                     )
                     AstrologerActionButton(
-                        text = Localization.get("call", isTamil),
+                        text = "${Localization.get("call", isTamil)} ₹${astro.callPrice}",
                         icon = Icons.Rounded.Call,
                         active = (astro.isAudioOnline && !astro.isBusy),
                         borderColor = Color(0xFF4CAF50),
@@ -2596,7 +2596,7 @@ fun AstrologerCard(
                         modifier = Modifier.weight(1f)
                     )
                     AstrologerActionButton(
-                        text = Localization.get("video", isTamil),
+                        text = "${Localization.get("video", isTamil)} ₹${astro.videoPrice}",
                         icon = Icons.Rounded.VideoCall,
                         active = (astro.isVideoOnline && !astro.isBusy),
                         borderColor = Color(0xFFD32F2F),
@@ -3206,7 +3206,15 @@ fun AstrologerActionButton(
     ) {
         Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp))
         Spacer(modifier = Modifier.width(4.dp))
-        Text(text = text, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), maxLines = 1)
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontWeight = FontWeight.Bold,
+                fontSize = 9.5.sp
+            ),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 

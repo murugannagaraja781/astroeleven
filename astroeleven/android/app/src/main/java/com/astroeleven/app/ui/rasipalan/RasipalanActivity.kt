@@ -220,6 +220,31 @@ fun PremiumRasipalanCard(item: RasipalanItem) {
                     LuckyStat("அமிர்த நேரம்", item.lucky?.unluckyTime ?: "-")
                 }
             }
+
+            // Planetary Affiliations Section
+            if (item.subhargal != null || item.paabargal != null || item.maaragar != null) {
+                Spacer(modifier = Modifier.height(24.dp))
+                HorizontalDivider(color = CosmicAppTheme.colors.textSecondary.copy(alpha = 0.15f))
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "రాసిயின் கிரக ஆதிபத்தியங்கள்",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = CosmicAppTheme.colors.accent,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                item.subhargal?.let {
+                    PremiumStatusItem("சுபர்கள்", it)
+                }
+                item.paabargal?.let {
+                    PremiumStatusItem("பாபர்கள்", it)
+                }
+                item.maaragar?.let {
+                    PremiumStatusItem("மாரகர்", it)
+                }
+            }
         }
     }
 }

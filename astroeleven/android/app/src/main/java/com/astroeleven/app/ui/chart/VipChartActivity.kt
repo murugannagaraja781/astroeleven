@@ -16,6 +16,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -63,6 +65,15 @@ val planetTamil = mapOf(
     "Ketu" to "கேது", "Ascendant" to "லக்னம்"
 )
 
+val nakshatraTamil = mapOf(
+    "Ashwini" to "அஸ்வினி", "Bharani" to "பரணி", "Krittika" to "கார்த்திகை", "Rohini" to "ரோகிணி", "Mrigashira" to "மிருகசீரிடம்",
+    "Ardra" to "திருவாதிரை", "Punarvasu" to "புனர்பூசம்", "Pushya" to "பூசம்", "Ashlesha" to "ஆயிலியம்", "Magha" to "மகம்",
+    "Purva Phalguni" to "பூரம்", "Uttara Phalguni" to "உத்திரம்", "Hasta" to "அஸ்தம்", "Chitra" to "சித்திரை", "Swati" to "சுவாதி",
+    "Vishakha" to "விசாகம்", "Anuradha" to "அனுஷம்", "Jyeshtha" to "கேட்டை", "Mula" to "மூலம்", "Purva Ashadha" to "பூராடம்",
+    "Uttara Ashadha" to "உத்திராடம்", "Shravana" to "திருவோணம்", "Dhanishta" to "அவிட்டம்", "Shatabhisha" to "சதயம்",
+    "Purva Bhadrapada" to "பூரட்டாதி", "Uttara Bhadrapada" to "உத்திரட்டாதி", "Revati" to "ரேவதி"
+)
+
 val planetAbbrTamil = mapOf(
     "Sun" to "சூரி", "Moon" to "சந்", "Mars" to "செவ்", "Mercury" to "புத",
     "Jupiter" to "குரு", "Venus" to "சுக்", "Saturn" to "சனி", "Rahu" to "ராகு",
@@ -75,6 +86,29 @@ val dashaLevelTamil = mapOf(
     3 to "அந்தரம்",
     4 to "பிரத்யந்தரம்",
     5 to "சூட்சமம்"
+)
+
+data class RasiClassification(
+    val lordEn: String,
+    val lordTa: String,
+    val subhargal: String,
+    val paabargal: String,
+    val maaragar: String
+)
+
+val rasiClassifications = mapOf(
+    "Aries" to RasiClassification("Mars", "செவ்வாய்", "சூரியன், சந்திரன், குரு", "புதன், சுக்கிரன், சனி", "சுக்கிரன்"),
+    "Taurus" to RasiClassification("Venus", "சுக்கிரன்", "சனி, புதன், சூரியன்", "சந்திரன், குரு, செவ்வாய்", "சந்திரன், குரு, புதன்"),
+    "Gemini" to RasiClassification("Mercury", "புதன்", "சுக்கிரன், புதன்", "சூரியன், செவ்வாய், குரு", "குரு, செவ்வாய்"),
+    "Cancer" to RasiClassification("Moon", "சந்திரன்", "சந்திரன், செவ்வாய், குரு", "புதன், சுக்கிரன்", "சனி, சூரியன், சுக்கிரன்"),
+    "Leo" to RasiClassification("Sun", "சூரியன்", "சூரியன், செவ்வாய், குரு", "புதன், சுக்கிரன்", "சுக்கிரன், குரு, புதன்"),
+    "Virgo" to RasiClassification("Mercury", "புதன்", "புதன், சுக்கிரன்", "சந்திரன், செவ்வாய், குரு", "குரு, சந்திரன்"),
+    "Libra" to RasiClassification("Venus", "சுக்கிரன்", "சுக்கிரன், சனி, புதன்", "சூரியன், சந்திரன், குரு", "செவ்வாய்"),
+    "Scorpio" to RasiClassification("Mars", "செவ்வாய்", "சந்திரன், குரு, சூரியன்", "புதன், சுக்கிரன்", "சுக்கிரன், புதன், குரு"),
+    "Sagittarius" to RasiClassification("Jupiter", "குரு", "குரு, சூரியன், செவ்வாய்", "சுக்கிரன், புதன்", "புதன், சுக்கிரன்"),
+    "Capricorn" to RasiClassification("Saturn", "சனி", "சுக்கிரன், சனி, புதன்", "சந்திரன், செவ்வாய், குரு", "சந்திரன், செவ்வாய்"),
+    "Aquarius" to RasiClassification("Saturn", "சனி", "சுக்கிரன், சனி", "சூரியன், சந்திரன், குரு", "சூரியன், செவ்வாய், புதன்"),
+    "Pisces" to RasiClassification("Jupiter", "குரு", "சந்திரன், செவ்வாய், குரு", "சூரியன், சுக்கிரன், சனி", "புதன், சனி")
 )
 
 // --- Updated Data Models ---
@@ -225,7 +259,7 @@ fun VipChartScreen(birthData: JSONObject, onBack: () -> Unit) {
                         )
                     }
                 ) {
-                    val tabs = listOf("Charts", "Planets", "Dasha Details", "Panchanga")
+                    val tabs = listOf("ராசி கட்டங்கள்", "கிரக நிலைகள்", "சுப அசுப கிரகங்கள்", "தசா புத்திகள்", "பஞ்சாங்கம்")
                     tabs.forEachIndexed { index, title ->
                         Tab(
                             selected = selectedTab == index,
@@ -246,8 +280,9 @@ fun VipChartScreen(birthData: JSONObject, onBack: () -> Unit) {
                     when (selectedTab) {
                         0 -> ChartsTab(chartState!!, birthData)
                         1 -> PlanetsTab(chartState!!)
-                        2 -> DashaListTab(chartState!!.dasha)
-                        3 -> PanchangaTab(chartState!!)
+                        2 -> SubhaAsubhaTab(chartState!!)
+                        3 -> DashaListTab(chartState!!.dasha)
+                        4 -> PanchangaTab(chartState!!)
                     }
                 }
             } else {
@@ -391,9 +426,59 @@ fun SouthIndianGridEnhanced(
                         val pos = row * 4 + col
                         val signIdx = gridMap[pos]
 
-                        Box(Modifier.weight(1f).fillMaxHeight()) {
-                            if (signIdx != -1) {
-                                val signEn = signNames[signIdx]
+                        if (signIdx != -1) {
+                            val signEn = signNames[signIdx]
+                            var showDialog by remember { mutableStateOf(false) }
+
+                            if (showDialog) {
+                                val tamilName = signTamil[signEn] ?: signEn
+                                val details = rasiClassifications[signEn]
+                                if (details != null) {
+                                    AlertDialog(
+                                        onDismissRequest = { showDialog = false },
+                                        title = {
+                                            Text(
+                                                text = "$tamilName",
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFF5D1212)
+                                            )
+                                        },
+                                        text = {
+                                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                Row {
+                                                    Text("அதிபதி: ", fontWeight = FontWeight.Bold)
+                                                    Text("${details.lordTa}")
+                                                }
+                                                HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
+                                                Column {
+                                                    Text("சுபர்கள்:", fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32))
+                                                    Text(details.subhargal)
+                                                }
+                                                Column {
+                                                    Text("பாபர்கள்:", fontWeight = FontWeight.Bold, color = Color(0xFFE1353C))
+                                                    Text(details.paabargal)
+                                                }
+                                                Column {
+                                                    Text("மாரகர்:", fontWeight = FontWeight.Bold, color = Color.Gray)
+                                                    Text(details.maaragar)
+                                                }
+                                            }
+                                        },
+                                        confirmButton = {
+                                            TextButton(onClick = { showDialog = false }) {
+                                                Text("சரி", fontWeight = FontWeight.Bold, color = Color(0xFF5D1212))
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .clickable { showDialog = true }
+                            ) {
                                 val isAsc = signEn == ascSign
                                 
                                 // Draw Green Border for Ascendant
@@ -455,8 +540,10 @@ fun SouthIndianGridEnhanced(
                                         }
                                     }
                                 }
-                            } else if (pos == 5) {
-                                // Central Info Display anchor
+                            }
+                        } else {
+                            Box(Modifier.weight(1f).fillMaxHeight()) {
+                                // Empty or Central Info Displays
                             }
                         }
                     }
@@ -521,9 +608,60 @@ fun NavamsaSouthIndianGrid(
                     for (col in 0..3) {
                         val pos = row * 4 + col
                         val signIdx = gridMap[pos]
-                        Box(Modifier.weight(1f).fillMaxHeight()) {
-                            if (signIdx != -1) {
-                                val signEn = signNames[signIdx]
+
+                        if (signIdx != -1) {
+                            val signEn = signNames[signIdx]
+                            var showDialog by remember { mutableStateOf(false) }
+
+                            if (showDialog) {
+                                val tamilName = signTamil[signEn] ?: signEn
+                                val details = rasiClassifications[signEn]
+                                if (details != null) {
+                                    AlertDialog(
+                                        onDismissRequest = { showDialog = false },
+                                        title = {
+                                            Text(
+                                                text = "$tamilName",
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFF5D1212)
+                                            )
+                                        },
+                                        text = {
+                                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                Row {
+                                                    Text("அதிபதி: ", fontWeight = FontWeight.Bold)
+                                                    Text("${details.lordTa}")
+                                                }
+                                                HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
+                                                Column {
+                                                    Text("சுபர்கள்:", fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32))
+                                                    Text(details.subhargal)
+                                                }
+                                                Column {
+                                                    Text("பாபர்கள்:", fontWeight = FontWeight.Bold, color = Color(0xFFE1353C))
+                                                    Text(details.paabargal)
+                                                }
+                                                Column {
+                                                    Text("மாரகர்:", fontWeight = FontWeight.Bold, color = Color.Gray)
+                                                    Text(details.maaragar)
+                                                }
+                                            }
+                                        },
+                                        confirmButton = {
+                                            TextButton(onClick = { showDialog = false }) {
+                                                Text("சரி", fontWeight = FontWeight.Bold, color = Color(0xFF5D1212))
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .clickable { showDialog = true }
+                            ) {
                                 val isAsc = signEn == ascSign
                                 if (isAsc) {
                                     Box(modifier = Modifier.fillMaxSize().border(2.dp, Color(0xFF4CAF50)))
@@ -548,6 +686,10 @@ fun NavamsaSouthIndianGrid(
                                         }
                                     }
                                 }
+                            }
+                        } else {
+                            Box(Modifier.weight(1f).fillMaxHeight()) {
+                                // Empty or Central Info Displays
                             }
                         }
                     }
@@ -580,15 +722,15 @@ fun getPlanetStatusTamil(planetName: String, signName: String): String {
 
 @Composable
 fun PlanetsTab(data: ChartData) {
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text("Planet Positions (Navagraha)", fontWeight = FontWeight.Bold, color = ChocolateBrown, fontSize = 18.sp)
+    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
+        Text("கிரக நிலைகள் (நவக்கிரகங்கள்)", fontWeight = FontWeight.Bold, color = ChocolateBrown, fontSize = 18.sp)
         Spacer(Modifier.height(12.dp))
 
         // New Precise Table Grid
         Column(modifier = Modifier.fillMaxWidth().border(1.dp, Color.Gray)) {
             // Header
-            Row(modifier = Modifier.fillMaxWidth().background(Color(0xFF2E7D32)).padding(8.dp)) {
-                listOf("Planet", "Nakshatra", "Pada", "Sign", "Status").forEach { head ->
+            Row(modifier = Modifier.fillMaxWidth().background(Color(0xFFE87A1E)).padding(8.dp)) {
+                listOf("கிரகம்", "நட்சத்திரம்", "பாதம்", "ராசி", "நிலை").forEach { head ->
                     Text(
                         text = head,
                         modifier = Modifier.weight(1f),
@@ -607,7 +749,7 @@ fun PlanetsTab(data: ChartData) {
                     // Planet Name (Red)
                     Row(Modifier.weight(1f), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = planetAbbrTamil[planet.name] ?: planet.name,
+                            text = planetTamil[planet.name] ?: planet.name,
                             color = Color.Red,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
@@ -617,10 +759,193 @@ fun PlanetsTab(data: ChartData) {
                     }
 
                     // Others in Blue
-                    Text(text = planet.nakshatra.take(6), color = Color.Blue, fontSize = 12.sp, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                    Text(text = nakshatraTamil[planet.nakshatra] ?: planet.nakshatra, color = Color.Blue, fontSize = 12.sp, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
                     Text(text = planet.nakshatraPada.toString(), color = Color.Blue, fontSize = 12.sp, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
-                    Text(text = (signTamil[planet.signName] ?: planet.signName).take(4), color = Color.Blue, fontSize = 12.sp, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                    Text(text = signTamil[planet.signName] ?: planet.signName, color = Color.Blue, fontSize = 12.sp, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
                     Text(text = getPlanetStatusTamil(planet.name, planet.signName), color = Color.Blue, fontSize = 11.sp, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SubhaAsubhaTab(data: ChartData) {
+    val ascendantPlanet = data.planets.find { it.name.equals("Ascendant", ignoreCase = true) }
+    val lagnaSignEn = ascendantPlanet?.signName ?: "Aries"
+    val lagnaSignTa = signTamil[lagnaSignEn] ?: lagnaSignEn
+    val details = rasiClassifications[lagnaSignEn]
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = ChocolateBrown.copy(alpha = 0.05f)),
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(1.dp, ChocolateBrown.copy(alpha = 0.2f))
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "உங்கள் லக்னம்: $lagnaSignTa",
+                    fontWeight = FontWeight.Bold,
+                    color = ChocolateBrown,
+                    fontSize = 20.sp
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "லக்ன அடிப்படையில் கிரகங்களின் ஆதிபத்தியங்கள் பின்வருமாறு கணக்கிடப்பட்டுள்ளது:",
+                    fontSize = 13.sp,
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        if (details != null) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, Color.Gray, RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(8.dp))
+            ) {
+                // Header
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFFE87A1E))
+                        .padding(12.dp)
+                ) {
+                    Text(
+                        text = "கிரக வகைப்பாடு",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = "கிரகங்கள்",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        modifier = Modifier.weight(1.5f),
+                        textAlign = TextAlign.End
+                    )
+                }
+
+                // Row 1: அதிபதி
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(ParchmentBase)
+                        .padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "லக்னாதிபதி",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = Color.DarkGray,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = details.lordTa,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = ChocolateBrown,
+                        modifier = Modifier.weight(1.5f),
+                        textAlign = TextAlign.End
+                    )
+                }
+                
+                HorizontalDivider(color = Color.Gray.copy(alpha = 0.3f))
+
+                // Row 2: சுபர்கள்
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(ParchmentLight)
+                        .padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "சுப கிரகங்கள்",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = Color(0xFF2E7D32),
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = details.subhargal,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = Color(0xFF2E7D32),
+                        modifier = Modifier.weight(1.5f),
+                        textAlign = TextAlign.End
+                    )
+                }
+
+                HorizontalDivider(color = Color.Gray.copy(alpha = 0.3f))
+
+                // Row 3: பாபர்கள்
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(ParchmentBase)
+                        .padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "பாப கிரகங்கள்",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = Color(0xFFE1353C),
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = details.paabargal,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = Color(0xFFE1353C),
+                        modifier = Modifier.weight(1.5f),
+                        textAlign = TextAlign.End
+                    )
+                }
+
+                HorizontalDivider(color = Color.Gray.copy(alpha = 0.3f))
+
+                // Row 4: மாரகர்
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(ParchmentLight)
+                        .padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "மாரக கிரகங்கள்",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = Color.Gray,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = details.maaragar,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = Color.DarkGray,
+                        modifier = Modifier.weight(1.5f),
+                        textAlign = TextAlign.End
+                    )
                 }
             }
         }
@@ -640,7 +965,7 @@ fun DashaListTab(mahadashas: List<DashaPeriod>) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         item {
             Box(Modifier.fillMaxWidth().background(ChocolateBrown).padding(16.dp)) {
-                Text("Vimshottari Dasha Bhukti Details", color = Color.White, fontWeight = FontWeight.Bold)
+                Text("விம்சோத்தரி தசா புத்தி விபரங்கள்", color = Color.White, fontWeight = FontWeight.Bold)
             }
         }
         items(mahadashas) { md ->
@@ -685,11 +1010,11 @@ fun DashaNodeInternal(period: DashaPeriod) {
             Column(Modifier.weight(1f)) {
                 Text(
                     text = "${planetTamil[period.lord] ?: period.lord} " + (dashaLevelTamil[period.level] ?: when(period.level) {
-                        1 -> "Maha Dasha"
-                        2 -> "Bhukti"
-                        3 -> "Antharam"
-                        4 -> "Pratyantharam"
-                        else -> "Sookshma"
+                        1 -> "மகா தசை"
+                        2 -> "புத்தி"
+                        3 -> "அந்தரம்"
+                        4 -> "பிரத்யந்தரம்"
+                        else -> "சூட்சமம்"
                     }),
                     fontWeight = if(period.level == 1) FontWeight.Bold else FontWeight.Medium,
                     fontSize = if(period.level == 1) 16.sp else 14.sp,
@@ -903,19 +1228,19 @@ fun PanchangaTab(data: ChartData) {
             .padding(16.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        Text("பஞ்சாங்கம் (Panchanga)", fontWeight = FontWeight.Bold, color = ChocolateBrown, fontSize = 18.sp)
+        Text("பஞ்சாங்கம்", fontWeight = FontWeight.Bold, color = ChocolateBrown, fontSize = 18.sp)
         Spacer(Modifier.height(16.dp))
 
         val items = listOf(
-            "திதி (Tithi)" to (p.tithi?.name ?: "-"),
-            "நட்சத்திரம் (Nakshatra)" to (p.nakshatra?.name ?: "-"),
-            "யோகம் (Yoga)" to (p.yoga?.name ?: "-"),
-            "கரணம் (Karana)" to (p.karana?.name ?: "-"),
-            "வாரம் (Vara/Day)" to (p.vara?.name ?: "-"),
-            "சூரிய உதயம் (Sunrise)" to (p.sunrise ?: "-"),
-            "சூரிய அஸ்தம் (Sunset)" to (p.sunset ?: "-"),
-            "சந்திர ராசி (Moon Sign)" to (signTamil[p.moonSign] ?: p.moonSign ?: "-"),
-            "சூரிய ராசி (Sun Sign)" to (signTamil[p.sunSign] ?: p.sunSign ?: "-")
+            "திதி" to (p.tithi?.name ?: "-"),
+            "நட்சத்திரம்" to (p.nakshatra?.name ?: "-"),
+            "யோகம்" to (p.yoga?.name ?: "-"),
+            "கரணம்" to (p.karana?.name ?: "-"),
+            "வாரம்" to (p.vara?.name ?: "-"),
+            "சூரிய உதயம்" to (p.sunrise ?: "-"),
+            "சூரிய அஸ்தமனம்" to (p.sunset ?: "-"),
+            "சந்திர ராசி" to (signTamil[p.moonSign] ?: p.moonSign ?: "-"),
+            "சூரிய ராசி" to (signTamil[p.sunSign] ?: p.sunSign ?: "-")
         )
 
         Column(modifier = Modifier.fillMaxWidth().border(1.dp, Color.Gray)) {
@@ -943,7 +1268,7 @@ fun PanchangaTab(data: ChartData) {
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Column(Modifier.padding(16.dp)) {
-                    Text("தமிழ் தேதி (Tamil Date)", fontWeight = FontWeight.Bold, color = ChocolateBrown, fontSize = 15.sp)
+                    Text("தமிழ் தேதி", fontWeight = FontWeight.Bold, color = ChocolateBrown, fontSize = 15.sp)
                     Spacer(Modifier.height(8.dp))
                     Text("${td.day} ${td.month} ${td.year}", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color.DarkGray, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
                 }
@@ -953,10 +1278,10 @@ fun PanchangaTab(data: ChartData) {
         // Transit Table
         if (data.transits.isNotEmpty()) {
             Spacer(Modifier.height(24.dp))
-            Text("தற்போதைய கோச்சாரம் (Current Transits)", fontWeight = FontWeight.Bold, color = ChocolateBrown, fontSize = 16.sp)
+            Text("தற்போதைய கோச்சாரம்", fontWeight = FontWeight.Bold, color = ChocolateBrown, fontSize = 16.sp)
             Spacer(Modifier.height(8.dp))
             Column(modifier = Modifier.fillMaxWidth().border(1.dp, Color.Gray)) {
-                Row(modifier = Modifier.fillMaxWidth().background(Color(0xFF2E7D32)).padding(8.dp)) {
+                Row(modifier = Modifier.fillMaxWidth().background(Color(0xFFE87A1E)).padding(8.dp)) {
                     listOf("கிரகம்", "ராசி", "வக்கிரம்").forEach { h ->
                         Text(h, modifier = Modifier.weight(1f), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
                     }

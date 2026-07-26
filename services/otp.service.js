@@ -1,31 +1,38 @@
 const https = require('https');
 
-function sendMsg91(phoneNumber, otp) {
+function sendSMS(phoneNumber, otp) {
+    const apiKey = process.env.PING4SMS_API_KEY || 'e1fc54301c0da93b95d3502a3151f420';
+    const sender = process.env.PING4SMS_SENDER_ID || 'ASTELV';
+    const route = process.env.PING4SMS_ROUTE || '4';
+    const templateId = process.env.PING4SMS_TEMPLATE_ID || '1677100000000387344';
+
     const cleanPhone = phoneNumber.replace(/\D/g, '');
-    const mobile = (cleanPhone.length === 10) ? `91${cleanPhone}` : cleanPhone;
-    const authKey = process.env.MSG91_AUTH_KEY;
-    const templateId = process.env.MSG91_TEMPLATE_ID;
+    // Ping4SMS domestic route needs the 10 digit number
+    const mobile = cleanPhone.slice(-10);
 
-    const path = `/api/v5/otp?otp_expiry=5&template_id=${templateId}&mobile=${mobile}&authkey=${authKey}&realTimeResponse=1&otp=${otp}`;
+    const message = `Dear Customer,Your OTP for login on ASTRO ELEVEN is ${otp}.Do not share it with any One. https://astroeleven.com/  `;
 
-    const options = {
-        method: 'POST',
-        hostname: 'control.msg91.com',
-        path: path,
-        headers: {
-            'content-type': 'application/json'
-        }
-    };
-
-    const req = https.request(options, (res) => {
-        let data = '';
-        res.on('data', (chunk) => data += chunk);
-        res.on('end', () => console.log('MSG91 Result:', data));
+    const params = new URLSearchParams({
+        key: apiKey,
+        route: route,
+        sender: sender,
+        number: mobile,
+        sms: message,
+        templateid: templateId
     });
 
-    req.on('error', (e) => console.error('MSG91 Error:', e));
-    req.write('{}');
-    req.end();
+    const url = `https://site.ping4sms.com/api/smsapi?${params.toString()}`;
+
+    https.get(url, (res) => {
+        let data = '';
+        res.on('data', (chunk) => data += chunk);
+        res.on('end', () => console.log('PING4SMS Result:', data));
+    }).on('error', (e) => {
+        console.error('PING4SMS Error:', e);
+    });
 }
 
-module.exports = { sendMsg91 };
+module.exports = { 
+    sendSMS,
+    sendMsg91: sendSMS // backward compatibility alias
+};

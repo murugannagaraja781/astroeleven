@@ -221,23 +221,29 @@ class GuestDashboardActivity : AppCompatActivity() {
          // Map "charges" to "price" if needed, assuming API structure is consistent
          // Guest logic used "charges", Home logic uses "price".
          // I'll check if "price" exists, fallback to "charges"
-         val price = if (json.has("price")) json.getInt("price") else json.optInt("charges", 15)
+          val price = if (json.has("price")) json.getInt("price") else json.optInt("charges", 15)
+          val chatPrice = json.optInt("chatPrice", price)
+          val callPrice = json.optInt("callPrice", price)
+          val videoPrice = json.optInt("videoPrice", price)
 
-         return Astrologer(
-             userId = json.optString("userId", ""),
-             name = json.optString("name", "Astrologer"),
-             phone = json.optString("phone", ""),
-             skills = skills,
-             price = price,
-             isOnline = json.optBoolean("isOnline", false),
-             isChatOnline = json.optBoolean("isChatOnline", false),
-             isAudioOnline = json.optBoolean("isAudioOnline", false),
-             isVideoOnline = json.optBoolean("isVideoOnline", false),
-             image = json.optString("image", ""),
-             experience = json.optInt("experience", 0),
-             isVerified = json.optBoolean("isVerified", false),
-             walletBalance = json.optDouble("walletBalance", 0.0)
-         )
+          return Astrologer(
+              userId = json.optString("userId", ""),
+              name = json.optString("name", "Astrologer"),
+              phone = json.optString("phone", ""),
+              skills = skills,
+              price = price,
+              chatPrice = chatPrice,
+              callPrice = callPrice,
+              videoPrice = videoPrice,
+              isOnline = json.optBoolean("isOnline", false),
+              isChatOnline = json.optBoolean("isChatOnline", false),
+              isAudioOnline = json.optBoolean("isAudioOnline", false),
+              isVideoOnline = json.optBoolean("isVideoOnline", false),
+              image = json.optString("image", ""),
+              experience = json.optInt("experience", 0),
+              isVerified = json.optBoolean("isVerified", false),
+              walletBalance = json.optDouble("walletBalance", 0.0)
+          )
     }
 
     private fun handleServiceClick(serviceName: String) {

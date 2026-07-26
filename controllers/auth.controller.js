@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 const User = require('../models/User');
 const { otpStore } = require('../services/socketStore');
-const { sendMsg91 } = require('../services/otp.service');
+const { sendSMS } = require('../services/otp.service');
 const { generateUniqueReferralCode } = require('../utils/helpers');
 const { formatImageUrl } = require('../utils/formatImage');
 
@@ -38,7 +38,7 @@ exports.sendOtp = async (req, res) => {
         return res.json({ ok: true });
     }
 
-    sendMsg91(phone, otp);
+    sendSMS(phone, otp);
     otpStore.set(phone, { otp, expires: Date.now() + 300000 });
     console.log(`OTP for ${phone}: ${otp}`);
     res.json({ ok: true });

@@ -332,12 +332,20 @@ class HomeActivity : AppCompatActivity() {
             }
         }
 
+        val price = json.optInt("price", 15)
+        val chatPrice = json.optInt("chatPrice", price)
+        val callPrice = json.optInt("callPrice", price)
+        val videoPrice = json.optInt("videoPrice", price)
+
         return Astrologer(
             userId = json.optString("userId", ""),
             name = json.optString("name", "Astrologer"),
             phone = json.optString("phone", ""),
             skills = skills,
-            price = json.optInt("price", 15),
+            price = price,
+            chatPrice = chatPrice,
+            callPrice = callPrice,
+            videoPrice = videoPrice,
             isOnline = json.optBoolean("isOnline", false),
             isChatOnline = json.optBoolean("isChatOnline", false),
             isAudioOnline = json.optBoolean("isAudioOnline", false),

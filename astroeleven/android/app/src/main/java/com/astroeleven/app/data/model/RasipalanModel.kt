@@ -12,7 +12,10 @@ data class RasipalanItem(
     @SerializedName("date") val date: String?,
     @SerializedName("prediction") val prediction: RasipalanPrediction?,
     @SerializedName("details") val details: RasipalanDetails?,
-    @SerializedName("lucky") val lucky: RasipalanLucky?
+    @SerializedName("lucky") val lucky: RasipalanLucky?,
+    @SerializedName("subhargal") val subhargal: String? = null,
+    @SerializedName("paabargal") val paabargal: String? = null,
+    @SerializedName("maaragar") val maaragar: String? = null
 )
 
 data class RasipalanPrediction(

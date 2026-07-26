@@ -18,8 +18,13 @@ import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.rounded.VideoCall
 import androidx.compose.material3.*
+import androidx.compose.ui.platform.LocalContext
+import android.app.Activity
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -113,25 +118,32 @@ fun AstrologerProfileScreen(
     onBack: () -> Unit,
     onAction: (String) -> Unit
 ) {
+    val context = LocalContext.current
     val scrollState = rememberScrollState()
     val peacockTeal = Color(0xFFE87A1E)
     val yellowAccent = Color(0xFFFFD54F)
 
+    val systemUiController = remember { (context as? Activity)?.window }
+    SideEffect {
+        systemUiController?.statusBarColor = android.graphics.Color.parseColor("#E87A1E")
+        systemUiController?.navigationBarColor = android.graphics.Color.parseColor("#E87A1E")
+    }
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Profile", color = CosmicAppTheme.colors.accent, fontWeight = FontWeight.Bold) },
+                title = { Text("Profile", color = Color.White, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, "Back", tint = CosmicAppTheme.colors.accent)
+                        Icon(Icons.Default.ArrowBack, "Back", tint = Color.White)
                     }
                 },
                 actions = {
                     IconButton(onClick = {}) {
-                        Icon(Icons.Default.Share, "Share", tint = CosmicAppTheme.colors.accent)
+                        Icon(Icons.Default.Share, "Share", tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = CosmicAppTheme.colors.bgStart)
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color(0xFFE87A1E))
             )
         }
     ) { padding ->
@@ -335,7 +347,7 @@ fun AstrologerProfileScreen(
                     if (isChatOnline) {
                         ActionButton(
                             icon = Icons.Default.Chat,
-                            label = "Chat",
+                            label = "Chat (₹$chatPrice)",
                             color = CosmicAppTheme.colors.accent,
                             isEnabled = true,
                             onClick = { onAction("chat") }
@@ -345,7 +357,7 @@ fun AstrologerProfileScreen(
                     if (isAudioOnline) {
                         ActionButton(
                             icon = Icons.Default.Call,
-                            label = "Call",
+                            label = "Call (₹$callPrice)",
                             color = CosmicAppTheme.colors.accent,
                             isEnabled = true,
                             onClick = { onAction("audio") }
@@ -355,10 +367,40 @@ fun AstrologerProfileScreen(
                     if (isVideoOnline) {
                         ActionButton(
                             icon = androidx.compose.material.icons.Icons.Rounded.VideoCall,
-                            label = "Video",
+                            label = "Video (₹$videoPrice)",
                             color = CosmicAppTheme.colors.accent,
                             isEnabled = true,
                             onClick = { onAction("video") }
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Button(
+                    onClick = { /* Action */ },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE87A1E)),
+                    shape = RoundedCornerShape(AstroDimens.RadiusMedium)
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.FavoriteBorder,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Subscribe to $name",
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            fontSize = 16.sp
                         )
                     }
                 }

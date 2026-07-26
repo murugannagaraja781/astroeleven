@@ -320,4 +320,66 @@ A debug APK was built after applying the following fixes:
 * **File Path:** `astroeleven/android/app/build/outputs/apk/debug/app-debug.apk`
 * **Status:** Build Successful
 
+---
+
+## [2026-07-15] - Release & Debug Builds - Version 1.7.0 (Rasi Classifications Integration)
+
+A clean build of Debug APK, Release APK, and Release App Bundle (AAB) was compiled successfully.
+- Version Code: 17
+- Version Name: "1.7.0"
+
+* **Date & Time:** July 15, 2026 - 05:47 PM (IST)
+* **Debug APK File Path:** `astroeleven/android/app/build/outputs/apk/debug/app-debug.apk` (copied to root `app-debug.apk`)
+* **Release APK File Path:** `astroeleven/android/app/build/outputs/apk/release/app-release.apk` (copied to root `app-release.apk`)
+* **Release AAB File Path:** `astroeleven/android/app/build/outputs/bundle/release/app-release.aab` (copied to root `app-release.aab`)
+* **Status:** Clean Rebuild Successful
+
+---
+
+## [2026-07-15] - Release & Debug Builds - Version 1.7.0 (Tamil Translation Updates)
+
+A clean build of Debug APK, Release APK, and Release App Bundle (AAB) was compiled successfully after translating all chart activities, grids, planet tables, tabs, and popups purely to Tamil without grammatical mistakes.
+- Version Code: 17
+- Version Name: "1.7.0"
+
+* **Date & Time:** July 15, 2026 - 08:19 PM (IST)
+* **Debug APK File Path:** `astroeleven/android/app/build/outputs/apk/debug/app-debug.apk` (copied to root `app-debug.apk`)
+* **Release APK File Path:** `astroeleven/android/app/build/outputs/apk/release/app-release.apk` (copied to root `app-release.apk`)
+* **Release AAB File Path:** `astroeleven/android/app/build/outputs/bundle/release/app-release.aab` (copied to root `app-release.aab`)
+* **Status:** Clean Rebuild Successful
+
+---
+
+## [2026-07-15] - Release & Debug Builds - Version 1.7.0 (Subha/Asubha Calculation Tab & Orange Theme Updates)
+
+A clean build of Debug APK, Release APK, and Release App Bundle (AAB) was compiled successfully after:
+1. Adding a new "சுப அசுப கிரகங்கள்" (Benefic/Malefic Planets) tab to calculate benefic, malefic, and maraka planets based dynamically on the user's lagna (ascendant).
+2. Changing the green header/header backgrounds of the planet and transit tables in the Rasi chart screen to an orange/yellow theme.
+3. Updating the Astrologer Profile screen color palette to orange (#E87A1E) instead of green, and adding a dynamic orange "Subscribe to [Astrologer Name]" button with a heart icon.
+- Version Code: 17
+- Version Name: "1.7.0"
+
+* **Date & Time:** July 15, 2026 - 09:09 PM (IST)
+* **Debug APK File Path:** `astroeleven/android/app/build/outputs/apk/debug/app-debug.apk` (copied to root `app-debug.apk`)
+* **Release APK File Path:** `astroeleven/android/app/build/outputs/apk/release/app-release.apk` (copied to root `app-release.apk`)
+* **Release AAB File Path:** `astroeleven/android/app/build/outputs/bundle/release/app-release.aab` (copied to root `app-release.aab`)
+* **Status:** Clean Rebuild Successful
+
+---
+
+## [2026-07-15] - Release & Debug Builds - Version 1.8.0 (16KB Page Size Alignment & Version Code 18 Rebuild)
+
+A clean build of Debug APK, Release APK, and Release App Bundle (AAB) was compiled successfully after:
+1. Incrementing the build parameters to versionCode 18 and versionName "1.8.0".
+2. Confirming that 16KB page size alignment support is fully configured (`useLegacyPackaging = false` in `packaging.jniLibs`).
+- Version Code: 18
+- Version Name: "1.8.0"
+
+* **Date & Time:** July 15, 2026 - 10:17 PM (IST)
+* **Debug APK File Path:** `astroeleven/android/app/build/outputs/apk/debug/app-debug.apk` (copied to root `app-debug.apk`)
+* **Release APK File Path:** `astroeleven/android/app/build/outputs/apk/release/app-release.apk` (copied to root `app-release.apk`)
+* **Release AAB File Path:** `astroeleven/android/app/build/outputs/bundle/release/app-release.aab` (copied to root `app-release.aab`)
+* **Status:** Clean Rebuild Successful
+
+
 
