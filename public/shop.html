@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Astro Eleven Shop - Premium Gemstones & Puja Booking</title>
+  <title>Astro Eleven Shop - Sacred Pujas & Certified Astro Products</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/favicon.png">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.tailwindcss.com"></script>
@@ -17,6 +19,7 @@
           colors: {
             'brand-red': '#E1353C',
             'brand-gold': '#FDBA16',
+            'brand-dark': '#1F140A'
           }
         }
       }
@@ -27,155 +30,318 @@
       font-family: 'Poppins', sans-serif;
       background: linear-gradient(135deg, #FFFDF9 0%, #FFF9E6 100%);
     }
+    .service-card {
+      transition: all 0.25s ease-in-out;
+    }
     .service-card:hover {
       transform: translateY(-4px);
-      box-shadow: 0 10px 25px rgba(225, 53, 60, 0.1);
+      box-shadow: 0 12px 30px rgba(225, 53, 60, 0.12);
     }
     .custom-dashed {
-      border: 2.5px dashed #FDBA16;
+      border: 2px dashed #FDBA16;
+    }
+    .filter-pill.active {
+      background: #E1353C;
+      color: #FFFFFF;
+      border-color: #E1353C;
     }
   </style>
 </head>
 <body class="min-h-screen pb-16">
 
   <!-- Header -->
-  <header class="bg-white shadow-sm sticky top-0 z-50 border-b border-orange-100">
-    <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+  <header class="bg-white shadow-sm sticky top-0 z-40 border-b border-orange-100">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-full bg-brand-red flex items-center justify-center text-white font-bold text-lg border-2 border-brand-gold shadow">
-          A11
-        </div>
-        <div>
-          <h1 class="text-lg font-extrabold text-brand-red tracking-tight">Astro Eleven Shop</h1>
-          <p class="text-xs text-gray-500 font-medium">Sacred Pujas & Certified Astro Products</p>
-        </div>
+        <a href="/" class="flex items-center gap-3">
+          <img src="/favicon.png" alt="Astro Eleven" class="w-9 h-9 rounded-full object-contain border border-brand-gold shadow-sm">
+          <div>
+            <h1 class="text-lg font-extrabold text-brand-red tracking-tight leading-none">Astro Eleven Shop</h1>
+            <p class="text-[11px] text-gray-500 font-medium">Sacred Pujas & Certified Astro Products</p>
+          </div>
+        </a>
       </div>
-      <a href="index.html" class="text-sm font-semibold text-brand-red hover:underline flex items-center gap-1">
-        <i class="fas fa-arrow-left"></i> Home
-      </a>
+      <div class="flex items-center gap-3">
+        <a href="/" class="text-xs md:text-sm font-semibold text-brand-red bg-orange-50 hover:bg-orange-100 px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all">
+          <i class="fas fa-home"></i> Home
+        </a>
+      </div>
     </div>
   </header>
 
-  <!-- Banner Carousel -->
-  <section class="max-w-4xl mx-auto px-4 mt-6">
-    <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-brand-red to-red-800 text-white p-6 shadow-lg flex items-center justify-between">
-      <div class="max-w-md">
-        <span class="bg-brand-gold/20 text-brand-gold border border-brand-gold/30 text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider">Festival Offer</span>
-        <h2 class="text-2xl font-black mt-2">Book Puja & Get 100% Remedies Consultation Free!</h2>
-        <p class="text-sm opacity-90 mt-2">Activate planetary blessings and remove malefic obstacles in career and relationship.</p>
+  <!-- Banner -->
+  <section class="max-w-6xl mx-auto px-4 mt-4">
+    <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-brand-red to-red-800 text-white p-5 md:p-8 shadow-lg flex items-center justify-between">
+      <div class="max-w-xl">
+        <span class="bg-brand-gold/20 text-brand-gold border border-brand-gold/30 text-[11px] px-3 py-1 rounded-full font-bold uppercase tracking-wider">
+          <i class="fas fa-certificate mr-1"></i> 100% Vedic Certified
+        </span>
+        <h2 class="text-xl md:text-2xl font-black mt-2 leading-snug">Vedic Pujas & Energized Astrological Remedies</h2>
+        <p class="text-xs md:text-sm opacity-90 mt-1.5">Conducted by experienced temple scholars and certified authentic gemstones with planetary remedies.</p>
       </div>
       <div class="text-5xl opacity-20 hidden md:block">🕉️</div>
     </div>
   </section>
 
-  <!-- Main Store Layout -->
-  <main class="max-w-6xl mx-auto px-4 mt-8">
-    
-    <!-- Tab Controls -->
-    <div class="flex border-b border-orange-200/60 mb-8 justify-center gap-4">
-      <button onclick="switchCategory('pujas')" id="tab-pujas" class="py-2.5 px-6 font-bold text-sm text-brand-red border-b-2 border-brand-red transition-all">
-        <i class="fas fa-hands-praying mr-2"></i> Sacred Puja Bookings
+  <!-- Filter & Search Controls (Item 16) -->
+  <section class="max-w-6xl mx-auto px-4 mt-6">
+    <div class="bg-white rounded-2xl p-4 shadow-sm border border-orange-100 flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+      <!-- Search Input -->
+      <div class="relative flex-1">
+        <i class="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+        <input type="text" id="shopSearchInput" oninput="applyFilters()" placeholder="Search puja, gemstone, rudraksha, yantra..."
+          class="w-full pl-9 pr-4 py-2.5 bg-orange-50/40 border border-orange-100 rounded-xl text-sm focus:outline-none focus:border-brand-red">
+      </div>
+
+      <!-- Price & Sort Dropdowns -->
+      <div class="flex items-center gap-2">
+        <select id="priceFilter" onchange="applyFilters()"
+          class="px-3 py-2.5 bg-orange-50/40 border border-orange-100 rounded-xl text-xs md:text-sm text-gray-700 font-medium focus:outline-none focus:border-brand-red">
+          <option value="all">All Prices</option>
+          <option value="under1000">Under ₹1,000</option>
+          <option value="1000to2500">₹1,000 - ₹2,500</option>
+          <option value="above2500">Above ₹2,500</option>
+        </select>
+
+        <select id="sortFilter" onchange="applyFilters()"
+          class="px-3 py-2.5 bg-orange-50/40 border border-orange-100 rounded-xl text-xs md:text-sm text-gray-700 font-medium focus:outline-none focus:border-brand-red">
+          <option value="default">Featured</option>
+          <option value="priceLow">Price: Low to High</option>
+          <option value="priceHigh">Price: High to Low</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Category Pill Filters (Item 16) -->
+    <div class="flex overflow-x-auto gap-2 py-3 scrollbar-none text-xs font-semibold">
+      <button onclick="setFilterCategory('all')" id="pill-all" class="filter-pill active px-4 py-2 rounded-full border border-gray-200 whitespace-nowrap bg-white text-gray-700">
+        🌟 All Items
       </button>
-      <button onclick="switchCategory('products')" id="tab-products" class="py-2.5 px-6 font-semibold text-sm text-gray-500 hover:text-brand-red transition-all">
-        <i class="fas fa-gem mr-2"></i> Astro Store Products
+      <button onclick="setFilterCategory('puja')" id="pill-puja" class="filter-pill px-4 py-2 rounded-full border border-gray-200 whitespace-nowrap bg-white text-gray-700">
+        🙏 Sacred Pujas
+      </button>
+      <button onclick="setFilterCategory('gemstone')" id="pill-gemstone" class="filter-pill px-4 py-2 rounded-full border border-gray-200 whitespace-nowrap bg-white text-gray-700">
+        💎 Gemstones
+      </button>
+      <button onclick="setFilterCategory('rudraksha')" id="pill-rudraksha" class="filter-pill px-4 py-2 rounded-full border border-gray-200 whitespace-nowrap bg-white text-gray-700">
+        📿 Rudraksha
+      </button>
+      <button onclick="setFilterCategory('yantra')" id="pill-yantra" class="filter-pill px-4 py-2 rounded-full border border-gray-200 whitespace-nowrap bg-white text-gray-700">
+        🔯 Maha Yantras
+      </button>
+      <button onclick="setFilterCategory('puja_item')" id="pill-puja_item" class="filter-pill px-4 py-2 rounded-full border border-gray-200 whitespace-nowrap bg-white text-gray-700">
+        🪔 Pooja Items
       </button>
     </div>
+  </section>
 
-    <!-- Pujas Grid -->
-    <div id="grid-pujas" class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <!-- Loading or items -->
+  <!-- Items Grid -->
+  <main class="max-w-6xl mx-auto px-4 mt-2">
+    <div id="shopGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+      <div class="col-span-full text-center py-12 text-gray-400">
+        <i class="fas fa-circle-notch fa-spin text-2xl text-brand-red mb-2"></i>
+        <p class="text-sm">Loading authentic items...</p>
+      </div>
     </div>
-
-    <!-- Products Grid -->
-    <div id="grid-products" class="grid grid-cols-1 md:grid-cols-3 gap-6 hidden">
-      <!-- Loading or items -->
-    </div>
-
   </main>
+
+  <!-- Item Details Modal (Item 18: Product Description) -->
+  <div id="detailsModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-2xl border border-orange-100 p-6 w-full max-w-lg shadow-2xl relative max-h-[90vh] overflow-y-auto">
+      <button onclick="closeDetailsModal()" class="absolute right-4 top-4 text-gray-400 hover:text-gray-600 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+        <i class="fas fa-times text-sm"></i>
+      </button>
+
+      <div class="flex items-center gap-4 mb-4">
+        <div class="w-16 h-16 rounded-2xl custom-dashed flex items-center justify-center bg-orange-50 p-2 flex-shrink-0">
+          <img id="detailImg" src="" class="w-full h-full object-contain">
+        </div>
+        <div>
+          <span id="detailTag" class="text-[10px] uppercase tracking-wider font-extrabold px-2.5 py-0.5 rounded-full bg-brand-red/10 text-brand-red"></span>
+          <h3 id="detailTitle" class="text-lg font-bold text-gray-900 mt-1 leading-snug"></h3>
+          <div class="text-brand-red font-black text-xl mt-0.5" id="detailPrice"></div>
+        </div>
+      </div>
+
+      <!-- Description Content -->
+      <div class="space-y-3.5 text-xs text-gray-600 border-t border-b border-orange-100 py-4 my-4">
+        <div>
+          <h4 class="font-bold text-gray-800 text-sm mb-1"><i class="fas fa-info-circle text-brand-gold mr-1"></i> Overview & Significance</h4>
+          <p id="detailDesc" class="leading-relaxed"></p>
+        </div>
+        <div id="detailBenefitsBox" class="bg-orange-50/60 p-3 rounded-xl border border-orange-100">
+          <h4 class="font-bold text-gray-800 mb-1"><i class="fas fa-star text-brand-gold mr-1"></i> Astrological Benefits (பலன்கள்)</h4>
+          <p id="detailBenefits" class="leading-relaxed text-gray-700"></p>
+        </div>
+        <div id="detailSpecsBox" class="bg-gray-50 p-3 rounded-xl border border-gray-200">
+          <h4 class="font-bold text-gray-800 mb-1"><i class="fas fa-check-double text-emerald-600 mr-1"></i> Specifications & Mantra</h4>
+          <p id="detailSpecs" class="leading-relaxed text-gray-700 font-medium"></p>
+        </div>
+      </div>
+
+      <!-- Action Button -->
+      <div class="flex gap-3">
+        <button onclick="proceedToCheckoutFromDetail()" class="flex-1 py-3.5 bg-brand-red hover:bg-red-700 text-white font-bold rounded-xl text-sm transition-all shadow-md flex items-center justify-center gap-2">
+          <i class="fas fa-shopping-cart"></i> Book Now / Order
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- Checkout Dialog -->
   <div id="checkoutModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
     <div class="bg-white rounded-2xl border border-orange-100 p-6 w-full max-w-md shadow-2xl relative">
-      <button onclick="closeCheckout()" class="absolute right-4 top-4 text-gray-400 hover:text-gray-600">
-        <i class="fas fa-times text-lg"></i>
+      <button onclick="closeCheckout()" class="absolute right-4 top-4 text-gray-400 hover:text-gray-600 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+        <i class="fas fa-times text-sm"></i>
       </button>
       
-      <h3 class="text-xl font-bold text-gray-800 mb-2">Checkout Details</h3>
-      <p class="text-sm text-gray-500 mb-6" id="checkoutItemName">Booking Puja...</p>
+      <h3 class="text-xl font-bold text-gray-800 mb-1">Checkout & Booking</h3>
+      <p class="text-xs text-gray-500 mb-5" id="checkoutItemName">Booking Sacred Service...</p>
 
-      <div class="space-y-4">
+      <div class="space-y-3.5">
         <div>
-          <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Your Name</label>
-          <input type="text" id="custName" class="w-full px-4 py-3 bg-orange-50/50 border border-orange-100 rounded-xl focus:border-brand-red text-sm" placeholder="Enter your full name">
+          <label class="block text-[11px] font-bold text-gray-600 uppercase mb-1">Your Full Name</label>
+          <input type="text" id="custName" class="w-full px-4 py-2.5 bg-orange-50/50 border border-orange-100 rounded-xl focus:border-brand-red text-sm" placeholder="Enter your full name">
         </div>
         <div>
-          <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Phone Number</label>
-          <input type="text" id="custPhone" class="w-full px-4 py-3 bg-orange-50/50 border border-orange-100 rounded-xl focus:border-brand-red text-sm" placeholder="Enter phone number">
+          <label class="block text-[11px] font-bold text-gray-600 uppercase mb-1">Phone Number (10 Digits)</label>
+          <input type="text" id="custPhone" class="w-full px-4 py-2.5 bg-orange-50/50 border border-orange-100 rounded-xl focus:border-brand-red text-sm" placeholder="e.g. 9876543210">
         </div>
         <div>
-          <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Astrologer Booking Referral Code</label>
-          <input type="text" id="referralCode" class="w-full px-4 py-3 bg-brand-gold/10 border-2 border-brand-gold/30 rounded-xl focus:border-brand-red text-sm font-bold text-brand-red" placeholder="e.g. AST1101">
-          <p class="text-[10px] text-gray-500 mt-1">Enter your astrologer's referral code to credit commission.</p>
+          <label class="block text-[11px] font-bold text-gray-600 uppercase mb-1">Astrologer Referral Code (Optional)</label>
+          <input type="text" id="referralCode" class="w-full px-4 py-2.5 bg-brand-gold/10 border-2 border-brand-gold/30 rounded-xl focus:border-brand-red text-sm font-bold text-brand-red uppercase" placeholder="e.g. AST1101">
+          <p class="text-[10px] text-gray-500 mt-1">Enter your astrologer's referral code to credit them with consultation commission.</p>
         </div>
 
-        <div class="bg-orange-50 p-4 rounded-xl border border-orange-100 mt-4">
-          <div class="flex justify-between font-bold text-gray-800">
+        <div class="bg-orange-50 p-3.5 rounded-xl border border-orange-100">
+          <div class="flex justify-between items-center font-bold text-gray-800">
             <span>Total Payable:</span>
-            <span class="text-brand-red" id="checkoutPrice">₹0</span>
+            <span class="text-brand-red text-lg font-black" id="checkoutPrice">₹0</span>
           </div>
         </div>
 
-        <button onclick="confirmCheckout()" class="w-full py-4 bg-brand-red hover:bg-red-700 text-white font-bold rounded-xl text-sm transition-all shadow-md">
-          Confirm Order & Pay
+        <button onclick="confirmCheckout()" class="w-full py-3.5 bg-brand-red hover:bg-red-700 text-white font-bold rounded-xl text-sm transition-all shadow-md">
+          Confirm Order & Proceed
         </button>
       </div>
     </div>
   </div>
 
   <!-- Toast Notification -->
-  <div id="toast" class="fixed bottom-6 right-6 bg-emerald-600 text-white px-6 py-3.5 rounded-xl shadow-lg font-bold text-sm transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-2">
+  <div id="toast" class="fixed bottom-6 right-6 bg-emerald-600 text-white px-5 py-3 rounded-xl shadow-lg font-bold text-xs transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-2">
     <i class="fas fa-check-circle"></i> <span id="toastMsg">Order placed!</span>
   </div>
 
   <script>
-    let activeCategory = 'pujas';
+    let allShopItems = [];
     let selectedItem = null;
+    let currentFilterCategory = 'all';
 
-    // Load store items from server API
     async function loadStoreItems() {
       try {
         const res = await fetch('/api/shop/items');
         const json = await res.json();
         if (json.success) {
-          renderGrid('pujas', json.data.pujas);
-          renderGrid('products', json.data.products);
+          const pujas = (json.data.pujas || []).map(p => ({ ...p, type: 'pujas', category: p.category || 'puja' }));
+          const products = (json.data.products || []).map(p => ({ ...p, type: 'products', category: p.category || 'product' }));
+          allShopItems = [...pujas, ...products];
+          applyFilters();
         }
       } catch (err) {
         console.error("Failed to load shop items", err);
       }
     }
 
-    function renderGrid(type, items) {
-      const grid = document.getElementById(`grid-${type}`);
+    function setFilterCategory(cat) {
+      currentFilterCategory = cat;
+      document.querySelectorAll('.filter-pill').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = document.getElementById('pill-' + cat);
+      if (activeBtn) activeBtn.classList.add('active');
+      applyFilters();
+    }
+
+    function applyFilters() {
+      const search = (document.getElementById('shopSearchInput')?.value || '').toLowerCase().trim();
+      const priceVal = document.getElementById('priceFilter')?.value || 'all';
+      const sortVal = document.getElementById('sortFilter')?.value || 'default';
+
+      let filtered = allShopItems.filter(item => {
+        // Category Filter
+        if (currentFilterCategory !== 'all') {
+          if (currentFilterCategory === 'puja' && item.type !== 'pujas') return false;
+          if (currentFilterCategory !== 'puja' && item.category !== currentFilterCategory) return false;
+        }
+
+        // Search Filter
+        if (search) {
+          const name = (item.name || '').toLowerCase();
+          const desc = (item.description || '').toLowerCase();
+          const tag = (item.tag || '').toLowerCase();
+          if (!name.includes(search) && !desc.includes(search) && !tag.includes(search)) return false;
+        }
+
+        // Price Filter
+        if (priceVal === 'under1000' && item.price >= 1000) return false;
+        if (priceVal === '1000to2500' && (item.price < 1000 || item.price > 2500)) return false;
+        if (priceVal === 'above2500' && item.price <= 2500) return false;
+
+        return true;
+      });
+
+      // Sorting
+      if (sortVal === 'priceLow') {
+        filtered.sort((a, b) => a.price - b.price);
+      } else if (sortVal === 'priceHigh') {
+        filtered.sort((a, b) => b.price - a.price);
+      }
+
+      renderShop(filtered);
+    }
+
+    function renderShop(items) {
+      const grid = document.getElementById('shopGrid');
       grid.innerHTML = '';
-      
+
+      if (items.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full text-center py-16 text-gray-400">
+            <i class="fas fa-box-open text-4xl text-gray-300 mb-3"></i>
+            <h4 class="text-base font-bold text-gray-700">No items match your filter</h4>
+            <p class="text-xs text-gray-500 mt-1">Try changing your search terms or filter criteria.</p>
+          </div>
+        `;
+        return;
+      }
+
       items.forEach(item => {
         const card = document.createElement('div');
-        card.className = "bg-white border border-orange-100 rounded-2xl p-5 service-card transition-all cursor-pointer flex flex-col justify-between";
-        card.onclick = () => openCheckout(item, type);
-        
+        card.className = "bg-white border border-orange-100 rounded-2xl p-5 service-card flex flex-col justify-between";
+
+        const tagText = item.tag || (item.type === 'pujas' ? 'Sacred Puja' : 'Astro Item');
+
         card.innerHTML = `
           <div>
-            <div class="w-16 h-16 rounded-full custom-dashed flex items-center justify-center mb-4 mx-auto bg-orange-50 overflow-hidden">
+            <div class="flex justify-between items-center mb-3">
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100/70 text-orange-800 uppercase tracking-wider">${tagText}</span>
+              <span class="text-xs text-emerald-600 font-semibold"><i class="fas fa-check-circle"></i> Certified</span>
+            </div>
+            <div class="w-16 h-16 rounded-full custom-dashed flex items-center justify-center mb-3 mx-auto bg-orange-50 overflow-hidden cursor-pointer" onclick='openItemDetails(${JSON.stringify(item).replace(/'/g, "&#39;")})'>
               <img src="${item.image}" alt="${item.name}" class="w-10 h-10 object-contain">
             </div>
-            <h4 class="text-center font-bold text-gray-800 text-base leading-tight">${item.name}</h4>
-            <p class="text-center text-xs text-gray-500 mt-2 font-medium">${item.description}</p>
+            <h4 class="text-center font-bold text-gray-800 text-sm leading-tight cursor-pointer hover:text-brand-red transition-all" onclick='openItemDetails(${JSON.stringify(item).replace(/'/g, "&#39;")})'>${item.name}</h4>
+            <p class="text-center text-xs text-gray-500 mt-2 font-medium line-clamp-2">${item.description}</p>
           </div>
-          <div class="mt-6">
-            <div class="flex justify-between items-center">
-              <span class="text-brand-red font-extrabold text-lg">₹${item.price}</span>
-              <span class="bg-brand-red/10 text-brand-red text-xs font-bold px-3 py-1.5 rounded-full hover:bg-brand-red hover:text-white transition-all">Book Now</span>
+          <div class="mt-4 pt-3 border-t border-orange-50 flex items-center justify-between gap-2">
+            <div>
+              <span class="text-brand-red font-extrabold text-base">₹${item.price}</span>
+            </div>
+            <div class="flex gap-2">
+              <button onclick='openItemDetails(${JSON.stringify(item).replace(/'/g, "&#39;")})' class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-all" title="View Full Description">
+                விவரங்கள்
+              </button>
+              <button onclick='openCheckoutDirect(${JSON.stringify(item).replace(/'/g, "&#39;")})' class="bg-brand-red hover:bg-red-700 text-white text-xs font-bold px-3.5 py-1.5 rounded-lg transition-all shadow-sm">
+                Book Now
+              </button>
             </div>
           </div>
         `;
@@ -183,33 +349,46 @@
       });
     }
 
-    function switchCategory(cat) {
-      activeCategory = cat;
-      const tabPujas = document.getElementById('tab-pujas');
-      const tabProducts = document.getElementById('tab-products');
-      const gridPujas = document.getElementById('grid-pujas');
-      const gridProducts = document.getElementById('grid-products');
-
-      if (cat === 'pujas') {
-        tabPujas.className = "py-2.5 px-6 font-bold text-sm text-brand-red border-b-2 border-brand-red transition-all";
-        tabProducts.className = "py-2.5 px-6 font-semibold text-sm text-gray-500 hover:text-brand-red transition-all";
-        gridPujas.classList.remove('hidden');
-        gridProducts.classList.add('hidden');
+    function openItemDetails(item) {
+      selectedItem = item;
+      document.getElementById('detailImg').src = item.image;
+      document.getElementById('detailTag').innerText = item.tag || item.category || 'Vedic Item';
+      document.getElementById('detailTitle').innerText = item.name;
+      document.getElementById('detailPrice').innerText = '₹' + item.price;
+      document.getElementById('detailDesc').innerText = item.description || 'Authentic astrological remedy performed in strict accordance with Vedic traditions.';
+      document.getElementById('detailBenefits').innerText = item.detailedBenefits || item.description;
+      
+      const specEl = document.getElementById('detailSpecs');
+      if (item.mantra) {
+        specEl.innerText = `Sacred Chanting: ${item.mantra}`;
+      } else if (item.specifications) {
+        specEl.innerText = item.specifications;
       } else {
-        tabProducts.className = "py-2.5 px-6 font-bold text-sm text-brand-red border-b-2 border-brand-red transition-all";
-        tabPujas.className = "py-2.5 px-6 font-semibold text-sm text-gray-500 hover:text-brand-red transition-all";
-        gridProducts.classList.remove('hidden');
-        gridPujas.classList.add('hidden');
+        specEl.innerText = 'Purified with Ganga jal, energized with Vedic mantras, and blessed by scholars.';
       }
+
+      document.getElementById('detailsModal').classList.remove('hidden');
     }
 
-    function openCheckout(item, type) {
-      selectedItem = { ...item, type };
-      document.getElementById('checkoutItemName').innerText = item.name + " (" + item.description + ")";
+    function closeDetailsModal() {
+      document.getElementById('detailsModal').classList.add('hidden');
+    }
+
+    function proceedToCheckoutFromDetail() {
+      closeDetailsModal();
+      if (selectedItem) openCheckout(selectedItem);
+    }
+
+    function openCheckoutDirect(item) {
+      selectedItem = item;
+      openCheckout(item);
+    }
+
+    function openCheckout(item) {
+      document.getElementById('checkoutItemName').innerText = item.name;
       document.getElementById('checkoutPrice').innerText = "₹" + item.price;
       document.getElementById('checkoutModal').classList.remove('hidden');
-      
-      // Auto-populate referral code if astrologer code is in localStorage
+
       try {
         const storedCode = localStorage.getItem('referred_astro_code');
         if (storedCode) {
@@ -233,7 +412,7 @@
       }
 
       const body = {
-        userId: phone, // phone acts as user registration key
+        userId: phone,
         itemType: selectedItem.type === 'pujas' ? 'puja' : 'product',
         itemId: selectedItem.id,
         itemName: selectedItem.name,
@@ -250,14 +429,12 @@
         const json = await res.json();
         if (json.success) {
           closeCheckout();
-          showToast("Booking Successful! Our pandits will contact you shortly.");
-          
-          // Clear inputs
+          showToast("Booking Successful! Our team will contact you shortly.");
           document.getElementById('custName').value = '';
           document.getElementById('custPhone').value = '';
           document.getElementById('referralCode').value = '';
         } else {
-          alert("Checkout failed: " + json.message);
+          alert("Checkout failed: " + (json.message || 'Error'));
         }
       } catch (err) {
         alert("Failed to confirm order. Please try again.");
@@ -273,7 +450,6 @@
       }, 4000);
     }
 
-    // Auto load items
     window.onload = () => {
       try {
         const urlParams = new URLSearchParams(window.location.search);

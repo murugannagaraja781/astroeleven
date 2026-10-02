@@ -1,6 +1,7 @@
 package com.astroeleven.app.ui.home
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -108,21 +109,22 @@ class HomeActivity : AppCompatActivity() {
                     rituals = rituals,
                     services = services,
                     onBannerClick = { banner ->
-                        if (banner.offerPercentage > 0.0) {
+                        if (!banner.linkUrl.isNullOrEmpty()) {
+                            try {
+                                val url = banner.linkUrl
+                                val targetUrl = if (url.startsWith("http://") || url.startsWith("https://")) url else "https://$url"
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(targetUrl))
+                                startActivity(intent)
+                            } catch (e: Exception) {
+                                Toast.makeText(this, "Opening link...", Toast.LENGTH_SHORT).show()
+                            }
+                        } else if (banner.offerPercentage > 0.0) {
                             val intent = Intent(this, com.astroeleven.app.ui.wallet.SuperWalletActivity::class.java).apply {
                                 putExtra("bannerTitle", banner.title)
                                 putExtra("offerPercentage", banner.offerPercentage)
                             }
                             startActivity(intent)
                         } else {
-                            // Mirror web behavior: scroll to astrologer list
-                            // We can trigger a refresh or just notify the UI to scroll
-                            // For simplicity, let's assume HomeScreen handles state
-                            // or we can show a Toast for now if it's already on Home
-                            lifecycleScope.launch {
-                                // This is a placeholder for actual scroll-to logic if we had a scroll state here
-                                // For now, we'll let HomeScreen handle the click if we want to scroll
-                            }
                             Toast.makeText(this, "Check out our top astrologers!", Toast.LENGTH_SHORT).show()
                         }
                     },

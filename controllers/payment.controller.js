@@ -1,24 +1,8 @@
 const crypto = require('crypto');
-const Razorpay = require('razorpay');
 const User = require('../models/User');
 const Payment = require('../models/Payment');
 const { paymentTokens, userSockets } = require('../services/socketStore');
-const razorpayConfig = require('../config/razorpay');
-
-let razorpay = null;
-if (razorpayConfig.KEY_ID && razorpayConfig.KEY_SECRET) {
-    try {
-        razorpay = new Razorpay({
-            key_id: razorpayConfig.KEY_ID,
-            key_secret: razorpayConfig.KEY_SECRET,
-        });
-        console.log("✓ Razorpay SDK initialized successfully.");
-    } catch (e) {
-        console.error("✗ Failed to initialize Razorpay SDK:", e.message);
-    }
-} else {
-    console.warn("⚠️ Razorpay KEY_ID or KEY_SECRET is missing. Payment flow will not work.");
-}
+const phonepeConfig = require('../config/phonepe');
 
 exports.createToken = async (req, res) => {
     try {
@@ -61,12 +45,13 @@ exports.verifyToken = async (req, res) => {
         return res.json({ valid: false, error: 'Token expired' });
     }
 
-    if (tokenData.used) return res.json({ valid: false, error: 'Token already used' });
-
     res.json({
-        valid: true, amount: tokenData.amount, baseAmount: tokenData.baseAmount,
-        gstAmount: tokenData.gstAmount, userName: tokenData.userName,
-        expiresIn: Math.floor((expiryTime - (Date.now() - tokenData.createdAt)) / 1000)
+        valid: true,
+        amount: Math.round(tokenData.amount || tokenData.baseAmount || 0),
+        baseAmount: Math.round(tokenData.baseAmount || 0),
+        gstAmount: Math.round(tokenData.gstAmount || 0),
+        userName: tokenData.userName || "Astro User",
+        expiresIn: Math.max(0, Math.floor((expiryTime - (Date.now() - tokenData.createdAt)) / 1000))
     });
 };
 
@@ -112,137 +97,249 @@ exports.createPayment = async (req, res) => {
 
         if (couponCode === 'WELCOME50') couponBonus = baseAmount * 0.50;
 
-        let keyId = razorpayConfig.KEY_ID;
-        let keySecret = razorpayConfig.KEY_SECRET;
+        const user = await User.findOne({ userId });
+        const userMobile = user ? (user.phone || "9999999999").replace(/[^0-9]/g, '').slice(-10) : "9999999999";
+        const merchantTransactionId = "TXN" + Date.now() + Math.floor(Math.random() * 10000);
+        const cleanUserId = userId.replace(/[^a-zA-Z0-9]/g, '');
 
-        console.log(`[Razorpay Debug] Attempting order creation with KeyID: ${keyId?.substring(0, 10)}... (Secret length: ${keySecret?.length})`);
+        const serverUrl = process.env.SERVER_URL || 'https://astroeleven.com';
 
-        if (!keyId || !keySecret || !razorpay) {
-            console.error("Razorpay Error: KEY_ID or KEY_SECRET is missing or Razorpay client is not initialized!");
-            return res.json({ ok: false, error: 'Payment gateway configuration error' });
-        }
-
-        const order = await razorpay.orders.create({
-            amount: Math.round(amount * 100), // Razorpay expects paisa
-            currency: "INR",
-            receipt: "rcpt_" + Date.now(),
-        });
-
+        // Save Pending Payment in DB
         await Payment.create({
-            transactionId: order.id,
-            merchantTransactionId: order.id,
+            transactionId: merchantTransactionId,
+            merchantTransactionId,
             userId, amount, baseAmount, gstAmount, status: 'pending',
             withGst: true, isApp: !!isApp, isSuperWallet: !!isSuperWallet || !!couponBonus,
             offerPercentage: parseFloat(offerPercentage || 0),
             couponCode: couponCode || null, couponBonus
         });
 
-        res.json({
-            ok: true,
-            orderId: order.id,
-            amount: order.amount,
-            key: keyId
+        const userMobileClean = (userMobile || "").replace(/[^0-9]/g, '').slice(-10);
+        const validMobile = /^[6-9]\d{9}$/.test(userMobileClean) ? userMobileClean : undefined;
+        const validUserId = (cleanUserId || "user123").substring(0, 35);
+
+        // ===== PhonePe PG Checkout V2 Flow =====
+        // Step 1: OAuth Access Token
+        const tokenParams = new URLSearchParams();
+        tokenParams.append('client_id', phonepeConfig.CLIENT_ID);
+        tokenParams.append('client_secret', phonepeConfig.CLIENT_SECRET);
+        tokenParams.append('client_version', phonepeConfig.CLIENT_VERSION);
+        tokenParams.append('grant_type', 'client_credentials');
+
+        const tokenRes = await fetch(phonepeConfig.TOKEN_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: tokenParams.toString()
         });
+
+        const tokenData = await tokenRes.json();
+        console.log('[PhonePe V2 OAuth Token]', JSON.stringify(tokenData));
+        const accessToken = tokenData.access_token;
+
+        if (!accessToken) {
+            return res.json({ ok: false, error: tokenData.error_description || tokenData.message || 'OAuth authentication failed' });
+        }
+
+        // Step 2: Create V2 Checkout Order
+        const payBody = {
+            merchantOrderId: merchantTransactionId,
+            amount: Math.round(amount * 100), // Paise
+            expireAfter: 1200,
+            paymentFlow: {
+                type: 'PG_CHECKOUT',
+                message: 'AstroEleven Wallet Recharge',
+                merchantUrls: {
+                    redirectUrl: `${serverUrl}/api/payment/callback?isApp=${!!isApp}&txnId=${merchantTransactionId}`
+                }
+            }
+        };
+
+        const payRes = await fetch(phonepeConfig.PAY_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'O-Bearer ' + accessToken
+            },
+            body: JSON.stringify(payBody)
+        });
+
+        const data = await payRes.json();
+        console.log('[PhonePe V2 Order Create]', JSON.stringify(data));
+
+        if (data && (data.redirectUrl || data.orderId)) {
+            let redirectUrl = data.redirectUrl || '';
+            res.json({
+                ok: true,
+                usePhonePe: true,
+                paymentUrl: redirectUrl,
+                redirectUrl: redirectUrl,
+                orderId: data.orderId,
+                merchantTransactionId: merchantTransactionId,
+                transactionId: merchantTransactionId
+            });
+        } else {
+            res.json({ ok: false, error: data?.message || data?.error || 'PhonePe V2 payment initialization failed' });
+        }
     } catch (e) {
-        let keyId = razorpayConfig.KEY_ID;
-        console.error("Razorpay Order Error Details:", {
-            errorDescription: e.error ? e.error.description : (e.description || 'Unknown'),
-            errorCode: e.error ? e.error.code : (e.code || 'Unknown'),
-            statusCode: e.statusCode,
-            usingKey: keyId ? keyId.substring(0, 10) + "..." : 'None'
-        });
-        res.json({ ok: false, error: 'Could not create payment order. ' + (e.error ? e.error.description : 'Please try again.') });
+        console.error("PhonePe Payment Create Error:", e);
+        res.json({ ok: false, error: 'Could not create PhonePe payment order: ' + e.message });
     }
 };
 
 exports.callback = async (req, res) => {
     try {
         const io = req.app.get('io');
-        const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+        const merchantTransactionId = req.query.txnId || req.body.merchantTransactionId || req.body.transactionId || req.query.transactionId;
+        const isApp = req.query.isApp === 'true' || req.body.isApp === true;
 
-        const hmac = crypto.createHmac('sha256', razorpayConfig.KEY_SECRET);
-        hmac.update(razorpay_order_id + "|" + razorpay_payment_id);
-        const generated_signature = hmac.digest('hex');
-
-        if (generated_signature !== razorpay_signature) {
-            console.error("Razorpay Signature mismatch!");
-            return res.json({ ok: false, error: 'Invalid signature' });
+        if (!merchantTransactionId) {
+            if (isApp) return res.redirect("astroeleven://payment-failed?status=failed");
+            return res.json({ ok: false, error: 'Missing transactionId' });
         }
 
-        const payment = await Payment.findOne({ transactionId: razorpay_order_id });
-        if (!payment) return res.json({ ok: false, error: 'Payment record not found' });
+        // Verify PhonePe V2 Status
+        const tokenParams = new URLSearchParams();
+        tokenParams.append('client_id', phonepeConfig.CLIENT_ID);
+        tokenParams.append('client_secret', phonepeConfig.CLIENT_SECRET);
+        tokenParams.append('client_version', phonepeConfig.CLIENT_VERSION);
+        tokenParams.append('grant_type', 'client_credentials');
 
-        if (payment.status !== 'success') {
-            payment.status = 'success';
-            payment.providerRefId = razorpay_payment_id;
-            await payment.save();
+        const tokenRes = await fetch(phonepeConfig.TOKEN_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: tokenParams.toString()
+        });
 
-            const user = await User.findOne({ userId: payment.userId });
-            if (user) {
-                user.walletBalance = (user.walletBalance || 0) + payment.baseAmount;
-                if (payment.couponBonus > 0) {
-                    user.superWalletBalance = (user.superWalletBalance || 0) + payment.couponBonus;
+        const tokenData = await tokenRes.json();
+        const accessToken = tokenData.access_token;
+
+        let isSuccess = false;
+        let providerRefId = '';
+
+        if (accessToken) {
+            const statusRes = await fetch(`https://api.phonepe.com/apis/pg/checkout/v2/order/${merchantTransactionId}/status`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'O-Bearer ' + accessToken
                 }
-                
-                // Rule 4: Referrer Reward (The "Hook")
-                // Only if it's the user's first successful recharge
-                if (user.referredBy) {
-                    const successCount = await Payment.countDocuments({ 
-                        userId: user.userId, 
-                        status: 'success',
-                        reason: 'recharge' 
-                    });
-                    
-                    if (successCount === 1) { // This is the first one (just set to success)
-                        const referrer = await User.findOne({ userId: user.referredBy });
-                        if (referrer) {
-                            referrer.walletBalance = (referrer.walletBalance || 0) + 81;
-                            referrer.totalEarnings = (referrer.totalEarnings || 0) + 81;
-                            referrer.referralCount = (referrer.referralCount || 0) + 1;
-                            await referrer.save();
-
-                            // Emit for referrer
-                            const refSocketId = userSockets.get(referrer.userId);
-                            if (io && refSocketId) {
-                                io.to(refSocketId).emit('wallet-update', {
-                                    balance: referrer.walletBalance,
-                                    superBalance: referrer.superWalletBalance
-                                });
-                            }
-
-                            // Rule 5: Tracking record
-                            await Payment.create({
-                                transactionId: `REF_${crypto.randomBytes(8).toString('hex')}`,
-                                userId: referrer.userId,
-                                amount: 81,
-                                baseAmount: 81,
-                                gstAmount: 0,
-                                status: 'success',
-                                reason: 'referral'
-                            });
-                            console.log(`[Referral Reward] Credited ₹81 to Referrer: ${referrer.name} for User: ${user.name}`);
-                        }
-                    }
-                }
-
-                await user.save();
-                console.log(`[Razorpay] Wallet Credited: ${user.name} +₹${payment.baseAmount}`);
-
-                // Emit for the user who paid
-                const socketId = userSockets.get(user.userId);
-                if (io && socketId) {
-                    io.to(socketId).emit('wallet-update', {
-                        balance: user.walletBalance,
-                        superBalance: user.superWalletBalance
-                    });
-                    console.log(`[Socket] Wallet update emitted to user: ${user.name}`);
-                }
+            });
+            const data = await statusRes.json();
+            console.log(`[PhonePe V2 Status Check] TXN: ${merchantTransactionId} ->`, JSON.stringify(data));
+            if (data.state === 'COMPLETED' || data.state === 'SUCCESS' || data.code === 'PAYMENT_SUCCESS' || data.success === true) {
+                isSuccess = true;
+                providerRefId = data.orderId || data.providerReferenceId || '';
             }
         }
 
-        res.json({ ok: true, status: 'success' });
+        if (isSuccess) {
+            const payment = await Payment.findOne({ transactionId: merchantTransactionId });
+            if (payment && payment.status !== 'success') {
+                payment.status = 'success';
+                payment.providerRefId = providerRefId;
+                await payment.save();
+
+                const user = await User.findOne({ userId: payment.userId });
+                if (user) {
+                    user.walletBalance = (user.walletBalance || 0) + payment.baseAmount;
+                    if (payment.couponBonus > 0) {
+                        user.superWalletBalance = (user.superWalletBalance || 0) + payment.couponBonus;
+                    }
+
+                    // Referrer Reward
+                    if (user.referredBy) {
+                        const successCount = await Payment.countDocuments({
+                            userId: user.userId,
+                            status: 'success',
+                            reason: 'recharge'
+                        });
+
+                        if (successCount === 1) {
+                            const referrer = await User.findOne({ userId: user.referredBy });
+                            if (referrer) {
+                                referrer.walletBalance = (referrer.walletBalance || 0) + 81;
+                                referrer.totalEarnings = (referrer.totalEarnings || 0) + 81;
+                                referrer.referralCount = (referrer.referralCount || 0) + 1;
+                                await referrer.save();
+
+                                const refSocketId = userSockets.get(referrer.userId);
+                                if (io && refSocketId) {
+                                    io.to(refSocketId).emit('wallet-update', {
+                                        balance: referrer.walletBalance,
+                                        superBalance: referrer.superWalletBalance
+                                    });
+                                }
+
+                                await Payment.create({
+                                    transactionId: `REF_${crypto.randomBytes(8).toString('hex')}`,
+                                    userId: referrer.userId,
+                                    amount: 81,
+                                    baseAmount: 81,
+                                    gstAmount: 0,
+                                    status: 'success',
+                                    reason: 'referral'
+                                });
+                            }
+                        }
+                    }
+
+                    await user.save();
+
+                    const socketId = userSockets.get(user.userId);
+                    if (io && socketId) {
+                        io.to(socketId).emit('wallet-update', {
+                            balance: user.walletBalance,
+                            superBalance: user.superWalletBalance
+                        });
+                    }
+                }
+            }
+
+            if (isApp) {
+                return res.send(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head><title>Payment Success</title><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+                    <body style="background:#150E0C; color:#4ADE80; font-family:sans-serif; text-align:center; padding-top:80px;">
+                        <h2 style="color:#FFD700; margin-bottom:10px;">⚡ Payment Successful!</h2>
+                        <p style="color:#FFFFFF;">Updating your wallet balance...</p>
+                        <script>
+                            window.location.href = "astroeleven://payment-success?status=success";
+                            setTimeout(function() {
+                                window.location.href = "astroeleven://payment-success?status=success";
+                            }, 800);
+                        </script>
+                    </body>
+                    </html>
+                `);
+            }
+            return res.json({ ok: true, status: 'success' });
+        } else {
+            if (isApp) {
+                return res.send(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head><title>Payment Failed</title><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+                    <body style="background:#150E0C; color:#EF4444; font-family:sans-serif; text-align:center; padding-top:80px;">
+                        <h2 style="color:#EF4444; margin-bottom:10px;">❌ Payment Failed</h2>
+                        <p style="color:#9CA3AF;">Returning to app...</p>
+                        <script>
+                            window.location.href = "astroeleven://payment-failed?status=failed";
+                            setTimeout(function() {
+                                window.location.href = "astroeleven://payment-failed?status=failed";
+                            }, 800);
+                        </script>
+                    </body>
+                    </html>
+                `);
+            }
+            return res.json({ ok: false, error: 'Payment status not success' });
+        }
     } catch (e) {
-        console.error("Razorpay Callback Error:", e);
+        console.error("PhonePe Callback Error:", e);
+        if (req.query.isApp === 'true' || req.body.isApp === true) {
+            return res.redirect("astroeleven://payment-failed?status=failed");
+        }
         res.json({ ok: false, error: 'Verification failed' });
     }
 };

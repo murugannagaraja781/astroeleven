@@ -11,6 +11,7 @@ const BannerSchema = new mongoose.Schema({
     expiryDate: { type: Date },
     ctaButtonSize: { type: String, default: 'small' }, 
     type: { type: String, default: 'home_slider' }, // 'home_slider' or 'ads_banner'
+    linkUrl: { type: String, default: '' },
     createdAt: { type: Date, default: Date.now }
 });
 

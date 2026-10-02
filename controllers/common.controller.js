@@ -55,12 +55,13 @@ const GlobalSettings = require('../models/GlobalSettings');
 exports.getAppConfig = async (req, res) => {
     try {
         const shareLinkRecord = await GlobalSettings.findOne({ key: 'shareLink' });
+        const matrimonialRecord = await GlobalSettings.findOne({ key: 'matrimonialUrl' });
         const rasiIconsRecord = await GlobalSettings.findOne({ key: 'rasiIcons' });
         res.json({
             ok: true,
             config: {
-                shareLink: process.env.PLAYSTORE_URL || (shareLinkRecord ? shareLinkRecord.value : "https://play.google.com/store/apps/details?id=com.astroeleven.app"),
-                matrimonialUrl: process.env.MATRIMONIAL_URL || "https://play.google.com/store/apps/details?id=com.astroeleven.app",
+                shareLink: (shareLinkRecord && shareLinkRecord.value) ? shareLinkRecord.value : (process.env.PLAYSTORE_URL || "https://play.google.com/store/apps/details?id=com.astroeleven.app"),
+                matrimonialUrl: (matrimonialRecord && matrimonialRecord.value) ? matrimonialRecord.value : (process.env.MATRIMONIAL_URL || "https://play.google.com/store/apps/details?id=com.webstormers.mithra_matrimony"),
                 deepLinkPrefix: process.env.DEEP_LINK_PREFIX || "astroeleven://referral/",
                 showBanner: process.env.SHOW_BANNER === 'true',
                 appBackgroundColor: process.env.APP_BG_COLOR || "#FEF9F3",

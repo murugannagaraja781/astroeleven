@@ -266,6 +266,10 @@ fun UserProfileScreen(
                             SettingsItem("Privacy") {}
                             SettingsItem("About Us") {}
                             SettingsItem("Contact US") {}
+                            SettingsItem("Delete Account") {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("${com.astroeleven.app.utils.Constants.SERVER_URL}/delete-account"))
+                                context.startActivity(intent)
+                            }
 
                             Spacer(modifier = Modifier.height(32.dp))
 

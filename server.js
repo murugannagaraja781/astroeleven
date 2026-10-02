@@ -147,6 +147,17 @@ app.use(helmet({
   contentSecurityPolicy: false,
 }));
 app.use(compression());
+// Disable browser caching for admin HTML & scripts so updates reflect instantly
+app.use((req, res, next) => {
+  if (req.url.endsWith('.html') || req.url.includes('superadmin')) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+  next();
+});
+
+// Middleware
 app.use(cors({ origin: "*" }));
 
 // Rate Limiting
@@ -275,12 +286,34 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));  // Serve static files
 
-// Policy Page Routes
+// Explicit APK download route for Chrome and Android reliability
+app.get(['/downloads/:filename', '/downloads/astroeleven-v6.0.0.apk', '/downloads/astroeleven-latest.apk', '/app-release.apk', '/app-debug.apk'], (req, res, next) => {
+  const reqName = req.params.filename || path.basename(req.path);
+  const targetPath = path.join(__dirname, 'public/downloads', reqName);
+  const defaultPath = path.join(__dirname, 'public/downloads/astroeleven-v6.0.0.apk');
+  const finalFile = fs.existsSync(targetPath) ? targetPath : (fs.existsSync(defaultPath) ? defaultPath : null);
+
+  if (finalFile) {
+    res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+    res.setHeader('Content-Disposition', `attachment; filename="${reqName.endsWith('.apk') ? reqName : 'astroeleven-v6.0.0.apk'}"`);
+    return res.sendFile(finalFile);
+  }
+  next();
+});
+
+// Policy & Page Routes
+app.get('/about-us', (req, res) => res.sendFile(path.join(__dirname, 'public', 'about-us.html')));
+app.get('/contact', (req, res) => res.sendFile(path.join(__dirname, 'public', 'contact.html')));
+app.get('/blog', (req, res) => res.sendFile(path.join(__dirname, 'public', 'blog.html')));
 app.get('/privacy-policy', (req, res) => res.sendFile(path.join(__dirname, 'public', 'privacy-policy.html')));
 app.get('/terms-condition', (req, res) => res.sendFile(path.join(__dirname, 'public', 'terms-condition.html')));
 app.get('/refund-cancellation-policy', (req, res) => res.sendFile(path.join(__dirname, 'public', 'refund-cancellation-policy.html')));
 app.get('/return-policy', (req, res) => res.sendFile(path.join(__dirname, 'public', 'return-policy.html')));
 app.get('/shipping-policy', (req, res) => res.sendFile(path.join(__dirname, 'public', 'shipping-policy.html')));
+app.get('/delete-account', (req, res) => res.sendFile(path.join(__dirname, 'public', 'delete-account.html')));
+app.get('/delete-account.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'delete-account.html')));
+app.get('/delete-user', (req, res) => res.sendFile(path.join(__dirname, 'public', 'delete-user.html')));
+app.get('/delete-user.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'delete-user.html')));
 
 // Fallback Wallet Route for App Users who get redirected to /wallet
 app.get('/wallet', (req, res) => {
@@ -353,14 +386,118 @@ app.get('/api/shop/items', async (req, res) => {
     try {
         const items = {
             pujas: [
-                { id: "p1", name: "Ganesha Puja • கணபதி பூஜை", description: "For obstacle removal & prosperity", price: 1500, image: "images/pillaiyar_icon.png" },
-                { id: "p2", name: "Navagraha Puja • நவகிரக பூஜை", description: "For pacifying planetary doshas", price: 2500, image: "images/ganesha.png" },
-                { id: "p3", name: "Lakshmi Puja • லட்சுமி பூஜை", description: "For wealth & financial stability", price: 2000, image: "images/ganesha.png" }
+                { 
+                    id: "p1", 
+                    name: "Ganesha Puja • கணபதி பூஜை", 
+                    category: "puja",
+                    tag: "Obstacle Removal",
+                    description: "For obstacle removal, success in new ventures, education & family prosperity. Performed with full Vedic rituals by certified pandits.", 
+                    detailedBenefits: "Removes hurdles in career, education, and business. Enhances positive vibrations at home and blesses with wisdom and intellect.",
+                    mantra: "ஓம் கம் கணபதயே நமஹ",
+                    price: 1500, 
+                    image: "images/pillaiyar_icon.png" 
+                },
+                { 
+                    id: "p2", 
+                    name: "Navagraha Puja • நவகிரக பூஜை", 
+                    category: "puja",
+                    tag: "Dosha Nivarana",
+                    description: "For pacifying planetary doshas, Rahu-Ketu transit remedies, and overall family health and wellness.", 
+                    detailedBenefits: "Calms adverse planetary influences, mitigates Sade Sati and Rahu-Ketu dosha, protects against evil eyes and unexpected losses.",
+                    mantra: "ஓம் நவகிரஹாய நமஹ",
+                    price: 2500, 
+                    image: "images/ganesha.png" 
+                },
+                { 
+                    id: "p3", 
+                    name: "Lakshmi Kubera Puja • லட்சுமி குபேர பூஜை", 
+                    category: "puja",
+                    tag: "Wealth & Prosperity",
+                    description: "For wealth, debt relief, business growth and financial stability blessed by Goddess Mahalakshmi and Lord Kubera.", 
+                    detailedBenefits: "Attracts financial growth, eliminates persistent debts, ensures continuous cash flow and stability in business.",
+                    mantra: "ஓம் ஸ்ரீம் மஹா லக்ஷ்ம்யை நமஹ",
+                    price: 2000, 
+                    image: "images/ganesha.png" 
+                },
+                { 
+                    id: "p4", 
+                    name: "Swayamvara Parvathi Puja • சுயம்வர பார்வதி பூஜை", 
+                    category: "puja",
+                    tag: "Marriage & Love",
+                    description: "Powerful Vedic ritual for early marriage, finding ideal life partner and resolving marital discord.", 
+                    detailedBenefits: "Removes delays in marriage, clears Sevvai (Mars) dosha, brings harmony between husband and wife.",
+                    mantra: "ஓம் ஹ்ரீம் யோகினி யோகினி...",
+                    price: 2100, 
+                    image: "images/ganesha.png" 
+                },
+                { 
+                    id: "p5", 
+                    name: "Dhanvantri Homam • தன்வந்திரி ஹோமம்", 
+                    category: "puja",
+                    tag: "Health & Healing",
+                    description: "Sacred fire ritual invoking Lord Dhanvantri for vitality, recovery from chronic ailments, and long healthy life.", 
+                    detailedBenefits: "Boosts physical immunity, alleviates persistent ailments, bestows mental clarity and long life.",
+                    mantra: "ஓம் நமோ பகவதே வாசுதேவாய தன்வந்த்ரயே...",
+                    price: 3000, 
+                    image: "images/pillaiyar_icon.png" 
+                }
             ],
             products: [
-                { id: "pr1", name: "Natural Yellow Sapphire • புஷ்பராகம்", description: "Premium gemstone for Jupiter blessings", price: 4500, image: "images/daily_horoscope_new.png" },
-                { id: "pr2", name: "5 Mukhi Rudraksha Mala • ருத்ராட்ச மாலை", description: "For peace of mind & focus", price: 750, image: "images/daily_horoscope_new.png" },
-                { id: "pr3", name: "Siddh Maha Yantra • மகா யந்திரம்", description: "For domestic harmony & protection", price: 1200, image: "images/daily_horoscope_new.png" }
+                { 
+                    id: "pr1", 
+                    name: "Natural Yellow Sapphire • புஷ்பராகம் (Guru Ratna)", 
+                    category: "gemstone",
+                    tag: "Jupiter Blessing",
+                    description: "100% natural, lab-certified Yellow Sapphire gemstone energized with Vedic mantras for wisdom, wealth, and marriage.", 
+                    detailedBenefits: "Associated with planet Jupiter (Guru). Promotes higher intellect, prosperity, high social status, and marital happiness.",
+                    specifications: "Origin: Ceylon/Bangkok, Certified 4.25 Ratti, 100% Untreated Natural Gemstone.",
+                    price: 4500, 
+                    image: "images/daily_horoscope_new.png" 
+                },
+                { 
+                    id: "pr2", 
+                    name: "5 Mukhi Nepal Rudraksha Mala • 5 முக ருத்ராட்ச மாலை", 
+                    category: "rudraksha",
+                    tag: "Peace & Meditation",
+                    description: "Authentic 108+1 beads original Nepal 5-Mukhi Rudraksha mala. Energized at Lord Shiva temple for peace and concentration.", 
+                    detailedBenefits: "Controls blood pressure, relieves stress, awakens inner chakras, and brings immense spiritual focus.",
+                    specifications: "Authentic 5-Mukhi beads (7-8mm), knotted with red tassel thread, certified authentic.",
+                    price: 750, 
+                    image: "images/daily_horoscope_new.png" 
+                },
+                { 
+                    id: "pr3", 
+                    name: "Siddh Sri Maha Yantra • மகா யந்திரம் (Copper Plate)", 
+                    category: "yantra",
+                    tag: "Vastu & Harmony",
+                    description: "Gold-plated pure copper energized Sri Maha Yantra for vastu dosha correction, home harmony, and positive cosmic energy.", 
+                    detailedBenefits: "Purifies ambient energy, removes vastu doshas, protects against negative energies and evil eyes.",
+                    specifications: "6x6 inches thick pure copper plate, 24K gold foil coating, engraved with precise sacred geometry.",
+                    price: 1200, 
+                    image: "images/daily_horoscope_new.png" 
+                },
+                { 
+                    id: "pr4", 
+                    name: "Natural 7 Chakra Healing Crystal Bracelet", 
+                    category: "gemstone",
+                    tag: "Aura Balance",
+                    description: "Natural semi-precious stone bracelet aligning all 7 chakras for balance, emotional stability, and vitality.", 
+                    detailedBenefits: "Balances mind and body chakras, shields negative radiation, enhances confidence and everyday vitality.",
+                    specifications: "Amethyst, Lapis Lazuli, Turquoise, Imperial Stone, Tiger Eye, Amber, Red Onyx (8mm beads).",
+                    price: 499, 
+                    image: "images/daily_horoscope_new.png" 
+                },
+                { 
+                    id: "pr5", 
+                    name: "Energized Gomati Chakra & Kuber Potli", 
+                    category: "puja_item",
+                    tag: "Wealth Attraction",
+                    description: "Sacred Gomati Chakras, Yellow Cowries, and Kuber Kunji in velvet pouch for cash lockers and office desks.", 
+                    detailedBenefits: "Believed to bring unceasing wealth and prosperity. Placed in cash boxes or home pooja rooms.",
+                    specifications: "Contains 11 Natural Gomati Chakras, 11 Yellow Kauri, 1 Sri Kuber Idol, blessed in temple.",
+                    price: 599, 
+                    image: "images/daily_horoscope_new.png" 
+                }
             ]
         };
         res.status(200).json({ success: true, data: items });
@@ -589,6 +726,33 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 app.use('/uploads', express.static(uploadDir));
+
+// Fallback handlers for missing uploaded files and direct filename image requests
+app.get('/uploads/:filename', (req, res, next) => {
+  const filePath = path.join(uploadDir, req.params.filename);
+  if (fs.existsSync(filePath)) {
+    return res.sendFile(filePath);
+  }
+  const fallback = path.join(__dirname, 'public', 'images', 'astrologer_hero.png');
+  if (fs.existsSync(fallback)) {
+    return res.sendFile(fallback);
+  }
+  next();
+});
+
+app.get('/:filename', (req, res, next) => {
+  if (req.params.filename && req.params.filename.match(/\.(png|jpg|jpeg|gif|webp|svg)$/i)) {
+    const filePath = path.join(uploadDir, req.params.filename);
+    if (fs.existsSync(filePath)) {
+      return res.sendFile(filePath);
+    }
+    const fallback = path.join(__dirname, 'public', 'images', 'astrologer_hero.png');
+    if (fs.existsSync(fallback)) {
+      return res.sendFile(fallback);
+    }
+  }
+  next();
+});
 
 
 app.post('/upload', upload.single('file'), (req, res) => {
@@ -1026,64 +1190,7 @@ app.get('/api/home/ads-banner', async (req, res) => {
   }
 });
 
-// Get All Banners (Admin)
-app.get('/api/admin/banners', async (req, res) => {
-  try {
-    const banners = await Banner.find().sort({ order: 1 });
-    res.json({ ok: true, banners });
-  } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
-  }
-});
-
-// Create/Update Banner (Admin)
-app.post('/api/admin/banners', upload.single('bannerImage'), async (req, res) => {
-  try {
-    const { id, title, subtitle, ctaText, ctaButtonSize, order, offerPercentage, expiryDate, isActive, imageUrl, type } = req.body;
-    let finalImageUrl = imageUrl;
-
-    if (req.file) {
-      finalImageUrl = 'uploads/' + req.file.filename;
-    }
-
-    if (id && id !== 'undefined') {
-      const banner = await Banner.findByIdAndUpdate(id, {
-        title, subtitle, ctaText, ctaButtonSize, order: parseInt(order || 0),
-        offerPercentage: parseFloat(offerPercentage || 0),
-        expiryDate: expiryDate || null,
-        isActive: isActive === 'true' || isActive === true,
-        imageUrl: finalImageUrl,
-        type: type || 'home_slider'
-      }, { returnDocument: 'after' });
-      io.emit('banners-updated'); // Broadcast update
-      return res.json({ ok: true, banner });
-    } else {
-      const banner = await Banner.create({
-        title, subtitle, ctaText, ctaButtonSize, order: parseInt(order || 0),
-        offerPercentage: parseFloat(offerPercentage || 0),
-        expiryDate: expiryDate || null,
-        isActive: isActive === 'true' || isActive === true,
-        imageUrl: finalImageUrl,
-        type: type || 'home_slider'
-      });
-      io.emit('banners-updated'); // Broadcast update
-      return res.json({ ok: true, banner });
-    }
-  } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
-  }
-});
-
-// Delete Banner (Admin)
-app.delete('/api/admin/banners/:id', async (req, res) => {
-  try {
-    await Banner.findByIdAndDelete(req.params.id);
-    io.emit('banners-updated'); // Broadcast update
-    res.json({ ok: true });
-  } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
-  }
-});
+// Note: Admin Banner APIs (GET, POST, PUT, DELETE /api/admin/banners) are handled in routes/admin.routes.js
 // --- Services APIs (Admin) ---
 app.get('/api/admin/services', async (req, res) => {
   try {
@@ -1169,6 +1276,111 @@ app.get('/api/rituals', async (req, res) => {
             imageUrl: formatImageUrl(r.imageUrl, r.title)
         }));
         res.json({ ok: true, data: formatted });
+    } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+    }
+});
+// --- Super Admin App Settings APIs (Matrimonial URL & Share Link) ---
+app.get('/api/admin/app-settings', async (req, res) => {
+    try {
+        const mat = await GlobalSettings.findOne({ key: 'matrimonialUrl' });
+        const share = await GlobalSettings.findOne({ key: 'shareLink' });
+        res.json({
+            ok: true,
+            matrimonialUrl: mat ? mat.value : (process.env.MATRIMONIAL_URL || "https://play.google.com/store/apps/details?id=com.webstormers.mithra_matrimony"),
+            shareLink: share ? share.value : (process.env.PLAYSTORE_URL || "https://play.google.com/store/apps/details?id=com.astroeleven.app")
+        });
+    } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+    }
+});
+
+app.post('/api/admin/app-settings', async (req, res) => {
+    try {
+        const { matrimonialUrl, shareLink } = req.body;
+        if (matrimonialUrl !== undefined) {
+            await GlobalSettings.findOneAndUpdate(
+                { key: 'matrimonialUrl' },
+                { key: 'matrimonialUrl', value: matrimonialUrl },
+                { upsert: true, new: true }
+            );
+        }
+        if (shareLink !== undefined) {
+            await GlobalSettings.findOneAndUpdate(
+                { key: 'shareLink' },
+                { key: 'shareLink', value: shareLink },
+                { upsert: true, new: true }
+            );
+        }
+        res.json({ ok: true, message: 'App settings updated successfully' });
+    } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+    }
+});
+
+// Astro Academy Videos
+app.get('/api/academy/videos', async (req, res) => {
+    try {
+        let videos = await AcademyVideo.find().sort({ createdAt: -1 });
+        if (!videos || videos.length === 0) {
+            // Default curated educational astrology videos
+            videos = [
+                {
+                    _id: 'acad_1',
+                    title: 'ஜோதிட அடிப்படைகள் - ராசிகள் மற்றும் கிரகங்கள் (Astrology Basics)',
+                    youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+                    thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
+                    category: 'Basics'
+                },
+                {
+                    _id: 'acad_2',
+                    title: '27 நட்சத்திரங்கள் & அவற்றின் பலன்கள் (27 Nakshatras)',
+                    youtubeUrl: 'https://www.youtube.com/watch?v=kJQP7kiw5Fk',
+                    thumbnail: 'https://img.youtube.com/vi/kJQP7kiw5Fk/hqdefault.jpg',
+                    category: 'Nakshatra'
+                },
+                {
+                    _id: 'acad_3',
+                    title: 'லக்னம் மற்றும் 12 பாவங்களின் விளக்கம் (12 Houses in Astrology)',
+                    youtubeUrl: 'https://www.youtube.com/watch?v=3JZ_D3ELwOQ',
+                    thumbnail: 'https://img.youtube.com/vi/3JZ_D3ELwOQ/hqdefault.jpg',
+                    category: 'Kundli'
+                },
+                {
+                    _id: 'acad_4',
+                    title: 'தினசரி பஞ்சாங்கம் பார்ப்பது எப்படி? (Daily Panchangam Guide)',
+                    youtubeUrl: 'https://www.youtube.com/watch?v=L_LUpnjgPso',
+                    thumbnail: 'https://img.youtube.com/vi/L_LUpnjgPso/hqdefault.jpg',
+                    category: 'Panchangam'
+                }
+            ];
+        }
+        res.json({ ok: true, videos });
+    } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+    }
+});
+
+app.post('/api/admin/academy/videos', async (req, res) => {
+    try {
+        const { title, youtubeUrl, thumbnail, category } = req.body;
+        if (!title || !youtubeUrl) return res.status(400).json({ ok: false, error: 'Title and YouTube URL required' });
+        const video = await AcademyVideo.create({
+            title,
+            youtubeUrl,
+            thumbnail: thumbnail || '',
+            category: category || 'General'
+        });
+        res.json({ ok: true, video });
+    } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+    }
+});
+
+app.delete('/api/admin/academy/videos/:id', async (req, res) => {
+    try {
+        await AcademyVideo.findByIdAndDelete(req.params.id);
+        res.json({ ok: true });
     } catch (err) {
         res.status(500).json({ ok: false, error: err.message });
     }
@@ -1421,28 +1633,43 @@ app.post('/api/user/intake', async (req, res) => {
 app.post('/api/referral/apply', async (req, res) => {
   try {
     const { userId, referralCode } = req.body;
+    if (!userId || !referralCode) return res.json({ ok: false, error: 'User ID and Referral Code are required.' });
+    
     const user = await User.findOne({ userId });
-
     if (!user) return res.json({ ok: false, error: 'User not found' });
-    if (!user.isNewUser) return res.json({ ok: false, error: 'Referral can only be applied by new users' });
+    if (user.referredBy) return res.json({ ok: false, error: 'A referral code has already been applied for this account.' });
 
     // Find the referrer
-    const referrer = await User.findOne({ referralCode: referralCode.toUpperCase() });
-    if (!referrer) return res.json({ ok: false, error: 'Invalid referral code' });
-    if (referrer.userId === userId) return res.json({ ok: false, error: 'Cannot refer yourself' });
+    const cleanCode = referralCode.trim().toUpperCase();
+    const referrer = await User.findOne({ referralCode: cleanCode });
+    if (!referrer) return res.json({ ok: false, error: 'Invalid referral code. Please check and try again.' });
+    if (referrer.userId === userId) return res.json({ ok: false, error: 'You cannot use your own referral code.' });
 
     // Reward Referrer (User A)
     const referrerBonus = 20;
-    referrer.walletBalance += referrerBonus;
-    referrer.referralCount += 1;
+    referrer.walletBalance = (referrer.walletBalance || 0) + referrerBonus;
+    referrer.referralCount = (referrer.referralCount || 0) + 1;
     await referrer.save();
 
     // Reward New User (User B)
-    const newUserBonus = 10;
-    user.walletBalance += newUserBonus;
+    const newUserBonus = 20;
+    user.walletBalance = (user.walletBalance || 0) + newUserBonus;
     user.referredBy = referrer.userId;
     user.isNewUser = false; // Mark as processed
     await user.save();
+
+    // Real-time socket notification to Referrer
+    const refSocketId = userSockets.get(referrer.userId);
+    if (refSocketId) {
+      io.to(refSocketId).emit('balance-update', {
+        balance: referrer.walletBalance,
+        superBalance: referrer.superWalletBalance || 0
+      });
+      io.to(refSocketId).emit('user-notification', {
+        title: 'Referral Bonus Received! 🎁',
+        body: `Your friend joined with your code. ₹${referrerBonus} bonus credited to your wallet!`
+      });
+    }
 
     // Log in Ledger (Referrer)
     await BillingLedger.create({
@@ -1459,7 +1686,7 @@ app.post('/api/referral/apply', async (req, res) => {
       ok: true,
       bonusAmount: newUserBonus,
       newBalance: user.walletBalance,
-      message: 'Referral applied successfully!'
+      message: `Referral applied! ₹${newUserBonus} credited to your wallet.`
     });
 
   } catch (err) {
@@ -2394,11 +2621,11 @@ io.on('connection', (socket) => {
     } catch (e) { cb({ ok: false }); }
   });
 
-  // --- Admin: Get Paginated Users ---
+  // --- Admin: Get Paginated Users with City, DOB, and CSV Export ---
   socket.on('admin-get-users', async (data, cb) => {
     if (!await checkAdmin(socket.id)) return cb({ ok: false, error: 'Unauthorized' });
     try {
-      const { role, page = 1, limit = 10, search = '' } = data || {};
+      const { role, page = 1, limit = 10, search = '', city = '', dob = '', exportAll = false } = data || {};
       const parsedPage = Math.max(1, parseInt(page) || 1);
       const parsedLimit = Math.max(1, parseInt(limit) || 10);
       
@@ -2407,20 +2634,56 @@ io.on('connection', (socket) => {
         query.role = role;
       }
       
+      const andConditions = [];
+
       if (search) {
         const searchRegex = new RegExp(search.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'i');
-        query.$or = [
-          { name: searchRegex },
-          { phone: searchRegex },
-          { userId: searchRegex }
-        ];
+        andConditions.push({
+          $or: [
+            { name: searchRegex },
+            { phone: searchRegex },
+            { userId: searchRegex },
+            { email: searchRegex }
+          ]
+        });
+      }
+
+      if (city) {
+        const cityRegex = new RegExp(city.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'i');
+        andConditions.push({
+          $or: [
+            { pob: cityRegex },
+            { address: cityRegex },
+            { 'birthDetails.pob': cityRegex }
+          ]
+        });
+      }
+
+      if (dob) {
+        const dobRegex = new RegExp(dob.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'i');
+        andConditions.push({
+          $or: [
+            { dob: dobRegex },
+            { 'birthDetails.dob': dobRegex }
+          ]
+        });
+      }
+
+      if (andConditions.length > 0) {
+        query.$and = andConditions;
       }
       
       const total = await User.countDocuments(query);
-      const users = await User.find(query)
-        .sort({ _id: -1 })
-        .skip((parsedPage - 1) * parsedLimit)
-        .limit(parsedLimit);
+      
+      let users;
+      if (exportAll) {
+        users = await User.find(query).sort({ _id: -1 }).limit(5000);
+      } else {
+        users = await User.find(query)
+          .sort({ _id: -1 })
+          .skip((parsedPage - 1) * parsedLimit)
+          .limit(parsedLimit);
+      }
         
       cb({
         ok: true,
@@ -2733,27 +2996,58 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Phase 10: Ledger Stats
+  // Phase 10: Ledger Stats with Day / Custom Date Range Filter
   socket.on('admin-get-ledger-stats', async (data, cb) => {
     if (!await checkAdmin(socket.id)) return cb({ ok: false });
     let fullLedger = []; 
     try {
-      // Get billing stats (Usage based)
-      const billingStats = await BillingLedger.aggregate([
-        {
-          $group: {
-            _id: null,
-            usageRevenue: { $sum: '$chargedToClient' },
-            totalAstroPayout: { $sum: '$creditedToAstrologer' },
-            totalAdminRevenue: { $sum: '$adminAmount' },
-            totalMinutes: { $sum: 1 }
+      // Build Date Match Filter
+      let dateMatch = {};
+      const now = new Date();
+      if (data && data.filter) {
+        if (data.filter === 'today') {
+          const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          dateMatch = { createdAt: { $gte: startOfToday } };
+        } else if (data.filter === 'yesterday') {
+          const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+          const endOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          dateMatch = { createdAt: { $gte: startOfYesterday, $lt: endOfYesterday } };
+        } else if (data.filter === '7days') {
+          const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          dateMatch = { createdAt: { $gte: sevenDaysAgo } };
+        } else if (data.filter === '30days') {
+          const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          dateMatch = { createdAt: { $gte: thirtyDaysAgo } };
+        } else if (data.filter === 'custom' && (data.startDate || data.endDate)) {
+          dateMatch.createdAt = {};
+          if (data.startDate) dateMatch.createdAt.$gte = new Date(data.startDate);
+          if (data.endDate) {
+            const end = new Date(data.endDate);
+            end.setHours(23, 59, 59, 999);
+            dateMatch.createdAt.$lte = end;
           }
         }
-      ]);
+      }
 
-      // Get Real Payment Revenue (Original Data - Money Collected)
+      const billingPipeline = [];
+      if (Object.keys(dateMatch).length > 0) {
+        billingPipeline.push({ $match: dateMatch });
+      }
+      billingPipeline.push({
+        $group: {
+          _id: null,
+          usageRevenue: { $sum: '$chargedToClient' },
+          totalAstroPayout: { $sum: '$creditedToAstrologer' },
+          totalAdminRevenue: { $sum: '$adminAmount' },
+          totalMinutes: { $sum: 1 }
+        }
+      });
+      const billingStats = await BillingLedger.aggregate(billingPipeline);
+
+      // Get Real Payment Revenue (Filtered by date if specified)
+      const payMatchObj = { status: 'success', ...dateMatch };
       const paymentStats = await Payment.aggregate([
-        { $match: { status: 'success' } },
+        { $match: payMatchObj },
         { $group: { _id: null, totalCollected: { $sum: '$amount' } } }
       ]);
       const totalCollected = paymentStats[0]?.totalCollected || 0;
@@ -2770,7 +3064,8 @@ io.on('connection', (socket) => {
       const activeCallCount = activeSessions ? activeSessions.size : 0;
 
       // Fetch ledger data
-      fullLedger = await BillingLedger.find({}).sort({ createdAt: -1 }).limit(100);
+      const ledgerQuery = Object.keys(dateMatch).length > 0 ? dateMatch : {};
+      fullLedger = await BillingLedger.find(ledgerQuery).sort({ createdAt: -1 }).limit(100);
 
       const billing = billingStats[0] || {};
 
@@ -3155,7 +3450,10 @@ io.on('connection', (socket) => {
   });
 
   socket.on('send-bulk-fcm', async (data, cb) => {
-    if (!await checkAdmin(socket.id)) return;
+    if (!await checkAdmin(socket.id)) {
+      if (typeof cb === 'function') cb({ ok: false, error: 'Unauthorized: Admin access required' });
+      return;
+    }
     try {
       const { userIds, title, body, allUsers } = data;
       let query = {};
@@ -3165,6 +3463,22 @@ io.on('connection', (socket) => {
         query = { userId: { $in: userIds } };
       } else {
         query = { fcmToken: { $exists: true, $ne: '' } };
+      }
+
+      // Also broadcast live socket notification so active Web and App users see it immediately
+      const notifPayload = {
+        title: title || 'Astro Eleven Notification',
+        body: body || '',
+        imageUrl: data.imageUrl || '',
+        timestamp: Date.now()
+      };
+      if (allUsers) {
+        io.emit('user-notification', notifPayload);
+      } else if (userIds && userIds.length > 0) {
+        userIds.forEach(uid => {
+          const sid = userSockets.get(uid);
+          if (sid) io.to(sid).emit('user-notification', notifPayload);
+        });
       }
 
       const users = await User.find(query, 'userId fcmToken name');
@@ -3190,9 +3504,11 @@ io.on('connection', (socket) => {
         failCount += (chunk.length - chunkSuccess);
       }
 
-      cb({ ok: true, sentCount, failCount });
+      if (typeof cb === 'function') {
+        cb({ ok: true, sentCount: sentCount || (allUsers ? userSockets.size : 1), failCount });
+      }
     } catch (e) {
-      cb({ ok: false, error: e.message });
+      if (typeof cb === 'function') cb({ ok: false, error: e.message });
     }
   });
   // --- End Withdrawal Logic ---
@@ -3391,9 +3707,9 @@ app.get('/payment-failed', (req, res) => {
 // 3. Payment History API
 
 // ===== PhonePe SDK Configuration =====
-const PHONEPE_MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID;
-const PHONEPE_SALT_KEY = process.env.PHONEPE_SALT_KEY;
-const PHONEPE_SALT_INDEX = process.env.PHONEPE_SALT_INDEX;
+const PHONEPE_MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID || 'SU2607301135464361584371';
+const PHONEPE_SALT_KEY = process.env.PHONEPE_SALT_KEY || '0c6d1657-d27b-4ba4-a23d-ec48054dd3dd';
+const PHONEPE_SALT_INDEX = process.env.PHONEPE_SALT_INDEX || '1';
 const PHONEPE_HOST_URL = process.env.PHONEPE_HOST_URL || "https://api.phonepe.com/apis/hermes";
 
 // ===== PhonePe SDK API (Native App Payment) =====
@@ -3408,13 +3724,9 @@ app.post('/api/phonepe/init', async (req, res) => {
 
     // Fetch User
     const user = await User.findOne({ userId });
-    if (!user) {
-      return res.status(404).json({ ok: false, error: 'User not found' });
-    }
-
-    const userMobile = (user.phone || "9999999999").replace(/[^0-9]/g, '').slice(-10);
+    const userMobile = user ? (user.phone || "9999999999").replace(/[^0-9]/g, '').slice(-10) : "9999999999";
     const merchantTransactionId = "TXN_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
-    const cleanUserId = userId.replace(/[^a-zA-Z0-9]/g, '');
+    const cleanUserId = userId.replace(/[^a-zA-Z0-9]/g, '').substring(0, 35) || 'user123';
 
     // Create Pending Payment Record
     const baseAmount = Math.floor(amount / 1.18);
@@ -3428,52 +3740,75 @@ app.post('/api/phonepe/init', async (req, res) => {
       status: 'pending'
     });
 
-    // PhonePe Payload
-    const payload = {
-      merchantId: PHONEPE_MERCHANT_ID,
-      merchantTransactionId: merchantTransactionId,
-      merchantUserId: cleanUserId,
-      amount: amount * 100, // Paise
-      redirectUrl: `${SERVER_URL || 'https://astroeleven.com'}/api/payment/callback?isApp=true`,
-      redirectMode: "POST",
-      callbackUrl: `${SERVER_URL || 'https://astroeleven.com'}/api/phonepe/callback`,
-      mobileNumber: userMobile,
-      paymentInstrument: {
-        type: "PAY_PAGE"
+    // ===== PhonePe PG Checkout V2 Flow =====
+    // Step 1: OAuth Access Token
+    const tokenParams = new URLSearchParams();
+    tokenParams.append('client_id', PHONEPE_MERCHANT_ID);
+    tokenParams.append('client_secret', PHONEPE_SALT_KEY);
+    tokenParams.append('client_version', '1');
+    tokenParams.append('grant_type', 'client_credentials');
+
+    const tokenRes = await fetch('https://api.phonepe.com/apis/identity-manager/v1/oauth/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: tokenParams.toString()
+    });
+
+    const tokenData = await tokenRes.json();
+    console.log('[PhonePe SDK V2 OAuth Token]', JSON.stringify(tokenData));
+    const accessToken = tokenData.access_token;
+
+    if (!accessToken) {
+      return res.json({ ok: false, error: tokenData.error_description || tokenData.message || 'OAuth authentication failed' });
+    }
+
+    // Step 2: Create V2 Checkout Order
+    const payBody = {
+      merchantOrderId: merchantTransactionId,
+      amount: Math.round(amount * 100), // Paise
+      expireAfter: 1200,
+      paymentFlow: {
+        type: 'PG_CHECKOUT',
+        message: 'AstroEleven Wallet Recharge',
+        merchantUrls: {
+          redirectUrl: `${SERVER_URL || 'https://astroeleven.com'}/api/payment/callback?isApp=true&txnId=${merchantTransactionId}`
+        }
       }
     };
 
-    const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
-    const stringToSign = base64Payload + "/pg/v1/pay" + PHONEPE_SALT_KEY;
-    const sha256 = crypto.createHash('sha256').update(stringToSign).digest('hex');
-    const checksum = sha256 + "###" + PHONEPE_SALT_INDEX;
-
-    const response = await fetch(`${PHONEPE_HOST_URL}/pg/v1/pay`, {
+    const payRes = await fetch('https://api.phonepe.com/apis/pg/checkout/v2/pay', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-VERIFY': checksum,
-        'accept': 'application/json'
+        'Authorization': 'O-Bearer ' + accessToken
       },
-      body: JSON.stringify({ request: base64Payload })
+      body: JSON.stringify(payBody)
     });
 
-    const data = await response.json();
-    console.log('[PhonePe SDK Init]', JSON.stringify(data));
+    const data = await payRes.json();
+    console.log('[PhonePe SDK V2 Order Create]', JSON.stringify(data));
 
-    if (data.success) {
+    if (data && (data.redirectUrl || data.orderId)) {
+      let redirectUrl = data.redirectUrl || '';
+      if (redirectUrl.includes('mercury-t2.phonepe.com')) {
+        redirectUrl = redirectUrl.replace('mercury-t2.phonepe.com', 'mercury.phonepe.com');
+      }
       res.json({
         ok: true,
         transactionId: merchantTransactionId,
-        data: data.data
+        merchantTransactionId: merchantTransactionId,
+        redirectUrl: redirectUrl,
+        paymentUrl: redirectUrl,
+        orderId: data.orderId,
+        data: data
       });
     } else {
-      res.json({ ok: false, error: data.message || 'Payment initialization failed' });
+      res.json({ ok: false, error: data?.message || data?.error || 'Payment initialization failed' });
     }
 
   } catch (e) {
     console.error("PhonePe SDK Init Error:", e);
-    res.status(500).json({ ok: false, error: 'Internal Server Error' });
+    res.status(500).json({ ok: false, error: 'Internal Server Error: ' + e.message });
   }
 });
 
@@ -3767,15 +4102,14 @@ function seedDefaultBannersAsync() {
 
 const PORT = process.env.PORT || 3000;
 
-if (require.main === module || process.env.LSNODE_ROOT || process.env.PHUSION_PASSENGER) {
-  server.listen(PORT, () => {
-    console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
-    console.log(`📦 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`🔒 Rate limiting: Active`);
-    console.log(`🛡️  Helmet security: Active`);
-    seedDefaultBannersAsync(); // Non-blocking seed
-  });
-}
+// Hostinger hPanel & Standalone HTTP Server Listener
+server.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📦 Environment: ${process.env.NODE_ENV || 'production'}`);
+  console.log(`🔒 Rate limiting: Active`);
+  console.log(`🛡️  Helmet security: Active`);
+  seedDefaultBannersAsync(); // Non-blocking seed
+});
 
 // Graceful shutdown - prevents port stuck issues
 process.on('SIGTERM', () => {

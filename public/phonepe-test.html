@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhonePe Payment Test - Astro Eleven</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: #0a0e1a; color: #e2e8f0; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .card { background: #131b2e; border: 1px solid #2a364f; border-radius: 16px; padding: 32px; width: 100%; max-width: 480px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+        h1 { color: #5f63f2; font-size: 24px; margin-bottom: 8px; text-align: center; }
+        p.desc { color: #94a3b8; font-size: 14px; text-align: center; margin-bottom: 24px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; font-size: 14px; color: #cbd5e1; margin-bottom: 8px; font-weight: 600; }
+        input, select { width: 100%; padding: 12px 16px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; color: #fff; font-size: 16px; outline: none; }
+        input:focus { border-color: #5f63f2; }
+        button { width: 100%; padding: 14px; background: linear-gradient(135deg, #5f63f2, #7c3aed); border: none; border-radius: 8px; color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; margin-top: 10px; }
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
+        .result-box { margin-top: 24px; padding: 16px; background: #090d16; border: 1px solid #1e293b; border-radius: 8px; font-family: monospace; font-size: 13px; word-break: break-all; white-space: pre-wrap; display: none; }
+        .status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; margin-bottom: 12px; }
+        .success { background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid #22c55e; }
+        .error { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>⚡ PhonePe Gateway Test</h1>
+        <p class="desc">Astro Eleven Direct PhonePe API Testing Page</p>
+        
+        <div class="form-group">
+            <label for="amount">Test Amount (INR)</label>
+            <input type="number" id="amount" value="1" min="1" step="1">
+        </div>
+
+        <div class="form-group">
+            <label for="phone">Test Mobile Number</label>
+            <input type="text" id="phone" value="9999999999">
+        </div>
+
+        <button id="payBtn" onclick="runTest()">Initiate PhonePe Test Payment</button>
+
+        <div id="result" class="result-box"></div>
+    </div>
+
+    <script>
+        async function runTest() {
+            const amount = document.getElementById('amount').value;
+            const phone = document.getElementById('phone').value;
+            const btn = document.getElementById('payBtn');
+            const resBox = document.getElementById('result');
+
+            btn.disabled = true;
+            btn.innerText = 'Creating PhonePe Payment...';
+            resBox.style.display = 'block';
+            resBox.innerHTML = 'Connecting to server...';
+
+            try {
+                const res = await fetch('/api/payment/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: 'test_web_user',
+                        amount: parseFloat(amount),
+                        phone: phone,
+                        isApp: false
+                    })
+                });
+
+                const data = await res.json();
+                resBox.innerHTML = JSON.stringify(data, null, 2);
+
+                if (data.ok && (data.paymentUrl || data.redirectUrl)) {
+                    const url = data.paymentUrl || data.redirectUrl;
+                    resBox.innerHTML = '<span class="status-badge success">Success - Redirecting to PhonePe</span>\n\nURL: ' + url + '\n\n' + JSON.stringify(data, null, 2);
+                    setTimeout(() => {
+                        window.location.href = url;
+                    }, 1500);
+                } else {
+                    resBox.innerHTML = '<span class="status-badge error">Failed</span>\n\n' + JSON.stringify(data, null, 2);
+                }
+            } catch (err) {
+                resBox.innerHTML = '<span class="status-badge error">Error</span>\n\n' + err.message;
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'Initiate PhonePe Test Payment';
+            }
+        }
+    </script>
+</body>
+</html>

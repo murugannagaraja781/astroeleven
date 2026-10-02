@@ -18,7 +18,9 @@
     content="Connect with certified astrologers for reliable guidance on career, love, and life.">
   <meta property="og:image" content="https://astroluna.in/favicon.png?v=2">
 
-  <link rel="canonical" href="https://astroeleven.com/">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="shortcut icon" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/favicon.png">
   <link rel="icon" type="image/svg+xml" href="images/astroeleven_icon.svg">
   <link
     href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Outfit:wght@300;400;600;700&family=Playfair+Display:wght@400;700&display=swap"
@@ -1662,9 +1664,12 @@
   </div>
 
   <!-- Screen: Login -->
-  <div id="screen-login" style="padding-top: 60px;">
+  <div id="screen-login" style="padding-top: 40px;">
     <div class="form-box">
-      <h2>✨Astro Eleven Login</h2>
+      <div style="text-align: center; margin-bottom: 18px;">
+        <img src="/images/welcome_logo.png" alt="Astro Eleven - Guiding Your Destiny" style="max-width: 250px; width: 85%; height: auto; display: inline-block; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.08));">
+      </div>
+      <h2 style="font-size: 1.3rem; margin-top: 0;">✨Astro Eleven Login</h2>
       <div id="step-phone">
         <input id="inputPhone" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="10" class="cosmic-input"
           placeholder="10 Digit Mobile Number" value="" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
@@ -1941,9 +1946,9 @@
           <!-- Desktop Header Nav -->
           <div class="desktop-header-nav" style="display: flex; gap: 20px; margin-left: 30px;">
             <div id="nav-home" class="nav-item active" onclick="navSwitch('home')">Home</div>
-            <div id="nav-dash" class="nav-item" onclick="navSwitch('dash')">Dashboard</div>
+            <div id="nav-dash" class="nav-item" onclick="navSwitch('dash')" style="display: none;">Dashboard</div>
             <div id="nav-astro" class="nav-item" onclick="navSwitch('astro')">Astrologers</div>
-            <div id="nav-wallet" class="nav-item" onclick="navSwitch('wallet')">Wallet</div>
+            <div id="nav-wallet" class="nav-item" onclick="navSwitch('wallet')" style="display: none;">Wallet</div>
             <div id="nav-profile" class="nav-item" onclick="navSwitch('profile')">Profile</div>
           </div>
         </div>
@@ -1966,9 +1971,9 @@
             <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">Refer</span>
           </div>
 
-          <div id="walletContainer" onclick="refreshWallet()"
+          <div id="walletContainer" onclick="openRechargeFromMain()"
             style="cursor: pointer; display: flex; align-items: center; gap: 10px; background: rgba(255,127,0,0.05); padding: 8px 15px; border-radius: 6px; border: 1px solid var(--primary-glow); transition:all 0.2s;"
-            title="Tap to refresh">
+            title="Click to recharge wallet">
             <i class="fas fa-wallet" style="color: var(--primary);"></i>
             <span id="swHeaderBadge"
               style="display:none; font-size:0.65rem; background:rgba(255,127,0,0.1); color:var(--primary); border:1px solid var(--primary-glow); padding:1px 4px; border-radius:4px; font-weight:bold;">Bonus</span>
@@ -2479,15 +2484,16 @@
               </div>
               <div class="footer-links-col">
                 <h4>Quick Links</h4>
-                <a href="#">About Us</a>
-                <a href="#">Contact</a>
-                <a href="#">Blog</a>
+                <a href="/about-us.html">About Us</a>
+                <a href="/contact.html">Contact</a>
+                <a href="/blog.html">Blog</a>
               </div>
               <div class="footer-links-col">
                 <h4>Legal</h4>
-                <a href="#">Terms & Conditions</a>
-                <a href="#">Privacy Policy</a>
-                <a href="#">Refund Policy</a>
+                <a href="/terms-condition.html">Terms & Conditions</a>
+                <a href="/privacy-policy.html">Privacy Policy</a>
+                <a href="/refund-cancellation-policy.html">Refund Policy</a>
+                <a href="/delete-account.html">Delete Account</a>
               </div>
             </div>
             <div class="footer-bottom">
@@ -3863,7 +3869,12 @@
   </div>
   </div>
 
-  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <script src="/socket.io.min.js"></script>
+  <script>
+    if (typeof io === 'undefined') {
+      document.write('<script src="/socket.io/socket.io.js"><\/script>');
+    }
+  </script>
   <script src="https://unpkg.com/simple-peer/simplepeer.min.js"></script>
   <script>
     const state = { me: null, socket: null, session: null, peer: null, localStream: null, lang: 'ta', signalBuffer: [], astroList: [], selectedService: 'all' };
@@ -4089,8 +4100,12 @@
       window.location.reload();
     }
 
-    // Initialize Socket
-    const socket = io();
+    // Initialize Socket safely
+    const socket = (typeof io !== 'undefined') ? io() : (function() {
+      console.warn('[Socket] Socket.IO not loaded, using fallback dummy socket');
+      const dummy = { on: function(){}, emit: function(){}, off: function(){} };
+      return dummy;
+    })();
     state.socket = socket;
 
     // Socket reconnect handler - re-register user to maintain status
@@ -4505,6 +4520,9 @@
             z-index: 99999;
         `;
 
+        const astroId = astro.userId || astro.id || astro._id || '';
+        const isFav = window.isAstroLiked ? window.isAstroLiked(astroId) : false;
+        const astroSafeName = (astro.name || 'Astrologer').replace(/'/g, "\\'");
         const skills = astro.skills ? (Array.isArray(astro.skills) ? astro.skills.join(', ') : astro.skills) : 'Vedic, Prashana';
         const languages = astro.languages ? (Array.isArray(astro.languages) ? astro.languages.join(', ') : astro.languages) : 'Tamil, English';
 
@@ -4519,6 +4537,39 @@
                 position: relative;
                 border: 1px solid rgba(22, 101, 52, 0.1);
             ">
+                <!-- Like / Favorite Button (Item 7) -->
+                <button id="btnAstroLike_${astroId}" onclick="toggleAstroLike('${astroId}', '${astroSafeName}', event)" style="
+                    position: absolute;
+                    top: 15px; left: 15px;
+                    background: rgba(255, 255, 255, 0.2);
+                    backdrop-filter: blur(8px);
+                    border: 1px solid rgba(255, 255, 255, 0.4);
+                    width: 34px; height: 34px;
+                    border-radius: 50%;
+                    display: flex; align-items: center; justify-content: center;
+                    cursor: pointer; font-size: 1.1rem; color: ${isFav ? '#FF4081' : '#ffffff'};
+                    transition: transform 0.2s; z-index: 10;
+                " title="Like / Favorite">
+                    <i class="${isFav ? 'fas' : 'far'} fa-heart"></i>
+                </button>
+
+                <!-- Share Button (Item 7) -->
+                <button onclick="shareAstroProfile('${astroId}', '${astroSafeName}', '${astro.price || 15}', event)" style="
+                    position: absolute;
+                    top: 15px; right: 55px;
+                    background: rgba(255, 255, 255, 0.2);
+                    backdrop-filter: blur(8px);
+                    border: 1px solid rgba(255, 255, 255, 0.4);
+                    width: 34px; height: 34px;
+                    border-radius: 50%;
+                    display: flex; align-items: center; justify-content: center;
+                    cursor: pointer; font-size: 0.95rem; color: #ffffff;
+                    transition: transform 0.2s; z-index: 10;
+                " title="Share Profile">
+                    <i class="fas fa-share-alt"></i>
+                </button>
+
+                <!-- Close Modal Button -->
                 <button onclick="document.getElementById('astro-profile-modal').remove()" style="
                     position: absolute;
                     top: 15px; right: 15px;
@@ -4528,7 +4579,7 @@
                     border-radius: 50%;
                     display: flex; align-items: center; justify-content: center;
                     cursor: pointer; font-size: 1rem; color: #4b5563;
-                    transition: background 0.2s;
+                    transition: background 0.2s; z-index: 10;
                 " onmouseover="this.style.background='#e4e4e7'" onmouseout="this.style.background='rgba(244, 244, 245, 0.9)'">
                     <i class="fas fa-times"></i>
                 </button>
@@ -4558,14 +4609,30 @@
                         </div>
                     </div>
 
-                    <div style="margin-bottom: 16px;">
+                    <div style="margin-bottom: 12px;">
                         <span style="font-size: 0.75rem; color: #6b7280; font-weight: 600; text-transform: uppercase; display: block; margin-bottom: 4px;">Skills</span>
                         <span style="font-size: 0.85rem; font-weight: 500; color: #374151; line-height: 1.4;">${skills}</span>
                     </div>
 
-                    <div style="margin-bottom: 24px;">
+                    <div style="margin-bottom: 18px;">
                         <span style="font-size: 0.75rem; color: #6b7280; font-weight: 600; text-transform: uppercase; display: block; margin-bottom: 4px;">Languages</span>
                         <span style="font-size: 0.85rem; font-weight: 500; color: #374151;">${languages}</span>
+                    </div>
+
+                    <!-- Share & Like Action Bar -->
+                    <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                        <button onclick="toggleAstroLike('${astroId}', '${astroSafeName}', event)" style="
+                            flex: 1; padding: 8px; border: 1px solid #E5E7EB; border-radius: 8px; background: #FFF1F2;
+                            color: #E11D48; font-weight: 600; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+                        ">
+                            <i class="${isFav ? 'fas' : 'far'} fa-heart"></i> ${isFav ? 'Favorited' : 'Add Favorite'}
+                        </button>
+                        <button onclick="shareAstroProfile('${astroId}', '${astroSafeName}', '${astro.price || 15}', event)" style="
+                            flex: 1; padding: 8px; border: 1px solid #25D366; border-radius: 8px; background: #F0FDF4;
+                            color: #15803D; font-weight: 600; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+                        ">
+                            <i class="fab fa-whatsapp"></i> Share
+                        </button>
                     </div>
 
                     <div style="display: flex; gap: 10px;">
@@ -4607,6 +4674,63 @@
         `;
 
         document.body.appendChild(modal);
+    };
+
+    window.isAstroLiked = function(id) {
+        try {
+            const favs = JSON.parse(localStorage.getItem('astro_favs') || '[]');
+            return favs.includes(String(id));
+        } catch(e) { return false; }
+    };
+
+    window.toggleAstroLike = function(id, name, ev) {
+        if (ev) ev.stopPropagation();
+        try {
+            let favs = JSON.parse(localStorage.getItem('astro_favs') || '[]');
+            const strId = String(id);
+            const idx = favs.indexOf(strId);
+            let isNowFav = false;
+            if (idx >= 0) {
+                favs.splice(idx, 1);
+                isNowFav = false;
+            } else {
+                favs.push(strId);
+                isNowFav = true;
+            }
+            localStorage.setItem('astro_favs', JSON.stringify(favs));
+            
+            const btn = document.getElementById('btnAstroLike_' + id);
+            if (btn) {
+                btn.innerHTML = `<i class="${isNowFav ? 'fas' : 'far'} fa-heart"></i>`;
+                btn.style.color = isNowFav ? '#FF4081' : '#ffffff';
+            }
+            if (typeof showToast === 'function') {
+                showToast(isNowFav ? `${name || 'Astrologer'} added to Favorites ❤️` : `${name || 'Astrologer'} removed from Favorites`);
+            } else {
+                alert(isNowFav ? `${name || 'Astrologer'} added to Favorites ❤️` : `${name || 'Astrologer'} removed from Favorites`);
+            }
+        } catch(e) { console.error(e); }
+    };
+
+    window.shareAstroProfile = function(id, name, price, ev) {
+        if (ev) ev.stopPropagation();
+        const shareUrl = window.location.origin + '/?astro=' + (id || '');
+        const shareText = `Consult with ${name || 'Astrologer'} on Astro Eleven for accurate life predictions! Rate: ₹${price || 15}/min. ${shareUrl}`;
+        if (navigator.share) {
+            navigator.share({
+                title: `${name} - Astrologer Profile`,
+                text: shareText,
+                url: shareUrl
+            }).catch(() => {});
+        } else {
+            const waUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+            window.open(waUrl, '_blank');
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(shareUrl).then(() => {
+                    if (typeof showToast === 'function') showToast('Profile link copied! 📋');
+                });
+            }
+        }
     };
 
     // Login Handlers
@@ -4943,6 +5067,15 @@
     }
 
     function handleBannerClick(banner) {
+      if (banner && banner.linkUrl && banner.linkUrl.trim() !== '') {
+        let url = banner.linkUrl.trim();
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+          url = 'https://' + url;
+        }
+        window.open(url, '_blank');
+        return;
+      }
+
       if (banner && banner.offerPercentage > 0) {
         // Auto-apply WELCOME50 coupon and open standard recharge modal
         state.appliedCoupon = 'WELCOME50';
@@ -6300,7 +6433,7 @@
 
     document.getElementById('btnSend').onclick = () => {
       const txt = document.getElementById('msgInput').value.trim();
-      if (!txt) return;
+      if (!txt || !state.session) return;
 
       const requestDetailsDiv = document.getElementById('clientRequestDetails');
       if (requestDetailsDiv) {
@@ -8645,44 +8778,70 @@
       const originalBtn = event?.target;
       if (originalBtn) {
         originalBtn.disabled = true;
-        originalBtn.textContent = 'Processing...';
+        originalBtn.textContent = 'Connecting PhonePe...';
       }
 
       try {
-        // Generate secure payment token from backend
-        const response = await fetch('/api/payment/token', {
+        const isApp = !!window.ReactNativeWebView;
+
+        // Direct PhonePe payment creation (Same logic as phonepe-test.html)
+        const response = await fetch('/api/payment/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             userId: state.me.userId,
             amount: amount,
+            phone: state.me.phone || "9999999999",
+            isApp: isApp,
             couponCode: state.appliedCoupon || ""
           })
         });
 
         const result = await response.json();
 
-        if (result.ok && result.token) {
-          // Redirect to payment.html with secure token
-          window.location.href = `/payment.html?token=${result.token}`;
+        if (result.ok && (result.paymentUrl || result.redirectUrl)) {
+          const checkoutUrl = result.paymentUrl || result.redirectUrl;
+          if (isApp) {
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'OPEN_PAYMENT_URL',
+              url: checkoutUrl,
+              txnId: result.merchantTransactionId
+            }));
+          } else {
+            window.location.href = checkoutUrl;
+          }
         } else {
-          alert(result.error || 'Failed to initiate payment');
-          isPaymentInProgress = false; // Reset flag on error
+          alert(result.error || 'Failed to initiate PhonePe payment');
+          isPaymentInProgress = false;
           if (originalBtn) {
             originalBtn.disabled = false;
             originalBtn.textContent = 'Proceed to Pay';
           }
         }
       } catch (error) {
-        console.error('Payment token error:', error);
-        alert('Network error. Please try again.');
-        isPaymentInProgress = false; // Reset flag on error
+        console.error('Payment error:', error);
+        alert('Network error initiating PhonePe payment. Please try again.');
+        isPaymentInProgress = false;
         if (originalBtn) {
           originalBtn.disabled = false;
           originalBtn.textContent = 'Proceed to Pay';
         }
       }
     };
+
+    // Auto-open Recharge Modal when URL contains #recharge or #wallet
+    function checkRechargeHashRoute() {
+      const hash = window.location.hash;
+      if (hash === '#recharge' || hash === '#wallet') {
+        if (typeof openRechargeFromMain === 'function') {
+          openRechargeFromMain();
+        } else if (typeof initiateRecharge === 'function') {
+          initiateRecharge();
+        }
+      }
+    }
+    window.addEventListener('hashchange', checkRechargeHashRoute);
+    window.addEventListener('load', checkRechargeHashRoute);
 
     window.closeRechargeModal = function () {
       document.getElementById('screen-recharge').classList.add('hidden');
@@ -8929,21 +9088,30 @@
     };
 
     window.skipReferral = function () {
-      document.getElementById('referralWelcomeModal').classList.add('hidden');
-      fetch('/api/referral/skip', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: state.me.userId })
-      });
+      const welcome = document.getElementById('referralWelcomeModal');
+      if (welcome) welcome.classList.add('hidden');
+      const info = document.getElementById('referralInfoModal');
+      if (info) info.classList.add('hidden');
+      if (state && state.me && state.me.userId) {
+        fetch('/api/referral/skip', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: state.me.userId })
+        }).catch(() => {});
+      }
     };
 
     window.applyReferral = async function () {
-      const code = document.getElementById('inputReferralCode').value;
+      const codeInp = document.getElementById('inputReferralCode');
+      const code = codeInp ? codeInp.value.trim() : '';
       if (!code) return alert('Please enter a referral code');
+      if (!state.me || !state.me.userId) return alert('Please login to apply referral code');
 
-      const btn = event.target;
-      btn.disabled = true;
-      btn.innerText = 'Applying...';
+      const btn = event ? event.target : null;
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = 'Applying...';
+      }
 
       try {
         const res = await fetch('/api/referral/apply', {
@@ -8953,13 +9121,25 @@
         }).then(r => r.json());
 
         if (res.ok) {
-          document.getElementById('referralWelcomeModal').classList.add('hidden');
+          const welcome = document.getElementById('referralWelcomeModal');
+          if (welcome) welcome.classList.add('hidden');
+          const info = document.getElementById('referralInfoModal');
+          if (info) info.classList.add('hidden');
+
+          const applySection = document.getElementById('applyCodeSection');
+          if (applySection) applySection.style.display = 'none';
+
           // Money Animation
-          startMoneyAnimation();
+          if (typeof startMoneyAnimation === 'function') startMoneyAnimation();
+
           // Update Wallet
-          document.getElementById('clientWallet').innerText = res.newBalance;
-          state.me.walletBalance = res.newBalance;
-          state.me.isNewUser = false;
+          const w = document.getElementById('clientWallet');
+          if (w) w.innerText = res.newBalance;
+          if (state && state.me) {
+            state.me.walletBalance = res.newBalance;
+            state.me.isNewUser = false;
+            saveSession(state.me);
+          }
           showToast('₹' + res.bonusAmount + ' Bonus Credited! 🎊');
         } else {
           alert(res.error || 'Invalid Code');
@@ -8967,8 +9147,10 @@
       } catch (e) {
         alert('Error applying referral');
       } finally {
-        btn.disabled = false;
-        btn.innerText = 'Apply & Claim';
+        if (btn) {
+          btn.disabled = false;
+          btn.innerText = 'Apply & Claim';
+        }
       }
     };
 

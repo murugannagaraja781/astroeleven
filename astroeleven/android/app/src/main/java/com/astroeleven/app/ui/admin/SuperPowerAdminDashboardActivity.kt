@@ -43,6 +43,7 @@ import com.astroeleven.app.data.local.ThemeManager
 import com.astroeleven.app.ui.theme.ThemePalette
 import com.astroeleven.app.data.api.ApiClient
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.google.gson.*
 import androidx.compose.material3.ExperimentalMaterial3Api
 
@@ -85,7 +86,7 @@ fun SuperPowerScreen(
     onThemeSelected: (AppTheme) -> Unit
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Approval", "Branding", "Workflow", "Profile", "Store")
+    val tabs = listOf("Approval", "Banners", "Branding", "Workflow", "Profile", "Store")
  
     Scaffold(
         topBar = {
@@ -115,11 +116,197 @@ fun SuperPowerScreen(
         Box(modifier = Modifier.padding(padding).fillMaxSize()) {
             when (selectedTab) {
                 0 -> PendingAstrologersTab()
-                1 -> BrandingTab(onThemeSelected)
-                2 -> WorkflowTab()
-                3 -> AdminProfileTab()
-                4 -> StoreTab()
+                1 -> BannersManagementTab()
+                2 -> BrandingTab(onThemeSelected)
+                3 -> WorkflowTab()
+                4 -> AdminProfileTab()
+                5 -> StoreTab()
                 else -> Box(Modifier.fillMaxSize()) { Text("More features coming soon", modifier = Modifier.align(Alignment.Center)) }
+            }
+        }
+    }
+}
+
+@Composable
+fun BannersManagementTab() {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    var banners by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    var imageUrl by remember { mutableStateOf("") }
+    var title by remember { mutableStateOf("") }
+    var subtitle by remember { mutableStateOf("") }
+    var linkUrl by remember { mutableStateOf("") }
+    var isAdding by remember { mutableStateOf(false) }
+
+    fun refreshBanners() {
+        isLoading = true
+        scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val res = ApiClient.api.getAdminBanners()
+                if (res.isSuccessful) {
+                    val list = res.body()?.getAsJsonArray("banners")?.map { it.asJsonObject } ?: emptyList()
+                    banners = list
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        refreshBanners()
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            "Banner & Redirection Link Manager",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.ExtraBold,
+            color = MaterialTheme.colorScheme.primary
+        )
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Add New Home Banner", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+
+                OutlinedTextField(
+                    value = imageUrl,
+                    onValueChange = { imageUrl = it },
+                    label = { Text("Banner Image URL") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Banner Title (Optional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                OutlinedTextField(
+                    value = subtitle,
+                    onValueChange = { subtitle = it },
+                    label = { Text("Subtitle / Description (Optional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                OutlinedTextField(
+                    value = linkUrl,
+                    onValueChange = { linkUrl = it },
+                    label = { Text("Click Link URL (e.g. https://... or website link)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                Button(
+                    onClick = {
+                        if (imageUrl.trim().isEmpty()) {
+                            Toast.makeText(context, "Image URL is required", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        isAdding = true
+                        scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                            try {
+                                val body = JsonObject().apply {
+                                    addProperty("imageUrl", imageUrl.trim())
+                                    addProperty("title", title.trim())
+                                    addProperty("subtitle", subtitle.trim())
+                                    addProperty("linkUrl", linkUrl.trim())
+                                }
+                                val res = ApiClient.api.addBanner(body)
+                                withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                    isAdding = false
+                                    if (res.isSuccessful && res.body()?.get("ok")?.asBoolean == true) {
+                                        Toast.makeText(context, "Banner added successfully!", Toast.LENGTH_SHORT).show()
+                                        imageUrl = ""
+                                        title = ""
+                                        subtitle = ""
+                                        linkUrl = ""
+                                        refreshBanners()
+                                    } else {
+                                        Toast.makeText(context, "Failed to add banner", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                    isAdding = false
+                                    Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    enabled = !isAdding
+                ) {
+                    if (isAdding) CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
+                    else Text("Upload & Save Banner", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
+        Text("Active Banners (${banners.size})", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+
+        if (isLoading) {
+            Box(Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+        } else if (banners.isEmpty()) {
+            Text("No active banners found.", color = Color.Gray)
+        } else {
+            banners.forEach { bannerObj ->
+                val id = bannerObj.get("_id")?.asString ?: ""
+                val bannerImg = bannerObj.get("imageUrl")?.asString ?: ""
+                val bannerTitle = bannerObj.get("title")?.asString ?: "Untitled"
+                val bannerLink = bannerObj.get("linkUrl")?.asString ?: ""
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(bannerTitle, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            Text("Image: $bannerImg", fontSize = 12.sp, color = Color.Gray, maxLines = 1)
+                            if (bannerLink.isNotEmpty()) {
+                                Text("Link: $bannerLink", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary, maxLines = 1)
+                            }
+                        }
+                        IconButton(onClick = {
+                            if (id.isNotEmpty()) {
+                                scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                                    try {
+                                        val res = ApiClient.api.deleteBanner(id)
+                                        withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                            if (res.isSuccessful) {
+                                                Toast.makeText(context, "Banner Deleted", Toast.LENGTH_SHORT).show()
+                                                refreshBanners()
+                                            }
+                                        }
+                                    } catch (e: Exception) { e.printStackTrace() }
+                                }
+                            }
+                        }) {
+                            Text("❌", fontSize = 16.sp)
+                        }
+                    }
+                }
             }
         }
     }

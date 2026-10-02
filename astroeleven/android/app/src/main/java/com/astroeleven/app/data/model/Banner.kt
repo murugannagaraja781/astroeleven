@@ -17,5 +17,6 @@ data class Banner(
     @SerializedName("isActive") val isActive: Boolean = true,
     @SerializedName("offerPercentage") val offerPercentage: Double = 0.0,
     @SerializedName("expiryDate") val expiryDate: String? = null,
-    @SerializedName("ctaButtonSize") val ctaButtonSize: String? = "small"
+    @SerializedName("ctaButtonSize") val ctaButtonSize: String? = "small",
+    @SerializedName("linkUrl") val linkUrl: String? = null
 )

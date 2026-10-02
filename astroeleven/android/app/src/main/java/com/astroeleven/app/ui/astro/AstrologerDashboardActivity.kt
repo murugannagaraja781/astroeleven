@@ -560,13 +560,92 @@ fun AstrologerDashboardScreen(
         )
     }
 
+    var showEditSkillsDialog by remember { mutableStateOf(false) }
+    var currentSkillsList by remember { mutableStateOf(listOf("Vedic", "Love", "Business", "Career", "Marriage", "Finance", "Health")) }
+
+    if (showEditSkillsDialog) {
+        val availableTags = listOf("Vedic", "Love", "Business", "Career", "Marriage", "Finance", "Health", "Tarot", "Numerology", "Palmistry")
+        var selectedSkills by remember { mutableStateOf(currentSkillsList.toSet()) }
+
+        AlertDialog(
+            onDismissRequest = { showEditSkillsDialog = false },
+            title = {
+                Text(
+                    "Edit Specialty Category Tags",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = Color(0xFFFF7A00)
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "Select category tags (e.g. Love, Business, Career, etc.) to showcase on your profile:",
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
+                    
+                    availableTags.chunked(2).forEach { rowTags ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            rowTags.forEach { tag ->
+                                val isChecked = selectedSkills.contains(tag)
+                                FilterChip(
+                                    selected = isChecked,
+                                    onClick = {
+                                        selectedSkills = if (isChecked) selectedSkills - tag else selectedSkills + tag
+                                    },
+                                    label = { Text(tag) },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val tagsString = selectedSkills.joinToString(", ")
+                        scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                            try {
+                                val updates = JSONObject().apply {
+                                    put("skills", selectedSkills.toList())
+                                }
+                                SocketManager.updateProfile(updates) { res ->
+                                    scope.launch(kotlinx.coroutines.Dispatchers.Main) {
+                                        if (res?.optBoolean("ok") == true) {
+                                            currentSkillsList = selectedSkills.toList()
+                                            Toast.makeText(context, "Category Tags Saved Successfully!", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                }
+                            } catch (e: Exception) { e.printStackTrace() }
+                        }
+                        showEditSkillsDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF7A00))
+                ) {
+                    Text("Save Tags", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditSkillsDialog = false }) {
+                    Text("Cancel", color = Color.Gray)
+                }
+            }
+        )
+    }
+
 
     val actions = listOf(
         "Call" to Icons.Default.Call,
         "History" to Icons.Default.History,
         "Earnings" to Icons.Default.MonetizationOn,
         "Profile" to Icons.Default.Person,
-        "Star" to Icons.Default.Star,
+        "Edit Tags" to Icons.Default.Star,
         "Add Rate" to Icons.Default.MonetizationOn
     )
 
@@ -1220,6 +1299,7 @@ fun AstrologerDashboardScreen(
                                              "History" -> context.startActivity(Intent(context, com.astroeleven.app.ui.astro.AstrologerHistoryActivity::class.java))
                                              "Earnings" -> Toast.makeText(context, "Redirecting to detailed reports...", Toast.LENGTH_SHORT).show()
                                              "Add Rate" -> { showAddRateDialog = true }
+                                             "Edit Tags" -> { showEditSkillsDialog = true }
                                              "Star" -> Toast.makeText(context, "Feedback metrics panel", Toast.LENGTH_SHORT).show()
                                          }
                                      }

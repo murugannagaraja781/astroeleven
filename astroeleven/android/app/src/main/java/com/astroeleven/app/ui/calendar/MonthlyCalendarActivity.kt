@@ -30,14 +30,11 @@ import java.util.*
 class MonthlyCalendarActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
-        val isTamil = getSharedPreferences("app_prefs", MODE_PRIVATE).getBoolean("is_tamil", false)
-
-        setContent {
-            MaterialTheme {
-                MonthlyCalendarScreen(isTamil = isTamil, onBack = { finish() })
-            }
+        val intent = android.content.Intent(this, CalendarActivity::class.java).apply {
+            putExtra("selectedTab", 1)
         }
+        startActivity(intent)
+        finish()
     }
 }
 

@@ -31,13 +31,68 @@ exports.deleteVideo = async (req, res) => {
 };
 
 exports.getBanners = async (req, res) => {
-    const banners = await Banner.find().sort({ order: 1 });
-    res.json({ ok: true, banners });
+    try {
+        const banners = await Banner.find().sort({ order: 1 });
+        res.json({ ok: true, banners });
+    } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+    }
 };
 
 exports.addBanner = async (req, res) => {
-    const banner = await Banner.create(req.body);
-    res.json({ ok: true, banner });
+    try {
+        const { id, title, subtitle, ctaText, ctaButtonSize, order, offerPercentage, expiryDate, isActive, imageUrl, type, linkUrl } = req.body;
+        let finalImageUrl = imageUrl;
+
+        if (req.file) {
+            finalImageUrl = 'uploads/' + req.file.filename;
+        }
+
+        let banner = null;
+        if (id && id !== 'undefined' && id !== 'null') {
+            banner = await Banner.findByIdAndUpdate(id, {
+                title, subtitle, ctaText, ctaButtonSize,
+                order: parseInt(order || 0),
+                offerPercentage: parseFloat(offerPercentage || 0),
+                expiryDate: expiryDate || null,
+                isActive: isActive === 'true' || isActive === true,
+                imageUrl: finalImageUrl,
+                type: type || 'home_slider',
+                linkUrl: linkUrl || ''
+            }, { returnDocument: 'after' });
+        }
+
+        if (!banner) {
+            banner = await Banner.create({
+                title, subtitle, ctaText, ctaButtonSize,
+                order: parseInt(order || 0),
+                offerPercentage: parseFloat(offerPercentage || 0),
+                expiryDate: expiryDate || null,
+                isActive: isActive === 'true' || isActive === true,
+                imageUrl: finalImageUrl,
+                type: type || 'home_slider',
+                linkUrl: linkUrl || ''
+            });
+        }
+
+        const io = req.app.get('io');
+        if (io) io.emit('banners-updated');
+
+        return res.json({ ok: true, banner });
+    } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+    }
+};
+
+exports.deleteBanner = async (req, res) => {
+    try {
+        await Banner.findByIdAndDelete(req.params.id);
+        const io = req.app.get('io');
+        if (io) io.emit('banners-updated');
+        res.json({ ok: true });
+    } catch (err) {
+        res.status(500).json({ ok: false, error: err.message });
+    }
 };
 
 exports.getDeletionRequests = async (req, res) => {

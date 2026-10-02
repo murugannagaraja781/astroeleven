@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description"
+    content="Contact Astro Eleven - Get 24/7 customer support for wallet top-ups, astrology consultations, technical issues, and astrologer registrations.">
+  <meta name="keywords" content="Astro Eleven contact, customer support, email support, helpline number, contact astrologer app">
+  <meta name="robots" content="index, follow">
+  <meta property="og:title" content="Contact Us - Astro Eleven">
+  <meta property="og:description" content="Have questions? Reach out to Astro Eleven support team via email, phone, or message.">
+  <title>Contact Us - Astro Eleven</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #047857;
+      --primary-dark: #065f46;
+      --accent: #F59E0B;
+      --bg: #FAFAF9;
+      --text: #1F2937;
+      --text-muted: #6B7280;
+      --card-bg: #FFFFFF;
+      --border: #E5E7EB;
+      --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* Header Nav */
+    .site-header {
+      background: white;
+      border-bottom: 1px solid var(--border);
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+    }
+
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 700;
+      font-size: 1.4rem;
+    }
+
+    .brand-logo img {
+      height: 42px;
+    }
+
+    .header-nav {
+      display: flex;
+      gap: 25px;
+      align-items: center;
+    }
+
+    .header-nav a {
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 500;
+      font-size: 0.95rem;
+      transition: color 0.2s;
+    }
+
+    .header-nav a:hover,
+    .header-nav a.active {
+      color: var(--primary);
+    }
+
+    .btn-back {
+      background: var(--primary);
+      color: white;
+      padding: 8px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      text-decoration: none !important;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: transform 0.2s, background 0.2s;
+    }
+
+    .btn-back:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    /* Hero Section */
+    .hero {
+      background: linear-gradient(135deg, #064E3B 0%, #047857 50%, #059669 100%);
+      color: white;
+      padding: 60px 20px;
+      text-align: center;
+      position: relative;
+    }
+
+    .hero h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+
+    .hero p {
+      font-size: 1.1rem;
+      opacity: 0.9;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* Main Container */
+    .container {
+      max-width: 1100px;
+      margin: -30px auto 60px;
+      padding: 0 20px;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* Contact Info Cards Grid */
+    .contact-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+
+    .contact-card {
+      background: white;
+      padding: 28px;
+      border-radius: 16px;
+      text-align: center;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      transition: transform 0.2s;
+    }
+
+    .contact-card:hover {
+      transform: translateY(-3px);
+    }
+
+    .contact-card i {
+      font-size: 2.2rem;
+      color: var(--primary);
+      margin-bottom: 15px;
+    }
+
+    .contact-card h3 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .contact-card p {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+    }
+
+    .contact-card a {
+      color: var(--primary);
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    /* Form + Map Section */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 30px;
+      margin-bottom: 50px;
+    }
+
+    @media (max-width: 850px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .form-card {
+      background: white;
+      padding: 35px;
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+    }
+
+    .form-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+      color: #374151;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid #D1D5DB;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(4, 120, 87, 0.15);
+    }
+
+    textarea.form-control {
+      resize: vertical;
+      min-height: 120px;
+    }
+
+    .btn-submit {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.2s;
+    }
+
+    .btn-submit:hover {
+      background: var(--primary-dark);
+    }
+
+    .success-alert {
+      display: none;
+      background: #D1FAE5;
+      color: #065F46;
+      border: 1px solid #A7F3D0;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      font-weight: 500;
+    }
+
+    /* FAQ Section */
+    .faq-section {
+      background: white;
+      padding: 35px;
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+    }
+
+    .faq-item {
+      border-bottom: 1px solid #F3F4F6;
+      padding: 18px 0;
+    }
+
+    .faq-item:last-child {
+      border-bottom: none;
+    }
+
+    .faq-question {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .faq-question i {
+      color: var(--accent);
+    }
+
+    .faq-answer {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* Footer */
+    .site-footer {
+      background: #111827;
+      color: #9CA3AF;
+      padding: 40px 20px 25px;
+      text-align: center;
+      font-size: 0.9rem;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .footer-links a {
+      color: #D1D5DB;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover {
+      color: var(--accent);
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Site Header -->
+  <header class="site-header">
+    <a href="/desktop-view.html" class="brand-logo">
+      <img src="images/astroeleven_logo.svg" alt="Astro Eleven Logo">
+    </a>
+    <nav class="header-nav">
+      <a href="/desktop-view.html">Home</a>
+      <a href="/about-us.html">About Us</a>
+      <a href="/blog.html">Blog</a>
+      <a href="/contact.html" class="active">Contact</a>
+      <a href="/privacy-policy.html">Privacy</a>
+    </nav>
+    <a href="/desktop-view.html" class="btn-back">
+      <i class="fas fa-arrow-left"></i> Back to App
+    </a>
+  </header>
+
+  <!-- Hero Banner -->
+  <section class="hero">
+    <h1>We're Here to Help You</h1>
+    <p>Have questions about your consultation, wallet payments, or technical support? Get in touch with our 24/7 dedicated support team.</p>
+  </section>
+
+  <!-- Main Content -->
+  <main class="container">
+
+    <!-- Contact Cards Grid -->
+    <div class="contact-cards">
+      <div class="contact-card">
+        <i class="fas fa-envelope"></i>
+        <h3>Email Support</h3>
+        <p>Send us an email anytime</p>
+        <p style="margin-top: 6px;"><a href="mailto:support@astroeleven.com">support@astroeleven.com</a></p>
+      </div>
+
+      <div class="contact-card">
+        <i class="fas fa-phone-alt"></i>
+        <h3>Helpline & WhatsApp</h3>
+        <p>Mon - Sun, 24/7 Available</p>
+        <p style="margin-top: 6px;"><a href="tel:+919876543210">+91 98765 43210</a></p>
+      </div>
+
+      <div class="contact-card">
+        <i class="fas fa-location-dot"></i>
+        <h3>Office Address</h3>
+        <p>Astro Eleven Technologies</p>
+        <p style="font-size: 0.88rem;">Chennai, Tamil Nadu, India</p>
+      </div>
+    </div>
+
+    <div class="main-grid">
+
+      <!-- Contact Form -->
+      <div class="form-card">
+        <h2 class="form-title"><i class="fas fa-paper-plane" style="color: var(--primary);"></i> Send Us a Message</h2>
+
+        <div id="successAlert" class="successAlert success-alert">
+          <i class="fas fa-check-circle"></i> Thank you! Your message has been sent successfully. Our support team will contact you within 2 hours.
+        </div>
+
+        <form id="contactForm" onsubmit="handleContactSubmit(event)">
+          <div class="form-group">
+            <label for="fullName">Full Name</label>
+            <input type="text" id="fullName" class="form-control" placeholder="Enter your full name" required>
+          </div>
+
+          <div class="form-group">
+            <label for="emailAddr">Email Address</label>
+            <input type="email" id="emailAddr" class="form-control" placeholder="name@example.com" required>
+          </div>
+
+          <div class="form-group">
+            <label for="phoneNum">Mobile Number</label>
+            <input type="tel" id="phoneNum" class="form-control" placeholder="Enter 10-digit mobile number" required>
+          </div>
+
+          <div class="form-group">
+            <label for="subject">Topic / Subject</label>
+            <select id="subject" class="form-control">
+              <option value="General Query">General Query</option>
+              <option value="Wallet / Payment Issue">Wallet / Payment Issue</option>
+              <option value="Consultation Drop">Consultation Drop / Technical Issue</option>
+              <option value="Astrologer Registration">Astrologer Onboarding</option>
+              <option value="Feedback">Feedback / Suggestions</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="message">Message</label>
+            <textarea id="message" class="form-control" placeholder="Describe your question or issue in detail..." required></textarea>
+          </div>
+
+          <button type="submit" class="btn-submit">
+            <i class="fas fa-paper-plane"></i> Send Message
+          </button>
+        </form>
+      </div>
+
+      <!-- Quick Info Side Box -->
+      <div class="form-card" style="background: linear-gradient(135deg, #047857 0%, #065F46 100%); color: white;">
+        <h2 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 20px; color: #FDE68A;">
+          <i class="fas fa-headset"></i> Need Immediate Assistance?
+        </h2>
+        <p style="opacity: 0.9; margin-bottom: 20px; font-size: 0.98rem; line-height: 1.7;">
+          If your live call dropped or you encountered a transaction error while recharging your Astro Eleven wallet, don't worry! All wallet transactions are automatically backed up by our audit service.
+        </p>
+
+        <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+          <h4 style="color: #FCD34D; font-size: 1.05rem; margin-bottom: 8px;">⚡ Fast Track Resolution</h4>
+          <p style="font-size: 0.88rem; opacity: 0.9;">
+            Provide your registered phone number when sending your message so our team can resolve your query instantly.
+          </p>
+        </div>
+
+        <div style="font-size: 0.9rem; opacity: 0.85;">
+          <p><strong>Response Time:</strong> Under 2 hours</p>
+          <p><strong>Support Availability:</strong> 24 Hours / 7 Days a week</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- FAQ Accordion -->
+    <div class="faq-section">
+      <h2 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 25px;">
+        <i class="fas fa-circle-question" style="color: var(--primary);"></i> Frequently Asked Questions
+      </h2>
+
+      <div class="faq-item">
+        <div class="faq-question"><i class="fas fa-wallet"></i> How do I add funds to my Astro Eleven Wallet?</div>
+        <div class="faq-answer">Click on your Profile in the app or website, choose Wallet Recharges, select an amount, and complete payment securely via UPI, Credit/Debit Card, or Netbanking.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question"><i class="fas fa-phone-slash"></i> What happens if my call gets disconnected?</div>
+        <div class="faq-answer">If a call drops due to technical reasons, our system automatically refunds unused minutes back to your Astro Eleven wallet within minutes.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question"><i class="fas fa-user-check"></i> How can an Astrologer register to join Astro Eleven?</div>
+        <div class="faq-answer">Astrologers can apply directly via our website by submitting their credentials or emailing us at support@astroeleven.com for our team verification process.</div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="footer-links">
+      <a href="/desktop-view.html">Home</a>
+      <a href="/about-us.html">About Us</a>
+      <a href="/contact.html">Contact</a>
+      <a href="/blog.html">Blog</a>
+      <a href="/terms-condition.html">Terms & Conditions</a>
+      <a href="/privacy-policy.html">Privacy Policy</a>
+      <a href="/refund-cancellation-policy.html">Refund Policy</a>
+      <a href="/delete-account.html">Delete Account</a>
+    </div>
+    <div>&copy; 2026 Astro Eleven. All rights reserved.</div>
+  </footer>
+
+  <script>
+    function handleContactSubmit(e) {
+      e.preventDefault();
+      document.getElementById('successAlert').style.display = 'block';
+      document.getElementById('contactForm').reset();
+      window.scrollTo({ top: 300, behavior: 'smooth' });
+    }
+  </script>
+</body>
+
+</html>

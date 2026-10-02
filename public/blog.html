@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description"
+    content="Astro Eleven Blog - Read insightful articles on Vedic astrology, KP Rasi charts, planetary transits, horoscope predictions, Vastu tips, and spiritual remedies.">
+  <meta name="keywords" content="astro blog, astrology articles, planetary transit 2026, KP astrology, Kundli tips, Vastu guidance">
+  <meta name="robots" content="index, follow">
+  <meta property="og:title" content="Astro Journal & Blog - Astro Eleven">
+  <meta property="og:description" content="Explore cosmic insights, daily horoscope guidance, and planetary transit analysis on the Astro Eleven Journal.">
+  <title>Astro Journal & Blog - Astro Eleven</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #047857;
+      --primary-dark: #065f46;
+      --accent: #F59E0B;
+      --bg: #FAFAF9;
+      --text: #1F2937;
+      --text-muted: #6B7280;
+      --card-bg: #FFFFFF;
+      --border: #E5E7EB;
+      --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* Header Nav */
+    .site-header {
+      background: white;
+      border-bottom: 1px solid var(--border);
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+    }
+
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 700;
+      font-size: 1.4rem;
+    }
+
+    .brand-logo img {
+      height: 42px;
+    }
+
+    .header-nav {
+      display: flex;
+      gap: 25px;
+      align-items: center;
+    }
+
+    .header-nav a {
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 500;
+      font-size: 0.95rem;
+      transition: color 0.2s;
+    }
+
+    .header-nav a:hover,
+    .header-nav a.active {
+      color: var(--primary);
+    }
+
+    .btn-back {
+      background: var(--primary);
+      color: white;
+      padding: 8px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      text-decoration: none !important;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: transform 0.2s, background 0.2s;
+    }
+
+    .btn-back:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    /* Hero Section */
+    .hero {
+      background: linear-gradient(135deg, #064E3B 0%, #047857 50%, #059669 100%);
+      color: white;
+      padding: 60px 20px;
+      text-align: center;
+    }
+
+    .hero h1 {
+      font-size: 2.6rem;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+
+    .hero p {
+      font-size: 1.1rem;
+      opacity: 0.9;
+      max-width: 650px;
+      margin: 0 auto 25px;
+    }
+
+    /* Search & Filter Bar */
+    .search-box {
+      max-width: 500px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 14px 20px 14px 45px;
+      border-radius: 30px;
+      border: none;
+      font-size: 1rem;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+      outline: none;
+    }
+
+    .search-box i {
+      position: absolute;
+      left: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+    }
+
+    /* Main Container */
+    .container {
+      max-width: 1150px;
+      margin: 40px auto 60px;
+      padding: 0 20px;
+    }
+
+    /* Category Filter Tabs */
+    .category-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 35px;
+    }
+
+    .cat-btn {
+      background: white;
+      border: 1px solid var(--border);
+      padding: 8px 20px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--text);
+      transition: all 0.2s;
+    }
+
+    .cat-btn.active,
+    .cat-btn:hover {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    /* Blog Grid */
+    .blog-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 30px;
+    }
+
+    .blog-card {
+      background: white;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.25s, box-shadow 0.25s;
+    }
+
+    .blog-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12);
+    }
+
+    .card-banner {
+      height: 190px;
+      background-size: cover;
+      background-position: center;
+      position: relative;
+    }
+
+    .card-tag {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      background: rgba(4, 120, 87, 0.9);
+      color: white;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .card-body {
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    .card-meta {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      display: flex;
+      gap: 15px;
+    }
+
+    .card-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      line-height: 1.4;
+      color: var(--text);
+    }
+
+    .card-excerpt {
+      font-size: 0.92rem;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      line-height: 1.6;
+      flex: 1;
+    }
+
+    .btn-read {
+      background: #F3F4F6;
+      color: var(--primary);
+      border: none;
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      align-self: flex-start;
+      transition: all 0.2s;
+    }
+
+    .btn-read:hover {
+      background: var(--primary);
+      color: white;
+    }
+
+    /* Article Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(5px);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 20px;
+      max-width: 800px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 35px;
+      position: relative;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: #F3F4F6;
+      border: none;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+
+    /* Footer */
+    .site-footer {
+      background: #111827;
+      color: #9CA3AF;
+      padding: 40px 20px 25px;
+      text-align: center;
+      font-size: 0.9rem;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .footer-links a {
+      color: #D1D5DB;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover {
+      color: var(--accent);
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Site Header -->
+  <header class="site-header">
+    <a href="/desktop-view.html" class="brand-logo">
+      <img src="images/astroeleven_logo.svg" alt="Astro Eleven Logo">
+    </a>
+    <nav class="header-nav">
+      <a href="/desktop-view.html">Home</a>
+      <a href="/about-us.html">About Us</a>
+      <a href="/blog.html" class="active">Blog</a>
+      <a href="/contact.html">Contact</a>
+      <a href="/privacy-policy.html">Privacy</a>
+    </nav>
+    <a href="/desktop-view.html" class="btn-back">
+      <i class="fas fa-arrow-left"></i> Back to App
+    </a>
+  </header>
+
+  <!-- Hero Banner -->
+  <section class="hero">
+    <h1>🪐 Astro Eleven Cosmic Journal</h1>
+    <p>Discover planetary transits, Vedic Kundli secrets, KP astrology insights, and spiritual remedies curated by expert astrologers.</p>
+
+    <div class="search-box">
+      <i class="fas fa-search"></i>
+      <input type="text" id="searchInput" placeholder="Search astrology topics, planets, transits..." onkeyup="filterArticles()">
+    </div>
+  </section>
+
+  <!-- Main Content -->
+  <main class="container">
+
+    <!-- Category Filter Tabs -->
+    <div class="category-tabs">
+      <button class="cat-btn active" onclick="setCategory('all', this)">All Topics</button>
+      <button class="cat-btn" onclick="setCategory('transits', this)">Planetary Transits</button>
+      <button class="cat-btn" onclick="setCategory('vedic', this)">Vedic Astrology</button>
+      <button class="cat-btn" onclick="setCategory('kp', this)">KP Astrology</button>
+      <button class="cat-btn" onclick="setCategory('vastu', this)">Vastu & Remedies</button>
+    </div>
+
+    <!-- Blog Articles Grid -->
+    <div class="blog-grid" id="blogGrid">
+
+      <!-- Article 1 -->
+      <div class="blog-card" data-cat="transits">
+        <div class="card-banner" style="background-image: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=600&auto=format&fit=crop');">
+          <span class="card-tag">Transits</span>
+        </div>
+        <div class="card-body">
+          <div class="card-meta">
+            <span><i class="far fa-calendar"></i> Feb 10, 2026</span>
+            <span><i class="far fa-clock"></i> 5 min read</span>
+          </div>
+          <h3 class="card-title">Jupiter Transit 2026: Impact on All 12 Rasi Signs</h3>
+          <p class="card-excerpt">Jupiter (Guru) brings expansion, prosperity, and spiritual growth. Learn how the major 2026 transit affects your horoscope, career, and relationships.</p>
+          <button class="btn-read" onclick="openArticle(1)">Read Full Article <i class="fas fa-arrow-right"></i></button>
+        </div>
+      </div>
+
+      <!-- Article 2 -->
+      <div class="blog-card" data-cat="kp">
+        <div class="card-banner" style="background-image: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1532968961962-8a0cb3a2d4f5?w=600&auto=format&fit=crop');">
+          <span class="card-tag">KP Astrology</span>
+        </div>
+        <div class="card-body">
+          <div class="card-meta">
+            <span><i class="far fa-calendar"></i> Feb 05, 2026</span>
+            <span><i class="far fa-clock"></i> 6 min read</span>
+          </div>
+          <h3 class="card-title">Why KP System Offers Unmatched Accuracy in Timing Events</h3>
+          <p class="card-excerpt">Krishnamurti Padhdhati (KP) uses stellar lords and sub-lords to pinpoint exact dates for marriage, job changes, and major life decisions.</p>
+          <button class="btn-read" onclick="openArticle(2)">Read Full Article <i class="fas fa-arrow-right"></i></button>
+        </div>
+      </div>
+
+      <!-- Article 3 -->
+      <div class="blog-card" data-cat="vastu">
+        <div class="card-banner" style="background-image: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&auto=format&fit=crop');">
+          <span class="card-tag">Vastu</span>
+        </div>
+        <div class="card-body">
+          <div class="card-meta">
+            <span><i class="far fa-calendar"></i> Jan 28, 2026</span>
+            <span><i class="far fa-clock"></i> 4 min read</span>
+          </div>
+          <h3 class="card-title">Top 7 Vastu Shastra Tips for Household Harmony</h3>
+          <p class="card-excerpt">Simple, practical changes in your living space can balance energy flow, remove negative vibes, and attract prosperity into your home.</p>
+          <button class="btn-read" onclick="openArticle(3)">Read Full Article <i class="fas fa-arrow-right"></i></button>
+        </div>
+      </div>
+
+      <!-- Article 4 -->
+      <div class="blog-card" data-cat="vedic">
+        <div class="card-banner" style="background-image: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop');">
+          <span class="card-tag">Vedic Astrology</span>
+        </div>
+        <div class="card-body">
+          <div class="card-meta">
+            <span><i class="far fa-calendar"></i> Jan 20, 2026</span>
+            <span><i class="far fa-clock"></i> 7 min read</span>
+          </div>
+          <h3 class="card-title">Understanding Rahu-Ketu Dasha: Remedial Guide</h3>
+          <p class="card-excerpt">Rahu and Ketu represent shadow energies. Discover how to navigate their Mahadasha period with specific mantras, gemstone advice, and remedies.</p>
+          <button class="btn-read" onclick="openArticle(4)">Read Full Article <i class="fas fa-arrow-right"></i></button>
+        </div>
+      </div>
+
+      <!-- Article 5 -->
+      <div class="blog-card" data-cat="vedic">
+        <div class="card-banner" style="background-image: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600&auto=format&fit=crop');">
+          <span class="card-tag">Vedic Astrology</span>
+        </div>
+        <div class="card-body">
+          <div class="card-meta">
+            <span><i class="far fa-calendar"></i> Jan 12, 2026</span>
+            <span><i class="far fa-clock"></i> 5 min read</span>
+          </div>
+          <h3 class="card-title">Navamsa (D9) Chart: The Mirror of Soul & Marriage</h3>
+          <p class="card-excerpt">While D1 Rasi chart shows your physical life, D9 Navamsa reveals your internal strength, marital bliss, and spiritual evolution after age 30.</p>
+          <button class="btn-read" onclick="openArticle(5)">Read Full Article <i class="fas fa-arrow-right"></i></button>
+        </div>
+      </div>
+
+      <!-- Article 6 -->
+      <div class="blog-card" data-cat="vastu">
+        <div class="card-banner" style="background-image: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1514533450685-4493e01d1fdc?w=600&auto=format&fit=crop');">
+          <span class="card-tag">Remedies</span>
+        </div>
+        <div class="card-body">
+          <div class="card-meta">
+            <span><i class="far fa-calendar"></i> Jan 04, 2026</span>
+            <span><i class="far fa-clock"></i> 4 min read</span>
+          </div>
+          <h3 class="card-title">Essential Mantras for Daily Peace and Positive Energy</h3>
+          <p class="card-excerpt">Chanting planetary mantras at sunrise helps align your mind with universal cosmic vibrations and clears obstacles from your path.</p>
+          <button class="btn-read" onclick="openArticle(6)">Read Full Article <i class="fas fa-arrow-right"></i></button>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Article Modal -->
+  <div class="modal-overlay" id="articleModal">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeArticle()"><i class="fas fa-times"></i></button>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="footer-links">
+      <a href="/desktop-view.html">Home</a>
+      <a href="/about-us.html">About Us</a>
+      <a href="/contact.html">Contact</a>
+      <a href="/blog.html">Blog</a>
+      <a href="/terms-condition.html">Terms & Conditions</a>
+      <a href="/privacy-policy.html">Privacy Policy</a>
+      <a href="/refund-cancellation-policy.html">Refund Policy</a>
+    </div>
+    <div>&copy; 2026 Astro Eleven. All rights reserved.</div>
+  </footer>
+
+  <script>
+    const articleData = {
+      1: {
+        title: "Jupiter Transit 2026: Impact on All 12 Rasi Signs",
+        date: "February 10, 2026",
+        cat: "Planetary Transits",
+        content: `
+          <p>Jupiter (Brihaspati) is considered the most beneficent planet in Vedic Astrology, symbolizing wisdom, higher learning, wealth, and spiritual growth. The 2026 transit of Jupiter introduces dynamic planetary shifts that reorder financial prospects and career stability across all 12 signs.</p>
+          <h4 style="margin: 20px 0 10px; color: var(--primary);">Key Highlights by Sign:</h4>
+          <ul>
+            <li style="margin-bottom:8px;"><strong>Mesha (Aries):</strong> Favorable for financial gains and career advancement.</li>
+            <li style="margin-bottom:8px;"><strong>Vrishabha (Taurus):</strong> Auspicious for family expansions, property investments, and long-distance travel.</li>
+            <li style="margin-bottom:8px;"><strong>Mithuna (Gemini):</strong> Spiritual inclinations strengthen with significant educational accomplishments.</li>
+            <li style="margin-bottom:8px;"><strong>Kataka (Cancer):</strong> Jupiter entering exalted positions brings luck and marriage prospects for eligible individuals.</li>
+          </ul>
+          <p style="margin-top: 15px;">Consult an Astro Eleven verified astrologer today to get a detailed personalized report based on your exact birth lagna!</p>
+        `
+      },
+      2: {
+        title: "Why KP System Offers Unmatched Accuracy in Timing Events",
+        date: "February 05, 2026",
+        cat: "KP Astrology",
+        content: `
+          <p>Krishnamurti Padhdhati (KP System) revolutionized classical Vedic astrology by introducing the concept of Nakshatra Sub-Lords. Unlike traditional systems that rely heavily on planetary aspects, KP astrology analyzes precise cuspal positions to deliver accurate yes/no answers and timing of events.</p>
+          <h4 style="margin: 20px 0 10px; color: var(--primary);">The Power of Sub-Lords:</h4>
+          <p>In KP System, each star (Nakshatra) is divided into 9 sub-divisions ruled by different sub-lords. The sub-lord determines whether a planet will deliver positive or negative results during its Dasha period.</p>
+        `
+      },
+      3: {
+        title: "Top 7 Vastu Shastra Tips for Household Harmony",
+        date: "January 28, 2026",
+        cat: "Vastu",
+        content: `
+          <p>Vastu Shastra balances the five cosmic elements (Earth, Water, Fire, Air, Space) within your living environment. Simple realignment of household items can relieve mental stress and boost income flow.</p>
+          <ol style="padding-left: 20px; margin-top: 10px;">
+            <li style="margin-bottom: 8px;">Keep the North-East zone of your house clutter-free and clean.</li>
+            <li style="margin-bottom: 8px;">Place your bed such that your head points South or East while sleeping.</li>
+            <li style="margin-bottom: 8px;">Ensure the entrance doorway is bright and well-lit.</li>
+          </ol>
+        `
+      },
+      4: {
+        title: "Understanding Rahu-Ketu Dasha: Remedial Guide",
+        date: "January 20, 2026",
+        cat: "Vedic Astrology",
+        content: `
+          <p>Rahu and Ketu are lunar nodes that drive karmic destiny. While Rahu creates worldly desires and rapid career shifts, Ketu detachment leads to spiritual awakening. Navigating their Dasha requires balanced remedies such as daily chanting of Durga Saptashati and Rahu Stotram.</p>
+        `
+      },
+      5: {
+        title: "Navamsa (D9) Chart: The Mirror of Soul & Marriage",
+        date: "January 12, 2026",
+        cat: "Vedic Astrology",
+        content: `
+          <p>The D9 Navamsa chart is considered the most crucial divisional chart in Vedic Astrology. It acts as a supporting pillar to the D1 Rasi chart, confirming planetary strength and shedding light on your spouse's characteristics and marital bond after marriage.</p>
+        `
+      },
+      6: {
+        title: "Essential Mantras for Daily Peace and Positive Energy",
+        date: "January 04, 2026",
+        cat: "Remedies",
+        content: `
+          <p>Chanting sacred Vedic mantras at sunrise elevates mental clarity and shields you from negative planetary influences. Mantras like Gayatri Mantra and Maha Mrityunjaya Mantra produce powerful sound frequencies that restore physical and mental well-being.</p>
+        `
+      }
+    };
+
+    function openArticle(id) {
+      const art = articleData[id];
+      if (!art) return;
+      document.getElementById('modalBody').innerHTML = `
+        <span style="display:inline-block; background:rgba(4,120,87,0.1); color:var(--primary); padding:4px 12px; border-radius:10px; font-weight:700; font-size:0.85rem; margin-bottom:12px;">${art.cat}</span>
+        <h2 style="font-size:1.8rem; font-weight:800; margin-bottom:10px; line-height:1.3;">${art.title}</h2>
+        <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:20px;"><i class="far fa-calendar"></i> Published ${art.date}</div>
+        <div style="font-size:1.02rem; line-height:1.7; color:#374151;">${art.content}</div>
+      `;
+      document.getElementById('articleModal').style.display = 'flex';
+    }
+
+    function closeArticle() {
+      document.getElementById('articleModal').style.display = 'none';
+    }
+
+    function setCategory(cat, btn) {
+      document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const cards = document.querySelectorAll('.blog-card');
+      cards.forEach(card => {
+        if (cat === 'all' || card.dataset.cat === cat) {
+          card.style.display = 'flex';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+
+    function filterArticles() {
+      const query = document.getElementById('searchInput').value.toLowerCase();
+      const cards = document.querySelectorAll('.blog-card');
+      cards.forEach(card => {
+        const text = card.innerText.toLowerCase();
+        if (text.includes(query)) {
+          card.style.display = 'flex';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+  </script>
+</body>
+
+</html>

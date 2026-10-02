@@ -379,6 +379,7 @@ fun HomeScreen(
     var showReferralDialog by remember { mutableStateOf(false) }
     var showPoojaDialog by remember { mutableStateOf(false) }
     var adsBannerImageUrl by remember { mutableStateOf<String?>(null) }
+    var adsBannerLinkUrl by remember { mutableStateOf<String?>(null) }
     var referralInput by remember { mutableStateOf("") }
     var isApplyingReferral by remember { mutableStateOf(false) }
     var selectedLiveAstro by remember { mutableStateOf<Astrologer?>(null) }
@@ -402,7 +403,7 @@ fun HomeScreen(
     var referralBannerTitle by remember { mutableStateOf("Refer Your Friend & Earn Upto ₹5000") }
     var referralBannerImage by remember { mutableStateOf("") }
     var customRasiIcons by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
-    var matrimonialUrl by remember { mutableStateOf("https://play.google.com/store/apps/details?id=com.astroeleven.app") }
+    var matrimonialUrl by remember { mutableStateOf("https://play.google.com/store/apps/details?id=com.webstormers.mithra_matrimony") }
 
     LaunchedEffect(Unit) {
         try {
@@ -426,6 +427,9 @@ fun HomeScreen(
                                 val data = json.getAsJsonObject("data")
                                 if (data.has("imageUrl")) {
                                     adsBannerImageUrl = data.get("imageUrl").getAsString()
+                                }
+                                if (data.has("linkUrl")) {
+                                    adsBannerLinkUrl = data.get("linkUrl").getAsString()
                                 }
                             }
                         }
@@ -523,6 +527,19 @@ fun HomeScreen(
         }
     }
 
+    val openLink = remember(context) {
+        { url: String ->
+            if (url.isNotEmpty()) {
+                try {
+                    val targetUrl = if (url.startsWith("http://") || url.startsWith("https://")) url else "https://$url"
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(targetUrl))
+                    context.startActivity(intent)
+                } catch (e: Exception) {
+                    Toast.makeText(context, "Opening link...", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
 
     // Language State (Default English)
     var isTamil by rememberSaveable { mutableStateOf(false) }
@@ -1071,6 +1088,8 @@ fun HomeScreen(
                             customRasiIcons = customRasiIcons,
                             onAstroClick = { selectedLiveAstro = it },
                             onViewAllClick = { selectedTab = 1; selectedFilter = "All" },
+                            searchQuery = searchQuery,
+                            onSearchQueryChange = { searchQuery = it },
                             onAction = { action ->
                                 if (action == "referral") {
                                     selectedTab = 4
@@ -1078,6 +1097,9 @@ fun HomeScreen(
                                     showReferralDialog = true
                                 } else if (action == "shop") {
                                     selectedTab = 2
+                                } else if (action.startsWith("filter_")) {
+                                    selectedFilter = action.removePrefix("filter_")
+                                    selectedTab = 1
                                 } else if (action == "remedies") {
                                     val intent = Intent(context, com.astroeleven.app.ui.rituals.RemediesActivity::class.java)
                                     context.startActivity(intent)
@@ -1102,7 +1124,20 @@ fun HomeScreen(
                                 }
                             }
                         )
-                        1 -> ConsultTab(filteredAstros, { astro -> checkBalanceAndProceed { onChatClick(astro) } }, { astro, type -> checkBalanceAndProceed { onCallClick(astro, type) } }, isTamil, searchQuery, { searchQuery = it }, selectedFilter, activeServiceView, adsBannerImageUrl = adsBannerImageUrl, onBack = { activeServiceView = null; selectedFilter = "All"; selectedTab = 0 })
+                        1 -> ConsultTab(
+                            astrologers = filteredAstros,
+                            onChatClick = { astro -> checkBalanceAndProceed { onChatClick(astro) } },
+                            onCallClick = { astro, type -> checkBalanceAndProceed { onCallClick(astro, type) } },
+                            isTamil = isTamil,
+                            searchQuery = searchQuery,
+                            onSearchChange = { searchQuery = it },
+                            selectedFilter = selectedFilter,
+                            activeServiceView = activeServiceView,
+                            adsBannerImageUrl = adsBannerImageUrl,
+                            adsBannerLinkUrl = adsBannerLinkUrl,
+                            openLink = openLink,
+                            onBack = { activeServiceView = null; selectedFilter = "All"; selectedTab = 0 }
+                        )
                         3 -> ProfileTab(walletBalance, isTamil, onWalletClick, onDrawerItemClick, onLogoutClick)
                         4 -> ReferralTab(referralCode, shareLink, isTamil, isNewUser, onApplyReferral)
                     }
@@ -1258,6 +1293,8 @@ fun LazyListScope.HomeTab(
     customRasiIcons: Map<String, String> = emptyMap(),
     onAstroClick: (Astrologer) -> Unit,
     onViewAllClick: () -> Unit,
+    searchQuery: String = "",
+    onSearchQueryChange: (String) -> Unit = {},
     onAction: (String) -> Unit
 ) {
     // 1. Services Section (Top Icons - Horoscope, Match, etc.)
@@ -1274,6 +1311,15 @@ fun LazyListScope.HomeTab(
             onShareClick = { onAction("referral_share") },
             referralBannerTitle = referralBannerTitle,
             referralBannerImage = referralBannerImage
+        )
+    }
+
+    // 2.2 Astrologer Search Box (Under ads banner slider)
+    item {
+        SearchBarSection(
+            searchQuery = searchQuery,
+            onSearchQueryChange = onSearchQueryChange,
+            isTamil = isTamil
         )
     }
 
@@ -1311,15 +1357,27 @@ fun LazyListScope.HomeTab(
         LiveAstrologersSection(filteredAstros, onAstroClick, onViewAllClick, isTamil)
     }
 
-    // 4. Must Try Astrologers list showing all astrologers
+    // 4. Astrologer Category Filter Chips & Section Header
     item {
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = if (isTamil) "முயற்சி செய்ய வேண்டிய ஜோதிடர்கள்" else "Must Try Astrologers",
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
-            color = CosmicAppTheme.colors.textPrimary,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Column(modifier = Modifier.fillMaxWidth()) {
+            val categoryTags = listOf(
+                "All", "Love", "Business", "Career", "Marriage", "Finance", "Health", "Vedic", "Tarot", "Numerology"
+            )
+            FilterBar(
+                filters = categoryTags,
+                selectedFilter = selectedFilter,
+                onFilterSelected = { filter ->
+                    onAction("filter_$filter")
+                }
+            )
+            Text(
+                text = if (isTamil) "முயற்சி செய்ய வேண்டிய ஜோதிடர்கள்" else "Must Try Astrologers",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
+                color = CosmicAppTheme.colors.textPrimary,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+            )
+        }
     }
 
     if (isLoading) {
@@ -1768,8 +1826,35 @@ fun LazyListScope.ConsultTab(
     selectedFilter: String = "All",
     activeServiceView: String? = null,
     adsBannerImageUrl: String? = null,
+    adsBannerLinkUrl: String? = null,
+    openLink: (String) -> Unit = {},
     onBack: () -> Unit = {}
 ) {
+    // Search Bar at the top of Consult Tab
+    item {
+        SearchBarSection(
+            searchQuery = searchQuery,
+            onSearchQueryChange = onSearchChange,
+            isTamil = isTamil
+        )
+    }
+
+    // Filter Bar for Consult Tab
+    item {
+        Spacer(modifier = Modifier.height(4.dp))
+        val categoryTags = listOf(
+            "All", "Love", "Business", "Career", "Marriage", "Finance", "Health", "Vedic", "Tarot", "Numerology"
+        )
+        // Render FilterBar inside ConsultTab
+        FilterBar(
+            filters = categoryTags,
+            selectedFilter = selectedFilter,
+            onFilterSelected = { filter ->
+                // Switch filter dynamically
+            }
+        )
+    }
+
     if (activeServiceView != null) {
         item {
             Row(
@@ -1807,6 +1892,11 @@ fun LazyListScope.ConsultTab(
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                         .height(130.dp)
                         .shadow(4.dp, RoundedCornerShape(16.dp))
+                        .clickable {
+                            if (!adsBannerLinkUrl.isNullOrEmpty()) {
+                                openLink(adsBannerLinkUrl)
+                            }
+                        }
                 ) {
                     AsyncImage(
                         model = getImageUrl(adsBannerImageUrl),
@@ -2085,8 +2175,8 @@ fun HomeTopBar(
                             .border(1.dp, Color(0xFFB3262A), CircleShape) // Crimson border
                     ) {
                         Image(
-                            painter = painterResource(id = com.astroeleven.app.R.drawable.app_logo),
-                            contentDescription = "Logo",
+                            painter = painterResource(id = com.astroeleven.app.R.drawable.app_icon_final),
+                            contentDescription = "App Icon",
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Fit
                         )
@@ -4179,13 +4269,19 @@ fun CalendarSection(isTamil: Boolean) {
                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                     onClick = {
                         if (type == "today") {
-                            val intent = Intent(context, com.astroeleven.app.ui.calendar.CalendarActivity::class.java)
+                            val intent = Intent(context, com.astroeleven.app.ui.calendar.CalendarActivity::class.java).apply {
+                                putExtra("selectedTab", 0)
+                            }
                             context.startActivity(intent)
                         } else if (type == "monthly") {
-                            val intent = Intent(context, com.astroeleven.app.ui.calendar.MonthlyCalendarActivity::class.java)
+                            val intent = Intent(context, com.astroeleven.app.ui.calendar.CalendarActivity::class.java).apply {
+                                putExtra("selectedTab", 1)
+                            }
                             context.startActivity(intent)
                         } else if (type == "muhurtham") {
-                            val intent = Intent(context, com.astroeleven.app.ui.calendar.MuhurthamActivity::class.java)
+                            val intent = Intent(context, com.astroeleven.app.ui.calendar.CalendarActivity::class.java).apply {
+                                putExtra("selectedTab", 1)
+                            }
                             context.startActivity(intent)
                         }
                     },
@@ -4296,3 +4392,57 @@ fun PromoBannersSection(isTamil: Boolean, onAction: (String) -> Unit) {
         }
     }
 }
+
+@Composable
+fun SearchBarSection(
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    isTamil: Boolean,
+    modifier: Modifier = Modifier
+) {
+    OutlinedTextField(
+        value = searchQuery,
+        onValueChange = onSearchQueryChange,
+        placeholder = {
+            Text(
+                text = if (isTamil) "ஜோதிடர் பெயர்..." else "Search Astrologer Name...",
+                color = Color.Gray.copy(alpha = 0.7f),
+                fontSize = 13.sp
+            )
+        },
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Rounded.Search,
+                contentDescription = "Search Icon",
+                tint = Color(0xFFB3262A),
+                modifier = Modifier.size(20.dp)
+            )
+        },
+        trailingIcon = {
+            if (searchQuery.isNotEmpty()) {
+                IconButton(onClick = { onSearchQueryChange("") }) {
+                    Icon(
+                        imageVector = Icons.Rounded.Clear,
+                        contentDescription = "Clear",
+                        tint = Color.Gray,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+        },
+        modifier = modifier
+            .fillMaxWidth()
+            .height(48.dp)
+            .padding(horizontal = 16.dp, vertical = 0.dp),
+        singleLine = true,
+        shape = RoundedCornerShape(10.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = Color.White,
+            unfocusedContainerColor = Color.White,
+            focusedBorderColor = Color(0xFFB3262A),
+            unfocusedBorderColor = Color.LightGray.copy(alpha = 0.5f),
+            cursorColor = Color(0xFFB3262A)
+        )
+    )
+}
+

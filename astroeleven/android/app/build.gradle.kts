@@ -11,13 +11,13 @@ plugins {
 
 android {
     namespace = "com.astroeleven.app"
-    compileSdk = 35
+    compileSdk = 36
     defaultConfig {
         applicationId = "com.astroeleven.app"
         minSdk = 24
-        targetSdk = 35
-        versionCode = 18
-        versionName = "1.8.0"
+        targetSdk = 36
+        versionCode = 36
+        versionName = "1.0.0"
 
 
         ndk {

@@ -18,7 +18,11 @@ import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.material.icons.rounded.VideoCall
 import androidx.compose.material3.*
 import androidx.compose.ui.platform.LocalContext
@@ -123,6 +127,8 @@ fun AstrologerProfileScreen(
     val peacockTeal = Color(0xFFE87A1E)
     val yellowAccent = Color(0xFFFFD54F)
 
+    var isLiked by remember { mutableStateOf(false) }
+
     val systemUiController = remember { (context as? Activity)?.window }
     SideEffect {
         systemUiController?.statusBarColor = android.graphics.Color.parseColor("#E87A1E")
@@ -139,7 +145,29 @@ fun AstrologerProfileScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = {}) {
+                    IconButton(onClick = {
+                        isLiked = !isLiked
+                        android.widget.Toast.makeText(
+                            context,
+                            if (isLiked) "Added $name to Favorites ❤️" else "Removed $name from Favorites",
+                            android.widget.Toast.LENGTH_SHORT
+                        ).show()
+                    }) {
+                        Icon(
+                            imageVector = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = "Favorite",
+                            tint = if (isLiked) Color(0xFFFF4081) else Color.White
+                        )
+                    }
+                    IconButton(onClick = {
+                        val shareText = "Consult with ${name} on Astro Eleven: https://astroeleven.in/?astro=${id}"
+                        val sendIntent = android.content.Intent().apply {
+                            action = android.content.Intent.ACTION_SEND
+                            putExtra(android.content.Intent.EXTRA_TEXT, shareText)
+                            type = "text/plain"
+                        }
+                        context.startActivity(android.content.Intent.createChooser(sendIntent, "Share Astrologer Profile"))
+                    }) {
                         Icon(Icons.Default.Share, "Share", tint = Color.White)
                     }
                 },
@@ -378,11 +406,18 @@ fun AstrologerProfileScreen(
                 Spacer(modifier = Modifier.height(20.dp))
 
                 Button(
-                    onClick = { /* Action */ },
+                    onClick = {
+                        isLiked = !isLiked
+                        android.widget.Toast.makeText(
+                            context,
+                            if (isLiked) "Following $name ❤️" else "Unfollowed $name",
+                            android.widget.Toast.LENGTH_SHORT
+                        ).show()
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE87A1E)),
+                    colors = ButtonDefaults.buttonColors(containerColor = if (isLiked) Color(0xFF2E7D32) else Color(0xFFE87A1E)),
                     shape = RoundedCornerShape(AstroDimens.RadiusMedium)
                 ) {
                     Row(
@@ -390,14 +425,14 @@ fun AstrologerProfileScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Default.FavoriteBorder,
+                            imageVector = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                             contentDescription = null,
                             tint = Color.White,
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Subscribe to $name",
+                            text = if (isLiked) "Following $name" else "Follow $name",
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
                             fontSize = 16.sp

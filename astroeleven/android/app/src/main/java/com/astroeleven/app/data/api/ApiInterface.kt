@@ -46,6 +46,15 @@ interface ApiInterface {
     @retrofit2.http.GET("api/home/banners")
     suspend fun getBanners(): Response<com.astroeleven.app.data.model.BannerResponse>
 
+    @retrofit2.http.GET("api/admin/banners")
+    suspend fun getAdminBanners(): Response<com.google.gson.JsonObject>
+
+    @POST("api/admin/banners")
+    suspend fun addBanner(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+
+    @retrofit2.http.DELETE("api/admin/banners/{id}")
+    suspend fun deleteBanner(@retrofit2.http.Path("id") id: String): Response<com.google.gson.JsonObject>
+
     @retrofit2.http.GET("api/home/ads-banner")
     suspend fun getAdsBanner(): Response<com.google.gson.JsonObject>
 

@@ -5,6 +5,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Astro Eleven - Super Admin</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="apple-touch-icon" href="/favicon.png">
     <link rel="icon" type="image/svg+xml" href="images/astroeleven_icon.svg">
     <link
         href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Outfit:wght@300;400;500;600;700&display=swap"
@@ -84,6 +86,25 @@
                         <span class="status-pill"><i class="fas fa-magic"></i> Free Horoscope: <b style="color:#10B981;">Online</b></span>
                         <span class="status-pill"><i class="fas fa-heart"></i> Free Match: <b style="color:#10B981;">Online</b></span>
                         <span class="status-pill"><i class="fas fa-server"></i> Server: <b style="color:#10B981;">Healthy</b></span>
+                    </div>
+                </div>
+
+                <!-- Overview Day & Custom Date Filter (Item 13) -->
+                <div style="margin: 15px 0 20px 0; background: var(--bg-card); border: 1px solid var(--border-soft); border-radius: 12px; padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between;">
+                    <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                        <span style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-right:4px;">Period:</span>
+                        <button class="c-tab active" id="btnFilterAll" onclick="setOverviewDateFilter('all', this)" style="padding:4px 10px; font-size:0.75rem;">All Time</button>
+                        <button class="c-tab" id="btnFilterToday" onclick="setOverviewDateFilter('today', this)" style="padding:4px 10px; font-size:0.75rem;">Today</button>
+                        <button class="c-tab" id="btnFilterYesterday" onclick="setOverviewDateFilter('yesterday', this)" style="padding:4px 10px; font-size:0.75rem;">Yesterday</button>
+                        <button class="c-tab" id="btnFilter7Days" onclick="setOverviewDateFilter('7days', this)" style="padding:4px 10px; font-size:0.75rem;">Last 7 Days</button>
+                        <button class="c-tab" id="btnFilter30Days" onclick="setOverviewDateFilter('30days', this)" style="padding:4px 10px; font-size:0.75rem;">This Month</button>
+                        <button class="c-tab" id="btnFilterCustom" onclick="toggleCustomDateRow(this)" style="padding:4px 10px; font-size:0.75rem;"><i class="fas fa-calendar-alt"></i> Custom Range</button>
+                    </div>
+                    <div id="overviewCustomDateRow" style="display:none; align-items:center; gap:8px;">
+                        <input type="date" id="overviewStartDate" class="app-input" style="padding:3px 8px; font-size:0.75rem; width:130px; margin:0; height:32px;">
+                        <span style="color:var(--text-dim); font-size:0.75rem;">to</span>
+                        <input type="date" id="overviewEndDate" class="app-input" style="padding:3px 8px; font-size:0.75rem; width:130px; margin:0; height:32px;">
+                        <button onclick="applyCustomOverviewFilter()" class="btn-admin" style="height:32px; padding:0 12px; font-size:0.75rem; background:var(--primary); color:#000; margin:0; font-weight:bold;">Apply</button>
                     </div>
                 </div>
                 
@@ -314,9 +335,18 @@
             <!-- Tab Users: Client Management -->
             <div id="admin-sect-users" class="admin-tab-section">
                 <h2 style="margin-bottom:20px;"><i class="fas fa-users"></i> Client Management</h2>
-                <div style="margin-bottom:20px;">
+                
+                <!-- Client Filter Bar: Search, City, DOB & CSV Download (Item 17) -->
+                <div style="margin-bottom:20px; display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) auto; gap:10px; align-items:center;">
                     <input type="text" id="adminUserSearch" oninput="searchAdminUsers()"
-                        placeholder="Search clients by name or phone..." class="app-input">
+                        placeholder="Search name, phone, or ID..." class="app-input" style="margin:0;">
+                    <input type="text" id="adminUserCity" oninput="searchAdminUsers()"
+                        placeholder="Filter City / POB..." class="app-input" style="margin:0;">
+                    <input type="text" id="adminUserDob" oninput="searchAdminUsers()"
+                        placeholder="Filter DOB (YYYY-MM-DD)..." class="app-input" style="margin:0;">
+                    <button onclick="exportClientsCSV()" class="btn-admin" style="background:#10B981; color:#FFFFFF; font-weight:bold; height:42px; display:flex; align-items:center; gap:8px; padding:0 18px; margin:0; border-radius:8px; cursor:pointer;" title="Download Filtered Users as CSV">
+                        <i class="fas fa-file-csv"></i> Download CSV
+                    </button>
                 </div>
                 <div id="adminClientList" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap:15px;">
                     <div class="loader"></div>
@@ -550,6 +580,9 @@
                         </div>
                         <small style="color:var(--text-dim); font-size:0.65rem; margin-top:4px; display:block;">Recommended: 1200 × 400 px (3:1 ratio) · JPG/PNG/WebP</small>
                     </div>
+                    <div style="margin-bottom:15px;">
+                        <input type="text" id="adsBannerLinkUrl" class="app-input" placeholder="Click Redirect URL (e.g. https://...)">
+                    </div>
 
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:20px; align-items:end;">
                         <input type="text" id="adsBannerCta" class="app-input" placeholder="CTA Button Text (e.g. Call Now)">
@@ -608,6 +641,10 @@
                             </button>
                         </div>
                         <small style="color:var(--text-dim); font-size:0.65rem; margin-top:4px; display:block;">Recommended: 1200 × 400 px (3:1 ratio) · JPG/PNG/WebP</small>
+                    </div>
+
+                    <div style="margin-bottom:15px;">
+                        <input type="text" id="bannerLinkUrl" class="app-input" placeholder="Click Redirect URL (e.g. https://...)">
                     </div>
 
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
@@ -1399,28 +1436,26 @@
         let pendingPage = 1, pendingLimit = 10, pendingTotal = 0, pendingSearch = '';
         let historyPage = 1, historyLimit = 10, historyTotal = 0, historySearch = '', historyType = 'all';
 
-        // Boot
         function init() {
             console.log('Initializing Super Admin Dashboard...');
             const saved = localStorage.getItem('astro_session');
-            if (!saved) {
-                console.log('No session found, redirecting to home.');
-                return location.href = '/';
+            let session = null;
+            if (saved) {
+                try {
+                    session = JSON.parse(saved);
+                } catch (e) {
+                    localStorage.removeItem('astro_session');
+                }
             }
 
-            let session;
-            try {
-                session = JSON.parse(saved);
-            } catch (e) {
-                console.error('Session parse error', e);
-                localStorage.removeItem('astro_session');
-                return location.href = '/';
+            if (!session || (session.role !== 'superadmin' && session.role !== 'admin')) {
+                console.log('No valid superadmin session found. Displaying Permit Login Modal.');
+                showAdminAuthModal();
+                return;
             }
 
-            if (session.role !== 'superadmin' && session.role !== 'admin') {
-                console.log('User is not superadmin, redirecting.');
-                return location.href = '/';
-            }
+            const authModal = document.getElementById('admin-permit-modal');
+            if (authModal) authModal.remove();
 
             state.me = session;
 
@@ -1433,12 +1468,79 @@
                     updateTime();
                 } else {
                     console.error('Registration failed:', ack);
-                    alert('Session expired or invalid. Please login again.');
                     localStorage.removeItem('astro_session');
-                    location.href = '/';
+                    showAdminAuthModal('Session expired or invalid. Please authenticate again.');
                 }
             });
         }
+
+        window.showAdminAuthModal = function(msg) {
+            let modal = document.getElementById('admin-permit-modal');
+            if (modal) modal.remove();
+
+            modal = document.createElement('div');
+            modal.id = 'admin-permit-modal';
+            modal.style.cssText = `
+                position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px);
+                display: flex; align-items: center; justify-content: center; z-index: 999999;
+            `;
+            modal.innerHTML = `
+                <div style="background: #111827; border: 1px solid #D4AF37; border-radius: 16px; padding: 30px; width: 90%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; color: #fff;">
+                    <div style="margin-bottom: 12px;">
+                        <img src="/images/welcome_logo.png" alt="Astro Eleven" style="max-width: 190px; width: 75%; height: auto; display: inline-block;">
+                    </div>
+                    <h2 style="margin: 0 0 8px 0; color: #D4AF37; font-size: 1.3rem;">Super Admin Permit</h2>
+                    <p style="font-size: 0.82rem; color: #9CA3AF; margin-bottom: 20px;">${msg || 'Enter your authorized credentials to access Astro Eleven Admin Portal'}</p>
+                    <div style="text-align: left; margin-bottom: 15px;">
+                        <label style="font-size: 0.75rem; color: #D1D5DB; display: block; margin-bottom: 5px;">Admin Mobile Number</label>
+                        <input type="text" id="adminPermitPhone" value="9876543210" placeholder="Mobile Number" style="width: 100%; box-sizing: border-box; padding: 12px; border-radius: 8px; border: 1px solid #374151; background: #1F2937; color: #fff; font-size: 0.95rem;">
+                    </div>
+                    <div style="text-align: left; margin-bottom: 20px;">
+                        <label style="font-size: 0.75rem; color: #D1D5DB; display: block; margin-bottom: 5px;">Master Passkey / PIN</label>
+                        <input type="password" id="adminPermitPin" value="1369" placeholder="Enter PIN" style="width: 100%; box-sizing: border-box; padding: 12px; border-radius: 8px; border: 1px solid #374151; background: #1F2937; color: #fff; font-size: 0.95rem;">
+                    </div>
+                    <button id="btnAdminPermitSubmit" onclick="submitAdminPermit()" style="width: 100%; padding: 12px; border: none; border-radius: 8px; background: linear-gradient(135deg, #D4AF37, #AA771C); color: #000; font-weight: bold; font-size: 1rem; cursor: pointer; transition: opacity 0.2s;">
+                        Authorize & Enter
+                    </button>
+                    <div style="margin-top: 15px;">
+                        <a href="/" style="font-size: 0.75rem; color: #9CA3AF; text-decoration: none;">← Return to Main Site</a>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        };
+
+        window.submitAdminPermit = async function() {
+            const phone = document.getElementById('adminPermitPhone').value.trim();
+            const otp = document.getElementById('adminPermitPin').value.trim();
+            const btn = document.getElementById('btnAdminPermitSubmit');
+            if (!phone || !otp) return alert('Please enter phone and passkey');
+            btn.disabled = true;
+            btn.innerText = 'Verifying...';
+
+            try {
+                const res = await fetch('/api/verify-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone, otp })
+                }).then(r => r.json());
+
+                if (res.ok && (res.role === 'superadmin' || res.role === 'admin')) {
+                    localStorage.setItem('astro_session', JSON.stringify(res));
+                    const modal = document.getElementById('admin-permit-modal');
+                    if (modal) modal.remove();
+                    init();
+                } else {
+                    alert(res.error || 'Access Denied: Not authorized as Super Admin.');
+                    btn.disabled = false;
+                    btn.innerText = 'Authorize & Enter';
+                }
+            } catch (e) {
+                alert('Connection error. Please try again.');
+                btn.disabled = false;
+                btn.innerText = 'Authorize & Enter';
+            }
+        };
 
         function loadData() {
             fetchAdminStats();
@@ -1449,8 +1551,44 @@
             loadPendingAstrologers();
         }
 
+        let currentOverviewFilter = 'all';
+        let overviewCustomStart = '';
+        let overviewCustomEnd = '';
+
+        window.setOverviewDateFilter = (filter, btn) => {
+            currentOverviewFilter = filter;
+            document.querySelectorAll('#btnFilterAll, #btnFilterToday, #btnFilterYesterday, #btnFilter7Days, #btnFilter30Days, #btnFilterCustom').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            const customRow = document.getElementById('overviewCustomDateRow');
+            if (customRow) customRow.style.display = 'none';
+            fetchAdminStats();
+        };
+
+        window.toggleCustomDateRow = (btn) => {
+            document.querySelectorAll('#btnFilterAll, #btnFilterToday, #btnFilterYesterday, #btnFilter7Days, #btnFilter30Days, #btnFilterCustom').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            const row = document.getElementById('overviewCustomDateRow');
+            if (row) {
+                row.style.display = (row.style.display === 'flex') ? 'none' : 'flex';
+            }
+        };
+
+        window.applyCustomOverviewFilter = () => {
+            const s = document.getElementById('overviewStartDate')?.value;
+            const e = document.getElementById('overviewEndDate')?.value;
+            if (!s && !e) return alert('Please select a start date or end date');
+            currentOverviewFilter = 'custom';
+            overviewCustomStart = s;
+            overviewCustomEnd = e;
+            fetchAdminStats();
+        };
+
         function fetchAdminStats() {
-            socket.emit('admin-get-ledger-stats', {}, (res) => {
+            socket.emit('admin-get-ledger-stats', {
+                filter: currentOverviewFilter,
+                startDate: overviewCustomStart,
+                endDate: overviewCustomEnd
+            }, (res) => {
                 if (res.ok) {
                     setText('quickRev', '₹' + res.stats.totalRevenue);
                     setText('quickProfit', '₹' + res.stats.adminProfit);
@@ -1508,9 +1646,19 @@
             `).join('');
         }
 
+        let clientCity = '';
+        let clientDob = '';
+
         function fetchAllUsers() {
-            // Fetch Clients
-            socket.emit('admin-get-users', { role: 'client', page: clientPage, limit: clientLimit, search: clientSearch }, (res) => {
+            // Fetch Clients with City and DOB filters (Item 17)
+            socket.emit('admin-get-users', { 
+                role: 'client', 
+                page: clientPage, 
+                limit: clientLimit, 
+                search: clientSearch,
+                city: clientCity,
+                dob: clientDob
+            }, (res) => {
                 if (res.ok) {
                     clientTotal = res.total || 0;
                     renderClientsList(res.users || []);
@@ -1908,8 +2056,45 @@
 
         window.searchAdminUsers = () => {
             clientPage = 1;
-            clientSearch = document.getElementById('adminUserSearch').value;
+            clientSearch = document.getElementById('adminUserSearch')?.value || '';
+            clientCity = document.getElementById('adminUserCity')?.value || '';
+            clientDob = document.getElementById('adminUserDob')?.value || '';
             fetchAllUsers();
+        };
+
+        window.exportClientsCSV = () => {
+            const s = document.getElementById('adminUserSearch')?.value || '';
+            const c = document.getElementById('adminUserCity')?.value || '';
+            const d = document.getElementById('adminUserDob')?.value || '';
+            
+            socket.emit('admin-get-users', { role: 'client', exportAll: true, search: s, city: c, dob: d }, (res) => {
+                if (!res.ok || !res.users || res.users.length === 0) {
+                    return alert('No client records found to export.');
+                }
+                
+                const headers = ["User ID", "Name", "Phone", "Email", "City / POB", "DOB", "Role", "Wallet Balance", "Total Earnings", "Joined Date"];
+                const rows = res.users.map(u => [
+                    `"${u.userId || ''}"`,
+                    `"${(u.name || '').replace(/"/g, '""')}"`,
+                    `"${u.phone || ''}"`,
+                    `"${u.email || ''}"`,
+                    `"${(u.pob || u.birthDetails?.pob || u.address || '').replace(/"/g, '""')}"`,
+                    `"${u.dob || u.birthDetails?.dob || ''}"`,
+                    `"${u.role || 'client'}"`,
+                    `"${u.walletBalance || 0}"`,
+                    `"${u.totalEarnings || 0}"`,
+                    `"${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : ''}"`
+                ]);
+                
+                const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", `astroeleven_clients_${new Date().toISOString().slice(0, 10)}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
         };
 
         // Academy
@@ -1918,18 +2103,28 @@
             if (res.ok) renderAcademy(res.videos);
         }
         function renderAcademy(videos) {
-            document.getElementById('adminAcademyList').innerHTML = videos.map(v => `
+            const container = document.getElementById('adminAcademyList');
+            if (!container) return;
+            if (!videos || videos.length === 0) {
+                container.innerHTML = `<div style="text-align:center; color:var(--text-dim); padding:20px;">No academy videos yet.</div>`;
+                return;
+            }
+            container.innerHTML = videos.map(v => {
+                if (!v) return '';
+                const vId = v._id || v.id || '';
+                return `
         <div class="admin-card" style="display:flex; gap:15px; align-items:center; margin-bottom:12px;">
           <div style="width:50px; height:50px; border-radius:8px; background:rgba(255, 204, 0,0.1); display:flex; align-items:center; justify-content:center; color:var(--primary); overflow:hidden;">
             ${v.thumbnail ? `<img src="${v.thumbnail}" style="width:100%; height:100%; object-fit:cover;">` : '<i class="fas fa-play"></i>'}
           </div>
           <div style="flex:1;">
-            <div style="font-weight:bold; color:var(--text-main);">${v.title}</div>
-            <div style="font-size:0.75rem; color:var(--text-dim);">${v.category}</div>
+            <div style="font-weight:bold; color:var(--text-main);">${v.title || ''}</div>
+            <div style="font-size:0.75rem; color:var(--text-dim);">${v.category || ''}</div>
           </div>
-          <button class="btn-admin btn-delete" style="flex:none; width:auto; padding:8px 12px;" onclick="deleteVideo('${v._id}')"><i class="fas fa-trash"></i></button>
+          <button class="btn-admin btn-delete" style="flex:none; width:auto; padding:8px 12px;" onclick="deleteVideo('${vId}')"><i class="fas fa-trash"></i></button>
         </div>
-      `).join('');
+      `;
+            }).join('');
         }
         window.addAcademyVideo = async () => {
             const title = document.getElementById('academyTitle').value;
@@ -1951,22 +2146,42 @@
             if (confirm('Delete?')) { await fetch('/api/admin/academy/videos/' + id, { method: 'DELETE' }); fetchAcademyVideos(); }
         };
 
+        // Safe Fetch Helper
+        async function safeFetchJson(url, options = {}) {
+            const r = await fetch(url, options);
+            const text = await r.text();
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                throw new Error(`Server returned non-JSON response (${r.status} ${r.statusText}). Make sure server is running and PM2 is restarted.`);
+            }
+        }
+
         // Banners
         async function fetchBanners() {
-            const res = await fetch('/api/admin/banners').then(r => r.json());
-            if (res.ok) {
-                const sliderBanners = res.banners.filter(x => !x.type || x.type === 'home_slider');
-                const adsBanners = res.banners.filter(x => x.type === 'ads_banner');
-                renderBanners(sliderBanners);
-                renderAdsBanners(adsBanners);
+            try {
+                const res = await safeFetchJson('/api/admin/banners');
+                if (res && res.ok && Array.isArray(res.banners)) {
+                    const banners = res.banners || [];
+                    const sliderBanners = banners.filter(x => !x || !x.type || x.type === 'home_slider');
+                    const adsBanners = banners.filter(x => x && x.type === 'ads_banner');
+                    renderBanners(sliderBanners);
+                    renderAdsBanners(adsBanners);
+                }
+            } catch (err) {
+                console.error("Fetch Banners Error:", err);
             }
         }
         function renderBanners(banners) {
-            if (banners.length === 0) {
-                document.getElementById('adminBannerList').innerHTML = `<div style="grid-column:1/-1; text-align:center; color:var(--text-dim); padding:40px;"><i class="fas fa-images" style="font-size:2rem; margin-bottom:10px; display:block;"></i>No banners yet. Add your first banner above.</div>`;
+            const container = document.getElementById('adminBannerList');
+            if (!container) return;
+            if (!banners || banners.length === 0) {
+                container.innerHTML = `<div style="grid-column:1/-1; text-align:center; color:var(--text-dim); padding:40px;"><i class="fas fa-images" style="font-size:2rem; margin-bottom:10px; display:block;"></i>No banners yet. Add your first banner above.</div>`;
                 return;
             }
-            document.getElementById('adminBannerList').innerHTML = banners.map((b, i) => {
+            container.innerHTML = banners.map((b, i) => {
+                if (!b) return '';
+                const bId = b._id || b.id || '';
                 const img = b.imageUrl ? (b.imageUrl.startsWith('http') ? b.imageUrl : '/' + b.imageUrl) : '';
                 return `
                     <div class="admin-card" style="padding:0; overflow:hidden;">
@@ -1977,12 +2192,13 @@
                         </div></div>` : `<div style="width:100%; height:80px; background:rgba(255,255,255,0.05); display:flex; align-items:center; justify-content:center; color:var(--text-dim);"><i class="fas fa-image" style="font-size:2rem;"></i></div>`}
                         <div style="padding:14px;">
                             <div style="font-weight:bold; color:var(--text-main); margin-bottom:4px;">${b.title || 'Untitled Banner'}</div>
-                            <div style="font-size:0.78rem; color:var(--text-dim); margin-bottom:10px;">${b.subtitle || ''}</div>
+                            <div style="font-size:0.78rem; color:var(--text-dim); margin-bottom:6px;">${b.subtitle || ''}</div>
+                            ${b.linkUrl ? `<div style="font-size:0.7rem; color:#3B82F6; margin-bottom:10px; word-break:break-all;"><i class="fas fa-link"></i> ${b.linkUrl}</div>` : ''}
                             <div style="display:flex; gap:8px; justify-content:space-between; align-items:center;">
                                 <span style="font-size:0.7rem; color:var(--text-dim);">Order: ${b.order || 0} &nbsp;|&nbsp; CTA: ${b.ctaText || '-'}</span>
                                 <div style="display:flex; gap:6px;">
-                                    <button class="btn-admin" style="min-width:auto; padding:5px 10px; font-size:0.75rem;" onclick="editBannerData('${b._id}')"><i class="fas fa-edit"></i> Edit</button>
-                                    <button class="btn-admin btn-delete" style="min-width:auto; padding:5px 10px; font-size:0.75rem;" onclick="deleteBanner('${b._id}')"><i class="fas fa-trash"></i></button>
+                                    <button class="btn-admin" style="min-width:auto; padding:5px 10px; font-size:0.75rem;" onclick="editBannerData('${bId}')"><i class="fas fa-edit"></i> Edit</button>
+                                    <button class="btn-admin btn-delete" style="min-width:auto; padding:5px 10px; font-size:0.75rem;" onclick="deleteBanner('${bId}')"><i class="fas fa-trash"></i></button>
                                 </div>
                             </div>
                         </div>
@@ -1992,95 +2208,126 @@
         }
 
         window.editBannerData = async (id) => {
-            const res = await fetch('/api/admin/banners').then(r => r.json());
-            const b = res.banners.find(x => x._id === id);
-            if (!b) return;
-            
-            // Populate form
-            if (!document.getElementById('editBannerId')) {
-                const hidden = document.createElement('input');
-                hidden.type = 'hidden';
-                hidden.id = 'editBannerId';
-                document.getElementById('admin-sect-slider').appendChild(hidden);
-            }
-            document.getElementById('editBannerId').value = b._id;
-            document.getElementById('bannerTitle').value = b.title || '';
-            document.getElementById('bannerSubtitle').value = b.subtitle || '';
-            document.getElementById('bannerImageUrl').value = b.imageUrl || '';
-            document.getElementById('bannerCta').value = b.ctaText || '';
-            document.getElementById('bannerOrder').value = b.order || 0;
-            document.getElementById('bannerOffer').value = b.offerPercentage || 0;
-            document.getElementById('bannerExpiry').value = b.expiryDate ? b.expiryDate.split('T')[0] : '';
-            document.getElementById('bannerActive').checked = b.isActive;
-            document.getElementById('bannerBtnSize').value = b.ctaButtonSize || 'small';
-            document.getElementById('bannerFormTitle').textContent = 'Edit Banner';
-
-            // Show image preview
-            if (b.imageUrl) updateBannerPreview(b.imageUrl);
-            
-            // Scroll to form
-            document.getElementById('admin-sect-slider').querySelector('.admin-card').scrollIntoView({ behavior: 'smooth' });
-        };
-        window.saveBanner = async () => {
-            const formData = new FormData();
-            const id = document.getElementById('editBannerId')?.value;
-            if (id) formData.append('id', id);
-            
-            formData.append('title', document.getElementById('bannerTitle').value);
-            formData.append('subtitle', document.getElementById('bannerSubtitle').value);
-            formData.append('imageUrl', document.getElementById('bannerImageUrl').value);
-            formData.append('ctaText', document.getElementById('bannerCta').value);
-            formData.append('order', document.getElementById('bannerOrder').value || 0);
-            formData.append('offerPercentage', document.getElementById('bannerOffer').value || 0);
-            formData.append('expiryDate', document.getElementById('bannerExpiry').value);
-            formData.append('isActive', document.getElementById('bannerActive').checked);
-            formData.append('ctaButtonSize', document.getElementById('bannerBtnSize').value);
-
-            
-            const fileInput = document.getElementById('bannerImageFile');
-            if (fileInput.files[0]) {
-                formData.append('bannerImage', fileInput.files[0]);
-            }
-
-            const btn = event.target;
-            const oldText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-            btn.disabled = true;
-
+            if (!id || id === 'undefined' || id === 'null') return;
             try {
-                const res = await fetch('/api/admin/banners', {
+                const res = await safeFetchJson('/api/admin/banners');
+                if (!res || !Array.isArray(res.banners)) return;
+                const b = res.banners.find(x => x && (x._id == id || x.id == id));
+                if (!b) return;
+                
+                if (!document.getElementById('editBannerId')) {
+                    const hidden = document.createElement('input');
+                    hidden.type = 'hidden';
+                    hidden.id = 'editBannerId';
+                    document.getElementById('admin-sect-slider')?.appendChild(hidden);
+                }
+                const hiddenEl = document.getElementById('editBannerId');
+                if (hiddenEl) hiddenEl.value = b._id || b.id || '';
+
+                const setVal = (elemId, val) => {
+                    const el = document.getElementById(elemId);
+                    if (el) el.value = val;
+                };
+
+                setVal('bannerTitle', b.title || '');
+                setVal('bannerSubtitle', b.subtitle || '');
+                setVal('bannerImageUrl', b.imageUrl || '');
+                setVal('bannerCta', b.ctaText || '');
+                setVal('bannerOrder', b.order || 0);
+                setVal('bannerOffer', b.offerPercentage || 0);
+                setVal('bannerExpiry', b.expiryDate ? b.expiryDate.split('T')[0] : '');
+                setVal('bannerBtnSize', b.ctaButtonSize || 'small');
+                setVal('bannerLinkUrl', b.linkUrl || '');
+
+                const activeChk = document.getElementById('bannerActive');
+                if (activeChk) activeChk.checked = !!b.isActive;
+
+                const formTitle = document.getElementById('bannerFormTitle');
+                if (formTitle) formTitle.textContent = 'Edit Banner';
+
+                if (b.imageUrl) updateBannerPreview(b.imageUrl);
+                
+                const sliderSect = document.getElementById('admin-sect-slider');
+                if (sliderSect) {
+                    const card = sliderSect.querySelector('.admin-card');
+                    if (card) card.scrollIntoView({ behavior: 'smooth' });
+                }
+            } catch (e) {
+                console.error("editBannerData error:", e);
+            }
+        };
+
+        window.saveBanner = async (ev) => {
+            try {
+                const formData = new FormData();
+                const idEl = document.getElementById('editBannerId');
+                const id = idEl ? idEl.value : null;
+                if (id && id !== 'undefined' && id !== 'null') formData.append('id', id);
+                
+                const getVal = (elemId, defaultVal = '') => {
+                    const el = document.getElementById(elemId);
+                    return el ? el.value : defaultVal;
+                };
+
+                formData.append('title', getVal('bannerTitle'));
+                formData.append('subtitle', getVal('bannerSubtitle'));
+                formData.append('imageUrl', getVal('bannerImageUrl'));
+                formData.append('ctaText', getVal('bannerCta'));
+                formData.append('order', getVal('bannerOrder', 0));
+                formData.append('offerPercentage', getVal('bannerOffer', 0));
+                formData.append('expiryDate', getVal('bannerExpiry'));
+                formData.append('isActive', document.getElementById('bannerActive') ? document.getElementById('bannerActive').checked : true);
+                formData.append('ctaButtonSize', getVal('bannerBtnSize', 'small'));
+                formData.append('linkUrl', getVal('bannerLinkUrl'));
+
+                const fileInput = document.getElementById('bannerImageFile');
+                if (fileInput && fileInput.files && fileInput.files[0]) {
+                    formData.append('bannerImage', fileInput.files[0]);
+                }
+
+                const btnTarget = ev ? (ev.target || ev.currentTarget) : (window.event ? window.event.target : null);
+                const btn = btnTarget || document.querySelector('#admin-sect-slider .cosmic-btn');
+                const oldText = btn ? btn.innerHTML : 'Save';
+                if (btn) {
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+                    btn.disabled = true;
+                }
+
+                const res = await safeFetchJson('/api/admin/banners', {
                     method: 'POST',
                     body: formData
-                }).then(r => r.json());
+                });
 
-                if (res.ok) {
+                if (res && res.ok) {
                     fetchBanners();
                     resetBannerForm();
-                    // Show success toast
                     const toast = document.createElement('div');
                     toast.textContent = '✅ Banner saved successfully!';
                     toast.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#10B981;color:#fff;padding:12px 20px;border-radius:10px;font-weight:bold;z-index:9999;box-shadow:0 4px 15px rgba(0,0,0,0.3);';
                     document.body.appendChild(toast);
                     setTimeout(() => toast.remove(), 3000);
                 } else {
-                    alert('Error: ' + (res.error || 'Unknown error'));
+                    alert('Error: ' + (res?.error || 'Failed to save banner'));
+                }
+                if (btn) {
+                    btn.innerHTML = oldText;
+                    btn.disabled = false;
                 }
             } catch (e) {
                 alert('Connection Error: ' + e.message);
-            } finally {
-                btn.innerHTML = oldText;
-                btn.disabled = false;
             }
         };
 
-        // Image preview helpers
-        
         function renderAdsBanners(banners) {
-            if (banners.length === 0) {
-                document.getElementById('adminAdsBannerList').innerHTML = `<div style="grid-column:1/-1; text-align:center; color:var(--text-dim); padding:40px;"><i class="fas fa-ad" style="font-size:2rem; margin-bottom:10px; display:block;"></i>No Ads banners yet. Add your first ads banner above.</div>`;
+            const container = document.getElementById('adminAdsBannerList');
+            if (!container) return;
+            if (!banners || banners.length === 0) {
+                container.innerHTML = `<div style="grid-column:1/-1; text-align:center; color:var(--text-dim); padding:40px;"><i class="fas fa-ad" style="font-size:2rem; margin-bottom:10px; display:block;"></i>No Ads banners yet. Add your first ads banner above.</div>`;
                 return;
             }
-            document.getElementById('adminAdsBannerList').innerHTML = banners.map((b, i) => {
+            container.innerHTML = banners.map((b, i) => {
+                if (!b) return '';
+                const bId = b._id || b.id || '';
                 const img = b.imageUrl ? (b.imageUrl.startsWith('http') ? b.imageUrl : '/' + b.imageUrl) : '';
                 return `
                     <div class="admin-card" style="padding:0; overflow:hidden;">
@@ -2090,12 +2337,13 @@
                         </div></div>` : `<div style="width:100%; height:80px; background:rgba(255,255,255,0.05); display:flex; align-items:center; justify-content:center; color:var(--text-dim);"><i class="fas fa-image" style="font-size:2rem;"></i></div>`}
                         <div style="padding:14px;">
                             <div style="font-weight:bold; color:var(--text-main); margin-bottom:4px;">${b.title || 'Untitled Banner'}</div>
-                            <div style="font-size:0.78rem; color:var(--text-dim); margin-bottom:10px;">${b.subtitle || ''}</div>
+                            <div style="font-size:0.78rem; color:var(--text-dim); margin-bottom:6px;">${b.subtitle || ''}</div>
+                            ${b.linkUrl ? `<div style="font-size:0.7rem; color:#3B82F6; margin-bottom:10px; word-break:break-all;"><i class="fas fa-link"></i> ${b.linkUrl}</div>` : ''}
                             <div style="display:flex; gap:8px; justify-content:space-between; align-items:center;">
                                 <span style="font-size:0.7rem; color:var(--text-dim);">CTA: ${b.ctaText || '-'}</span>
                                 <div style="display:flex; gap:6px;">
-                                    <button class="btn-admin" style="min-width:auto; padding:5px 10px; font-size:0.75rem;" onclick="editAdsBannerData('${b._id}')"><i class="fas fa-edit"></i> Edit</button>
-                                    <button class="btn-admin btn-delete" style="min-width:auto; padding:5px 10px; font-size:0.75rem;" onclick="deleteAdsBanner('${b._id}')"><i class="fas fa-trash"></i></button>
+                                    <button class="btn-admin" style="min-width:auto; padding:5px 10px; font-size:0.75rem;" onclick="editAdsBannerData('${bId}')"><i class="fas fa-edit"></i> Edit</button>
+                                    <button class="btn-admin btn-delete" style="min-width:auto; padding:5px 10px; font-size:0.75rem;" onclick="deleteAdsBanner('${bId}')"><i class="fas fa-trash"></i></button>
                                 </div>
                             </div>
                         </div>
@@ -2105,62 +2353,95 @@
         }
 
         window.editAdsBannerData = async (id) => {
-            const res = await fetch('/api/admin/banners').then(r => r.json());
-            const b = res.banners.find(x => x._id === id);
-            if (!b) return;
-            
-            if (!document.getElementById('editAdsBannerId')) {
-                const hidden = document.createElement('input');
-                hidden.type = 'hidden';
-                hidden.id = 'editAdsBannerId';
-                document.getElementById('admin-sect-ads-banner').appendChild(hidden);
-            }
-            document.getElementById('editAdsBannerId').value = b._id;
-            document.getElementById('adsBannerTitle').value = b.title || '';
-            document.getElementById('adsBannerSubtitle').value = b.subtitle || '';
-            document.getElementById('adsBannerImageUrl').value = b.imageUrl || '';
-            document.getElementById('adsBannerCta').value = b.ctaText || '';
-            document.getElementById('adsBannerExpiry').value = b.expiryDate ? b.expiryDate.split('T')[0] : '';
-            document.getElementById('adsBannerActive').checked = b.isActive;
-            document.getElementById('adsBannerFormTitle').textContent = 'Edit Ads Banner';
+            if (!id || id === 'undefined' || id === 'null') return;
+            try {
+                const res = await safeFetchJson('/api/admin/banners');
+                if (!res || !Array.isArray(res.banners)) return;
+                const b = res.banners.find(x => x && (x._id == id || x.id == id));
+                if (!b) return;
+                
+                if (!document.getElementById('editAdsBannerId')) {
+                    const hidden = document.createElement('input');
+                    hidden.type = 'hidden';
+                    hidden.id = 'editAdsBannerId';
+                    document.getElementById('admin-sect-ads-banner')?.appendChild(hidden);
+                }
+                const hiddenEl = document.getElementById('editAdsBannerId');
+                if (hiddenEl) hiddenEl.value = b._id || b.id || '';
 
-            if (b.imageUrl) updateAdsBannerPreview(b.imageUrl);
-            document.getElementById('admin-sect-ads-banner').querySelector('.admin-card').scrollIntoView({ behavior: 'smooth' });
+                const setVal = (elemId, val) => {
+                    const el = document.getElementById(elemId);
+                    if (el) el.value = val;
+                };
+
+                setVal('adsBannerTitle', b.title || '');
+                setVal('adsBannerSubtitle', b.subtitle || '');
+                setVal('adsBannerImageUrl', b.imageUrl || '');
+                setVal('adsBannerCta', b.ctaText || '');
+                setVal('adsBannerExpiry', b.expiryDate ? b.expiryDate.split('T')[0] : '');
+                setVal('adsBannerLinkUrl', b.linkUrl || '');
+
+                const activeChk = document.getElementById('adsBannerActive');
+                if (activeChk) activeChk.checked = !!b.isActive;
+
+                const formTitle = document.getElementById('adsBannerFormTitle');
+                if (formTitle) formTitle.textContent = 'Edit Ads Banner';
+
+                if (b.imageUrl) updateAdsBannerPreview(b.imageUrl);
+
+                const adsSect = document.getElementById('admin-sect-ads-banner');
+                if (adsSect) {
+                    const card = adsSect.querySelector('.admin-card');
+                    if (card) card.scrollIntoView({ behavior: 'smooth' });
+                }
+            } catch (e) {
+                console.error("editAdsBannerData error:", e);
+            }
         };
 
-        window.saveAdsBanner = async (event) => {
-            const formData = new FormData();
-            const id = document.getElementById('editAdsBannerId')?.value;
-            if (id) formData.append('id', id);
-            
-            formData.append('title', document.getElementById('adsBannerTitle').value);
-            formData.append('subtitle', document.getElementById('adsBannerSubtitle').value);
-            formData.append('imageUrl', document.getElementById('adsBannerImageUrl').value);
-            formData.append('ctaText', document.getElementById('adsBannerCta').value);
-            formData.append('order', 0);
-            formData.append('offerPercentage', 0);
-            formData.append('expiryDate', document.getElementById('adsBannerExpiry').value);
-            formData.append('isActive', document.getElementById('adsBannerActive').checked);
-            formData.append('ctaButtonSize', 'small');
-            formData.append('type', 'ads_banner');
-
-            const fileInput = document.getElementById('adsBannerImageFile');
-            if (fileInput.files[0]) {
-                formData.append('bannerImage', fileInput.files[0]);
-            }
-
-            const btn = event ? event.target : document.querySelector('#admin-sect-ads-banner .cosmic-btn');
-            const oldText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-            btn.disabled = true;
-
+        window.saveAdsBanner = async (ev) => {
             try {
-                const res = await fetch('/api/admin/banners', {
+                const formData = new FormData();
+                const idEl = document.getElementById('editAdsBannerId');
+                const id = idEl ? idEl.value : null;
+                if (id && id !== 'undefined' && id !== 'null') formData.append('id', id);
+                
+                const getVal = (elemId, defaultVal = '') => {
+                    const el = document.getElementById(elemId);
+                    return el ? el.value : defaultVal;
+                };
+
+                formData.append('title', getVal('adsBannerTitle'));
+                formData.append('subtitle', getVal('adsBannerSubtitle'));
+                formData.append('imageUrl', getVal('adsBannerImageUrl'));
+                formData.append('ctaText', getVal('adsBannerCta'));
+                formData.append('order', 0);
+                formData.append('offerPercentage', 0);
+                formData.append('expiryDate', getVal('adsBannerExpiry'));
+                formData.append('isActive', document.getElementById('adsBannerActive') ? document.getElementById('adsBannerActive').checked : true);
+                formData.append('ctaButtonSize', 'small');
+                formData.append('type', 'ads_banner');
+                formData.append('linkUrl', getVal('adsBannerLinkUrl'));
+
+                const fileInput = document.getElementById('adsBannerImageFile');
+                if (fileInput && fileInput.files && fileInput.files[0]) {
+                    formData.append('bannerImage', fileInput.files[0]);
+                }
+
+                const btnTarget = ev ? (ev.target || ev.currentTarget) : (window.event ? window.event.target : null);
+                const btn = btnTarget || document.querySelector('#admin-sect-ads-banner .cosmic-btn');
+                const oldText = btn ? btn.innerHTML : 'Save';
+                if (btn) {
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+                    btn.disabled = true;
+                }
+
+                const res = await safeFetchJson('/api/admin/banners', {
                     method: 'POST',
                     body: formData
-                }).then(r => r.json());
+                });
 
-                if (res.ok) {
+                if (res && res.ok) {
                     fetchBanners();
                     resetAdsBannerForm();
                     const toast = document.createElement('div');
@@ -2169,13 +2450,14 @@
                     document.body.appendChild(toast);
                     setTimeout(() => toast.remove(), 3000);
                 } else {
-                    alert('Error: ' + (res.error || 'Unknown error'));
+                    alert('Error: ' + (res?.error || 'Failed to save ads banner'));
+                }
+                if (btn) {
+                    btn.innerHTML = oldText;
+                    btn.disabled = false;
                 }
             } catch (e) {
                 alert('Connection Error: ' + e.message);
-            } finally {
-                btn.innerHTML = oldText;
-                btn.disabled = false;
             }
         };
 
@@ -2207,6 +2489,7 @@
             document.getElementById('adsBannerCta').value = '';
             document.getElementById('adsBannerExpiry').value = '';
             document.getElementById('adsBannerActive').checked = true;
+            document.getElementById('adsBannerLinkUrl').value = '';
             document.getElementById('adsBannerImageFile').value = '';
             document.getElementById('adsBannerPreviewBox').style.display = 'none';
             document.getElementById('adsBannerFormTitle').textContent = 'Add New Ads Banner';
@@ -2249,6 +2532,7 @@
             document.getElementById('bannerExpiry').value = '';
             document.getElementById('bannerActive').checked = true;
             document.getElementById('bannerBtnSize').value = 'small';
+            document.getElementById('bannerLinkUrl').value = '';
             document.getElementById('bannerImageFile').value = '';
             document.getElementById('bannerPreviewBox').style.display = 'none';
             document.getElementById('bannerFormTitle').textContent = 'Add New Banner';
@@ -2279,9 +2563,13 @@
 
         function renderServices(services) {
             const container = document.getElementById('adminServicesList');
+            if (!container) return;
             container.innerHTML = '';
+            if (!services || !Array.isArray(services)) return;
             
             services.forEach(service => {
+                if (!service) return;
+                const sId = service.id || service._id || '';
                 const card = document.createElement('div');
                 card.className = 'admin-card';
                 card.style.display = 'flex';
@@ -2301,28 +2589,28 @@
                     <div style="display:flex; align-items:center; gap:15px; border-bottom:1px solid var(--border-soft); padding-bottom:10px; margin-bottom:5px;">
                         ${iconHtml}
                         <div>
-                            <h4 style="margin:0; color:var(--text-main); font-family:var(--font-heading);">${service.title}</h4>
-                            <small style="color:var(--text-dim); font-size:0.7rem;">ID: ${service.id} | Route: ${service.route}</small>
+                            <h4 style="margin:0; color:var(--text-main); font-family:var(--font-heading);">${service.title || ''}</h4>
+                            <small style="color:var(--text-dim); font-size:0.7rem;">ID: ${sId} | Route: ${service.route || ''}</small>
                         </div>
                     </div>
                     <div>
                         <label class="app-label" style="font-size:0.75rem;">Title (English)</label>
-                        <input type="text" id="service-title-${service.id}" class="app-input" value="${service.title}">
+                        <input type="text" id="service-title-${sId}" class="app-input" value="${service.title || ''}">
                     </div>
                     <div>
                         <label class="app-label" style="font-size:0.75rem;">Title (Tamil)</label>
-                        <input type="text" id="service-title-tamil-${service.id}" class="app-input" value="${service.title_tamil || ''}">
+                        <input type="text" id="service-title-tamil-${sId}" class="app-input" value="${service.title_tamil || ''}">
                     </div>
                     <div>
                         <label class="app-label" style="font-size:0.75rem;">Upload Custom Icon</label>
                         <div style="display:flex; gap:10px; align-items:center;">
-                            <input type="text" id="service-icon-url-${service.id}" class="app-input" value="${service.icon}" readonly style="flex:1; background: var(--bg-body); cursor: default;">
-                            <input type="file" id="service-icon-file-${service.id}" style="display:none;" onchange="document.getElementById('service-icon-url-${service.id}').value = this.files[0].name">
-                            <button class="btn-admin" onclick="document.getElementById('service-icon-file-${service.id}').click()"><i class="fas fa-upload"></i></button>
+                            <input type="text" id="service-icon-url-${sId}" class="app-input" value="${service.icon || ''}" readonly style="flex:1; background: var(--bg-body); cursor: default;">
+                            <input type="file" id="service-icon-file-${sId}" style="display:none;" onchange="const el = document.getElementById('service-icon-url-${sId}'); if (el && this.files[0]) el.value = this.files[0].name;">
+                            <button class="btn-admin" onclick="const el = document.getElementById('service-icon-file-${sId}'); if (el) el.click();"><i class="fas fa-upload"></i></button>
                         </div>
                         <small style="color:var(--text-dim); font-size:0.65rem;">Recommended: PNG/SVG with transparent background</small>
                     </div>
-                    <button class="cosmic-btn" style="margin-top:10px; width:100%;" onclick="saveService('${service.id}', this)"><i class="fas fa-save"></i> Save Changes</button>
+                    <button class="cosmic-btn" style="margin-top:10px; width:100%;" onclick="saveService('${sId}', this)"><i class="fas fa-save"></i> Save Changes</button>
                 `;
                 
                 container.appendChild(card);
@@ -2330,10 +2618,15 @@
         }
 
         window.saveService = async (id, btn) => {
-            const title = document.getElementById(`service-title-${id}`).value;
-            const titleTamil = document.getElementById(`service-title-tamil-${id}`).value;
-            const currentIcon = document.getElementById(`service-icon-url-${id}`).value;
+            if (!id || id === 'undefined') return;
+            const titleEl = document.getElementById(`service-title-${id}`);
+            const titleTamilEl = document.getElementById(`service-title-tamil-${id}`);
+            const currentIconEl = document.getElementById(`service-icon-url-${id}`);
             const fileInput = document.getElementById(`service-icon-file-${id}`);
+
+            const title = titleEl ? titleEl.value : '';
+            const titleTamil = titleTamilEl ? titleTamilEl.value : '';
+            const currentIcon = currentIconEl ? currentIconEl.value : '';
             
             const formData = new FormData();
             formData.append('id', id);
@@ -2341,13 +2634,15 @@
             formData.append('title_tamil', titleTamil);
             formData.append('iconUrl', currentIcon);
             
-            if (fileInput.files[0]) {
+            if (fileInput && fileInput.files && fileInput.files[0]) {
                 formData.append('serviceIcon', fileInput.files[0]);
             }
             
-            const oldText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-            btn.disabled = true;
+            const oldText = btn ? btn.innerHTML : 'Save';
+            if (btn) {
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+                btn.disabled = true;
+            }
             
             try {
                 const res = await fetch('/api/admin/services/update', {
@@ -2355,17 +2650,19 @@
                     body: formData
                 }).then(r => r.json());
                 
-                if (res.ok) {
+                if (res && res.ok) {
                     alert('Service updated successfully!');
                     fetchServices();
                 } else {
-                    alert('Error: ' + res.error);
+                    alert('Error: ' + (res?.error || 'Failed to save service'));
                 }
             } catch (e) {
-                alert('Connection Error');
+                alert('Connection Error: ' + e.message);
             } finally {
-                btn.innerHTML = oldText;
-                btn.disabled = false;
+                if (btn) {
+                    btn.innerHTML = oldText;
+                    btn.disabled = false;
+                }
             }
         };
 

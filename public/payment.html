@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Payment Gateway - Astro Eleven</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
     <style>
         * {
             box-sizing: border-box;
@@ -203,7 +203,7 @@
             <i class="fas fa-bolt"></i>
         </div>
         <h2>Astro Eleven Wallet</h2>
-        <p class="subtitle">Secure Recharge powered by Razorpay</p>
+        <p class="subtitle">Secure Recharge powered by PhonePe</p>
 
         <div class="info-card">
             <div class="info-row">
@@ -238,8 +238,13 @@
 
     <script>
         let token = new URLSearchParams(window.location.search).get('token');
+        let urlAmount = new URLSearchParams(window.location.search).get('amount');
         let paymentData = null;
- 
+
+        if (urlAmount) {
+            document.getElementById('amountDisplay').textContent = '₹' + urlAmount;
+        }
+
         function showLoading(show, text = 'Processing...') {
             const overlay = document.getElementById('loadingOverlay');
             document.getElementById('loadingText').textContent = text;
@@ -257,16 +262,17 @@
         async function verifyToken() {
             if (!token) return showError('Invalid Link', 'Payment token is missing.');
             
-            showLoading(true, 'Verifying session...');
+            showLoading(true, 'Connecting to PhonePe...');
             try {
                 const res = await fetch(`/api/payment/verify-token?token=${token}`);
                 const data = await res.json();
                 if (data.valid) {
                     paymentData = data;
-                    document.getElementById('userName').textContent = data.userName;
-                    document.getElementById('amountDisplay').textContent = '₹' + data.amount;
-                    document.getElementById('expiryTime').textContent = data.expiresIn + 's';
-                    showLoading(false);
+                    document.getElementById('userName').textContent = data.userName || "User";
+                    document.getElementById('amountDisplay').textContent = '₹' + Math.round(data.amount);
+                    document.getElementById('expiryTime').textContent = (data.expiresIn || 600) + 's';
+                    // Auto redirect to PhonePe
+                    payNow();
                 } else {
                     showError('Session Expired', data.error || 'Payment session is no longer active.');
                 }
@@ -276,43 +282,22 @@
         }
 
         async function payNow() {
-            showLoading(true, 'Initiating payment...');
+            showLoading(true, 'Redirecting to PhonePe Gateway...');
             try {
                 const res = await fetch('/api/payment/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token })
+                    body: JSON.stringify({ token, isApp: true })
                 });
                 const order = await res.json();
                 
-                if (order.ok) {
-                    const options = {
-                        "key": order.key,
-                        "amount": order.amount,
-                        "currency": "INR",
-                        "name": "Astro Eleven",
-                        "description": "Wallet Recharge",
-                        "order_id": order.orderId,
-                        "handler": function (response) {
-                            verifyPayment(response);
-                        },
-                        "prefill": {
-                            "name": paymentData.userName,
-                        },
-                        "theme": { "color": "#FFD700" },
-                        "modal": {
-                            "ondismiss": function() {
-                                showLoading(false);
-                            }
-                        }
-                    };
-                    const rzp = new Razorpay(options);
-                    rzp.open();
+                if (order.ok && (order.paymentUrl || order.redirectUrl)) {
+                    window.location.href = order.paymentUrl || order.redirectUrl;
                 } else {
-                    showError('Order Failed', order.error);
+                    showError('Order Failed', order.error || 'Failed to initiate PhonePe payment');
                 }
             } catch (e) {
-                showError('Error', 'Could not create payment order.');
+                showError('Error', 'Could not create PhonePe payment order.');
             }
         }
 

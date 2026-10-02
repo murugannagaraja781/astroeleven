@@ -128,14 +128,14 @@
         <activity android:name=".ui.calendar.MuhurthamActivity" />
         <activity android:name=".ui.dashboard.GuestActivity" />
         <activity android:name=".ui.payment.PaymentActivity"
-            android:exported="true">
+            android:exported="true"
+            android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
-                <data
-                    android:scheme="astroeleven"
-                    android:host="payment-success"/>
+                <data android:scheme="astroeleven" android:host="payment-success"/>
+                <data android:scheme="astroeleven" android:host="payment-failed"/>
             </intent-filter>
         </activity>
         <activity android:name=".ui.auth.LoginActivity" />

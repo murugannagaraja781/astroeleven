@@ -90,6 +90,16 @@ fun LoginScreen() {
                     .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Image(
+                    painter = painterResource(id = R.drawable.welcome_logo),
+                    contentDescription = "Astro Eleven Welcome Logo",
+                    modifier = Modifier
+                        .fillMaxWidth(0.85f)
+                        .height(100.dp)
+                        .padding(bottom = 12.dp),
+                    contentScale = ContentScale.Fit
+                )
+
                 Text(
                     text = "Welcome to Astro Eleven!",
                     style = MaterialTheme.typography.headlineMedium,
