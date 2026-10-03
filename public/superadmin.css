@@ -1047,7 +1047,7 @@ body {
 }
 
 .admin-drawer-overlay.active {
-    display: flex;
+    display: flex !important;
 }
 
 .admin-drawer {
