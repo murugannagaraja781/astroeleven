@@ -354,10 +354,11 @@ const { renderAstrologerProfileHtml } = require('./views/astrologerProfilePage')
 app.get('/astrologer/:id', async (req, res) => {
   try {
     const astroId = req.params.id;
+    const currentServerUrl = req.app.get('SERVER_URL') || SERVER_URL || `${req.protocol}://${req.get('host')}` || 'https://astroeleven.com';
     const astro = await User.findOne({
       $or: [
         { userId: astroId },
-        { _id: mongoose.Types.ObjectId.isValid(astroId) ? astroId : null }
+        { id: !isNaN(Number(astroId)) ? Number(astroId) : -1 }
       ],
       role: 'astrologer'
     }).lean();
@@ -382,11 +383,11 @@ app.get('/astrologer/:id', async (req, res) => {
       experience: astro.experience || 5,
       isVerified: !!astro.isVerified,
       isBusy: !!astro.isBusy,
-      image: formatImageUrl(astro.image, astro.name, SERVER_URL),
+      image: formatImageUrl(astro.image, astro.name, currentServerUrl),
       languages: astro.languages || ['Tamil', 'English']
     };
 
-    const html = renderAstrologerProfileHtml(formattedAstro, SERVER_URL);
+    const html = renderAstrologerProfileHtml(formattedAstro, currentServerUrl);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     return res.send(html);
   } catch (err) {
@@ -1089,7 +1090,8 @@ app.get('/api/astrology/astrologers', async (req, res) => {
 app.get('/api/astrology/astrologer/:id', async (req, res) => {
   try {
     const id = req.params.id;
-    const formatted = await getFormattedAstrologers(SERVER_URL);
+    const currentServerUrl = req.app.get('SERVER_URL') || SERVER_URL || `${req.protocol}://${req.get('host')}` || 'https://astroeleven.com';
+    const formatted = await getFormattedAstrologers(currentServerUrl);
     const found = formatted.find(a => a.userId === id || a.id === id);
     if (found) {
       return res.json({ ok: true, astrologer: found });
@@ -1097,7 +1099,7 @@ app.get('/api/astrology/astrologer/:id', async (req, res) => {
     const a = await User.findOne({
       $or: [
         { userId: id },
-        { _id: mongoose.Types.ObjectId.isValid(id) ? id : null }
+        { id: !isNaN(Number(id)) ? Number(id) : -1 }
       ],
       role: 'astrologer'
     }).lean();
@@ -1124,7 +1126,7 @@ app.get('/api/astrology/astrologer/:id', async (req, res) => {
         experience: a.experience || 0,
         isVerified: a.isVerified || false,
         isBusy: a.isBusy || false,
-        image: formatImageUrl(a.image, a.name, SERVER_URL),
+        image: formatImageUrl(a.image, a.name, currentServerUrl),
         languages: a.languages || ['Tamil', 'English'],
         orderCount: a.orderCount || 0
       }
