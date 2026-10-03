@@ -140,5 +140,8 @@ interface ApiInterface {
 
     @POST("api/rasi-eng/kp-chart")
     suspend fun getKpChart(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+
+    @POST("api/puja-bookings")
+    suspend fun createPujaBooking(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
 }
 

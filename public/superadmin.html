@@ -22,132 +22,536 @@
     <div class="dashboard-container">
         <div id="nav-overlay" class="nav-overlay" onclick="toggleNav()"></div>
         <div class="app-header">
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <div class="menu-trigger" onclick="toggleNav()">
+            <div class="header-left">
+                <div class="menu-trigger" onclick="toggleNav()" title="Toggle Menu">
                     <i class="fas fa-bars"></i>
                 </div>
-                <div style="font-family: var(--font-heading); font-weight: bold; font-size: 1.2rem; display: flex; align-items: center; gap: 8px;">
-                    <img src="images/astroeleven_icon.svg" style="height: 28px;" alt="Logo">
-                    <span>Admin</span>
+                <div class="header-logo-wrap" onclick="navAdmin('home', event)">
+                    <img src="images/astroeleven_icon.svg" alt="Astro Eleven">
+                    <div class="header-brand-title">
+                        <span>Astro Eleven</span>
+                        <span class="admin-badge-pill">Super Admin</span>
+                    </div>
                 </div>
             </div>
-            <div style="display: flex; gap: 18px; align-items: center;">
+
+            <!-- Global Quick Search -->
+            <div class="header-search-wrap">
+                <div class="header-search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="globalSearchInput" class="header-search-input" placeholder="Search Astros, Clients, Puja Bookings..." oninput="handleGlobalSearch(this.value)">
+                </div>
+            </div>
+
+            <!-- Header Actions -->
+            <div class="header-actions">
+                <!-- Puja Bookings Shortcut -->
+                <button onclick="navAdmin('puja-bookings', event)" class="btn-header-shortcut" title="View Puja Bookings">
+                    <i class="fas fa-fire-alt"></i>
+                    <span>Puja Bookings</span>
+                    <span id="header-puja-badge" class="badge-count" style="display:none;">0</span>
+                </button>
+
                 <!-- Notification Bell System -->
-                <div id="admin-notif-container" style="position:relative; cursor:pointer; padding: 5px;" onclick="toggleNotifDropdown()">
-                    <i class="fas fa-bell" style="font-size:1.5rem; color: var(--primary); filter: drop-shadow(0 0 5px var(--primary-glow));"></i>
-                    <span id="notif-badge" style="display:none; position:absolute; top:0; right:0; background:#EF4444; color:#fff; font-size:0.65rem; font-weight:bold; width:18px; height:18px; line-height:18px; text-align:center; border-radius:50%; border:2px solid var(--bg-body); box-shadow: 0 0 10px rgba(239,68,68,0.5);">0</span>
+                <div id="admin-notif-container" style="position:relative; cursor:pointer; padding: 6px;" onclick="toggleNotifDropdown()" title="Notifications">
+                    <i class="fas fa-bell" style="font-size:1.35rem; color: var(--primary);"></i>
+                    <span id="notif-badge" style="display:none; position:absolute; top:2px; right:2px; background:#EF4444; color:#fff; font-size:0.65rem; font-weight:bold; width:18px; height:18px; line-height:18px; text-align:center; border-radius:50%; border:2px solid #FFFFFF; box-shadow: 0 0 10px rgba(239,68,68,0.5);">0</span>
                     
                     <!-- Notification Flyout -->
-                    <div id="notif-dropdown" class="admin-card" style="display:none; position:absolute; right:-20px; top:45px; width:340px; z-index:10002; padding:0; overflow:hidden; border: 1px solid var(--border-medium); box-shadow: 0 15px 50px rgba(0,0,0,0.6); animation: slideInRight 0.3s ease;">
-                        <div style="padding:15px; background:rgba(255, 204, 0,0.05); border-bottom:1px solid var(--border-soft); display:flex; justify-content:space-between; align-items:center;">
-                            <h4 style="margin:0; font-family:var(--font-heading); font-size:1rem; color:var(--primary);"><i class="fas fa-history"></i> Recent Activity</h4>
+                    <div id="notif-dropdown" class="admin-card" style="display:none; position:absolute; right:-20px; top:45px; width:340px; z-index:10002; padding:0; overflow:hidden; border: 1px solid var(--border-soft); box-shadow: var(--shadow-elevation); animation: slideInRight 0.3s ease;">
+                        <div style="padding:15px; background:var(--primary-50); border-bottom:1px solid var(--border-soft); display:flex; justify-content:space-between; align-items:center;">
+                            <h4 style="margin:0; font-size:0.95rem; font-weight:800; color:var(--primary);"><i class="fas fa-history"></i> Recent Activity</h4>
                             <span onclick="clearNotifs(); event.stopPropagation();" style="cursor:pointer; color:var(--text-muted); font-size:0.75rem; text-decoration:underline;">Clear All</span>
                         </div>
-                        <div id="notif-history-list" style="max-height:450px; overflow-y:auto;">
-                            <div style="padding:30px; text-align:center; color:var(--text-muted); font-size:0.9rem;">No recent notifications</div>
+                        <div id="notif-history-list" style="max-height:420px; overflow-y:auto;">
+                            <div style="padding:30px; text-align:center; color:var(--text-muted); font-size:0.85rem;">No recent notifications</div>
                         </div>
-                        <div style="padding:10px; text-align:center; background:rgba(255, 127, 0, 0.05); border-top:1px solid var(--border-soft);">
-                            <small style="color:var(--text-dim);">Last 50 events shown</small>
+                        <div style="padding:10px; text-align:center; background:#F8FAF9; border-top:1px solid var(--border-soft);">
+                            <small style="color:var(--text-dim); font-size:0.75rem;">Last 50 events shown</small>
                         </div>
                     </div>
                 </div>
 
-                <button onclick="logout()" class="btn-admin"
-                    style="background: none; border: none; color: #EF4444; min-width: auto; padding: 8px; font-size: 1.2rem; cursor:pointer;">
-                    <i class="fas fa-power-off"></i>
-                </button>
+                <!-- Admin Profile Pill -->
+                <div class="admin-profile-pill" onclick="logout()" title="Click to Logout">
+                    <div class="admin-avatar"><i class="fas fa-user-shield"></i></div>
+                    <div>
+                        <div class="admin-profile-name">Super Admin</div>
+                        <div class="admin-profile-role"><span style="width:6px; height:6px; background:#10B981; border-radius:50%; display:inline-block; margin-right:3px;"></span>Online</div>
+                    </div>
+                    <i class="fas fa-power-off" style="color:#EF4444; font-size:0.85rem; margin-left:4px;"></i>
+                </div>
             </div>
         </div>
 
         <div class="admin-content-area">
-            <!-- Tab 1: Home -->
+            <!-- Tab 1: Home Dashboard -->
             <div id="admin-sect-home" class="admin-tab-section active">
-                <div id="adminAlertArea_Home" style="margin-bottom: 30px;">
+                <div id="adminAlertArea_Home" style="margin-bottom: 25px;">
                     <!-- High Priority Alerts -->
-                    <div id="adminPendingAstrologersSection" style="display:none; margin-bottom:25px;">
-                        <h3 style="margin:0 0 15px 0; font-family:var(--font-heading); color:var(--primary); font-size:1.1rem;"><i class="fas fa-user-clock"></i> Pending Astrologer Registrations</h3>
+                    <div id="adminPendingAstrologersSection" style="display:none; margin-bottom:20px;">
+                        <h3 style="margin:0 0 12px 0; color:var(--primary); font-size:1.05rem; font-weight:800;"><i class="fas fa-user-clock"></i> Pending Astrologer Registrations</h3>
                         <div id="adminPendingAstrologersList" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap:15px;">
                             <div class="loader"></div>
                         </div>
                     </div>
 
-                    <div id="adminWithdrawalsSection" style="display:none; margin-bottom:25px;">
-                        <h3 style="margin:0 0 15px 0; font-family:var(--font-heading); color:#EF4444; font-size:1.1rem;"><i class="fas fa-hand-holding-usd"></i> Urgent Withdrawal Requests</h3>
+                    <div id="adminWithdrawalsSection" style="display:none; margin-bottom:20px;">
+                        <h3 style="margin:0 0 12px 0; color:#EF4444; font-size:1.05rem; font-weight:800;"><i class="fas fa-hand-holding-usd"></i> Urgent Withdrawal Requests</h3>
                         <div id="adminWithdrawalsList" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap:15px;">
                             <div class="loader"></div>
                         </div>
                     </div>
                 </div>
 
-                <div class="dashboard-header" style="display:flex; justify-content:space-between; align-items:center;">
-                    <h2 class="dashboard-title" style="font-family: var(--font-heading); color: var(--text-main); margin:0;"><i
-                            class="fas fa-chart-line" style="color: var(--primary);"></i> OVERVIEW</h2>
-                    <div style="display:flex; gap:15px;">
-                        <span class="status-pill"><i class="fas fa-magic"></i> Free Horoscope: <b style="color:#10B981;">Online</b></span>
-                        <span class="status-pill"><i class="fas fa-heart"></i> Free Match: <b style="color:#10B981;">Online</b></span>
-                        <span class="status-pill"><i class="fas fa-server"></i> Server: <b style="color:#10B981;">Healthy</b></span>
+                <div class="dashboard-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+                    <div>
+                        <h2 class="dashboard-title" style="color: var(--text-main); margin:0; font-size:1.45rem; font-weight:900;">
+                            <i class="fas fa-chart-pie" style="color: var(--primary);"></i> Super Admin Dashboard
+                        </h2>
+                        <p style="font-size:0.75rem; color:var(--text-muted); margin:3px 0 0 0;">Realtime performance metrics, customer bookings, and platform management.</p>
+                    </div>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <span class="status-pill"><i class="fas fa-magic"></i> Horoscope: <b style="color:#059669;">Online</b></span>
+                        <span class="status-pill"><i class="fas fa-heart"></i> Match: <b style="color:#059669;">Online</b></span>
+                        <span class="status-pill"><i class="fas fa-server"></i> Server: <b style="color:#059669;">Healthy</b></span>
                     </div>
                 </div>
 
-                <!-- Overview Day & Custom Date Filter (Item 13) -->
-                <div style="margin: 15px 0 20px 0; background: var(--bg-card); border: 1px solid var(--border-soft); border-radius: 12px; padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between;">
+                <!-- Overview Day & Custom Date Filter -->
+                <div style="margin: 15px 0 20px 0; background: var(--bg-card); border: 1px solid var(--border-soft); border-radius: 14px; padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; box-shadow: var(--shadow-card);">
                     <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-                        <span style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-right:4px;">Period:</span>
-                        <button class="c-tab active" id="btnFilterAll" onclick="setOverviewDateFilter('all', this)" style="padding:4px 10px; font-size:0.75rem;">All Time</button>
-                        <button class="c-tab" id="btnFilterToday" onclick="setOverviewDateFilter('today', this)" style="padding:4px 10px; font-size:0.75rem;">Today</button>
-                        <button class="c-tab" id="btnFilterYesterday" onclick="setOverviewDateFilter('yesterday', this)" style="padding:4px 10px; font-size:0.75rem;">Yesterday</button>
-                        <button class="c-tab" id="btnFilter7Days" onclick="setOverviewDateFilter('7days', this)" style="padding:4px 10px; font-size:0.75rem;">Last 7 Days</button>
-                        <button class="c-tab" id="btnFilter30Days" onclick="setOverviewDateFilter('30days', this)" style="padding:4px 10px; font-size:0.75rem;">This Month</button>
-                        <button class="c-tab" id="btnFilterCustom" onclick="toggleCustomDateRow(this)" style="padding:4px 10px; font-size:0.75rem;"><i class="fas fa-calendar-alt"></i> Custom Range</button>
+                        <span style="font-size:0.75rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-right:4px;">Period:</span>
+                        <button class="c-tab active" id="btnFilterAll" onclick="setOverviewDateFilter('all', this)" style="padding:5px 12px; font-size:0.75rem;">All Time</button>
+                        <button class="c-tab" id="btnFilterToday" onclick="setOverviewDateFilter('today', this)" style="padding:5px 12px; font-size:0.75rem;">Today</button>
+                        <button class="c-tab" id="btnFilterYesterday" onclick="setOverviewDateFilter('yesterday', this)" style="padding:5px 12px; font-size:0.75rem;">Yesterday</button>
+                        <button class="c-tab" id="btnFilter7Days" onclick="setOverviewDateFilter('7days', this)" style="padding:5px 12px; font-size:0.75rem;">Last 7 Days</button>
+                        <button class="c-tab" id="btnFilter30Days" onclick="setOverviewDateFilter('30days', this)" style="padding:5px 12px; font-size:0.75rem;">This Month</button>
+                        <button class="c-tab" id="btnFilterCustom" onclick="toggleCustomDateRow(this)" style="padding:5px 12px; font-size:0.75rem;"><i class="fas fa-calendar-alt"></i> Custom Range</button>
                     </div>
                     <div id="overviewCustomDateRow" style="display:none; align-items:center; gap:8px;">
                         <input type="date" id="overviewStartDate" class="app-input" style="padding:3px 8px; font-size:0.75rem; width:130px; margin:0; height:32px;">
                         <span style="color:var(--text-dim); font-size:0.75rem;">to</span>
                         <input type="date" id="overviewEndDate" class="app-input" style="padding:3px 8px; font-size:0.75rem; width:130px; margin:0; height:32px;">
-                        <button onclick="applyCustomOverviewFilter()" class="btn-admin" style="height:32px; padding:0 12px; font-size:0.75rem; background:var(--primary); color:#000; margin:0; font-weight:bold;">Apply</button>
-                    </div>
-                </div>
-                
-                <style>
-                    .status-pill {
-                        background: rgba(255,255,255,0.05);
-                        padding: 6px 12px;
-                        border-radius: 50px;
-                        font-size: 0.75rem;
-                        border: 1px solid var(--border-soft);
-                        color: var(--text-dim);
-                        display: flex;
-                        align-items: center;
-                        gap: 8px;
-                    }
-                    .status-pill i { color: var(--primary); }
-                </style>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="card-icon revenue-icon"><i class="fas fa-rupee-sign"></i></div>
-                        <div id="quickRev" class="stat-value">₹0</div>
-                        <div class="stat-label">Total Revenue</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="card-icon profit-icon"><i class="fas fa-chart-line"></i></div>
-                        <div id="quickProfit" class="stat-value">₹0</div>
-                        <div class="stat-label">Net Profit</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="card-icon payout-icon"><i class="fas fa-wallet"></i></div>
-                        <div id="quickPayout" class="stat-value">₹0</div>
-                        <div class="stat-label">Astro Payout</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="card-icon activity-icon"><i class="fas fa-clock"></i></div>
-                        <div id="quickMins" class="stat-value">0</div>
-                        <div class="stat-label">Mins Billed</div>
+                        <button onclick="applyCustomOverviewFilter()" class="btn-admin btn-primary-action" style="height:32px; padding:0 12px; font-size:0.75rem; font-weight:bold;">Apply</button>
                     </div>
                 </div>
 
-                <div style="margin: 25px 0 15px 0; font-family: var(--font-heading); color: var(--text-dim); font-size: 0.8rem; letter-spacing: 1px; display: flex; align-items: center; gap: 10px;">
+                <!-- 12 Overview Statistics Cards -->
+                <div class="overview-stats-grid">
+                    <!-- 1. Total Astrologers -->
+                    <div class="overview-stat-card" onclick="navAdmin('payouts', event)" title="View Astrologers">
+                        <div class="overview-stat-icon accent-blue"><i class="fas fa-user-astronaut"></i></div>
+                        <div class="overview-stat-info">
+                            <div class="overview-stat-title">Total Astrologers</div>
+                            <div id="statTotalAstros" class="overview-stat-val">0</div>
+                            <div class="overview-stat-trend" style="color:#2563EB;"><i class="fas fa-id-card"></i> Registered</div>
+                        </div>
+                    </div>
+
+                    <!-- 2. Active Astrologers -->
+                    <div class="overview-stat-card" onclick="navAdmin('payouts', event)" title="View Active Astrologers">
+                        <div class="overview-stat-icon accent-emerald"><i class="fas fa-user-check"></i></div>
+                        <div class="overview-stat-info">
+                            <div class="overview-stat-title">Active Astrologers</div>
+                            <div id="statActiveAstros" class="overview-stat-val">0</div>
+                            <div class="overview-stat-trend" style="color:#059669;"><i class="fas fa-check-circle"></i> Approved</div>
+                        </div>
+                    </div>
+
+                    <!-- 3. Total Clients -->
+                    <div class="overview-stat-card" onclick="navAdmin('users', event)" title="View Clients">
+                        <div class="overview-stat-icon accent-purple"><i class="fas fa-users"></i></div>
+                        <div class="overview-stat-info">
+                            <div class="overview-stat-title">Total Clients</div>
+                            <div id="statTotalClients" class="overview-stat-val">0</div>
+                            <div class="overview-stat-trend" style="color:#7E22CE;"><i class="fas fa-mobile-alt"></i> App Users</div>
+                        </div>
+                    </div>
+
+                    <!-- 4. Online Astrologers -->
+                    <div class="overview-stat-card" onclick="navAdmin('payouts', event)" title="View Live Astrologers">
+                        <div class="overview-stat-icon accent-teal"><i class="fas fa-signal"></i></div>
+                        <div class="overview-stat-info">
+                            <div class="overview-stat-title">Online Astrologers</div>
+                            <div id="liveAstros" class="overview-stat-val">0</div>
+                            <div class="overview-stat-trend" style="color:#0D9488;"><i class="fas fa-circle" style="font-size:0.5rem;"></i> Available Now</div>
+                        </div>
+                    </div>
+
+                    <!-- 5. Active Calls -->
+                    <div class="overview-stat-card" onclick="navAdmin('history', event)" title="View Active Calls">
+                        <div class="overview-stat-icon accent-rose"><i class="fas fa-phone-volume"></i></div>
+                        <div class="overview-stat-info">
+                            <div class="overview-stat-title">Active Calls</div>
+                            <div id="liveCalls" class="overview-stat-val">0</div>
+                            <div class="overview-stat-trend" style="color:#E11D48;"><i class="fas fa-broadcast-tower"></i> Live Sessions</div>
+                        </div>
+                    </div>
+
+                    <!-- 6. Total Revenue -->
+                    <div class="overview-stat-card" onclick="navAdmin('earnings', event)" title="View Financial Ledger">
+                        <div class="overview-stat-icon accent-emerald"><i class="fas fa-rupee-sign"></i></div>
+                        <div class="overview-stat-info">
+                            <div class="overview-stat-title">Total Revenue</div>
+                            <div id="quickRev" class="overview-stat-val">₹0</div>
+                            <div class="overview-stat-trend" style="color:#059669;"><i class="fas fa-chart-line"></i> Total Inflow</div>
+                        </div>
+                    </div>
+
+                    <!-- 7. Pending Withdrawals -->
+                    <div class="overview-stat-card" onclick="navAdmin('withdrawals', event)" title="View Pending Withdrawals">
+                        <div class="overview-stat-icon accent-amber"><i class="fas fa-hand-holding-usd"></i></div>
+                        <div class="overview-stat-info">
+                            <div class="overview-stat-title">Pending Withdrawals</div>
+                            <div id="statPendingWithdrawals" class="overview-stat-val">0</div>
+                            <div class="overview-stat-trend" style="color:#D97706;"><i class="fas fa-clock"></i> Action Needed</div>
+                        </div>
+                    </div>
+
+                    <!-- 8. Total Puja Bookings -->
+                    <div class="overview-stat-card" onclick="scrollToPujaSection()" title="View Puja Bookings">
+                        <div class="overview-stat-icon accent-orange"><i class="fas fa-fire-alt"></i></div>
+                        <div class="overview-stat-info">
+                            <div class="overview-stat-title">Total Puja Bookings</div>
+                            <div id="statTotalPujas" class="overview-stat-val">0</div>
+                            <div class="overview-stat-trend" style="color:#EA580C;"><i class="fas fa-om"></i> All Vedic Pujas</div>
+                        </div>
+                    </div>
+
+                    <!-- 9. Pending Puja Bookings -->
+                    <div class="overview-stat-card" onclick="filterPujaStatusQuick('PENDING')" title="View Pending Puja Bookings">
+                        <div class="overview-stat-icon accent-amber"><i class="fas fa-hourglass-half"></i></div>
+                        <div class="overview-stat-info">
+                            <div class="overview-stat-title">Pending Pujas</div>
+                            <div id="statPendingPujas" class="overview-stat-val">0</div>
+                            <div class="overview-stat-trend" style="color:#D97706;"><i class="fas fa-exclamation-circle"></i> Requires Pandits</div>
+                        </div>
+                    </div>
+
+                    <!-- 10. Confirmed Puja Bookings -->
+                    <div class="overview-stat-card" onclick="filterPujaStatusQuick('CONFIRMED')" title="View Confirmed Puja Bookings">
+                        <div class="overview-stat-icon accent-blue"><i class="fas fa-calendar-check"></i></div>
+                        <div class="overview-stat-info">
+                            <div class="overview-stat-title">Confirmed Pujas</div>
+                            <div id="statConfirmedPujas" class="overview-stat-val">0</div>
+                            <div class="overview-stat-trend" style="color:#2563EB;"><i class="fas fa-calendar-alt"></i> Scheduled</div>
+                        </div>
+                    </div>
+
+                    <!-- 11. Completed Puja Bookings -->
+                    <div class="overview-stat-card" onclick="filterPujaStatusQuick('COMPLETED')" title="View Completed Puja Bookings">
+                        <div class="overview-stat-icon accent-emerald"><i class="fas fa-check-double"></i></div>
+                        <div class="overview-stat-info">
+                            <div class="overview-stat-title">Completed Pujas</div>
+                            <div id="statCompletedPujas" class="overview-stat-val">0</div>
+                            <div class="overview-stat-trend" style="color:#059669;"><i class="fas fa-praying-hands"></i> Fulfilled</div>
+                        </div>
+                    </div>
+
+                    <!-- 12. Cancelled Puja Bookings -->
+                    <div class="overview-stat-card" onclick="filterPujaStatusQuick('CANCELLED')" title="View Cancelled Puja Bookings">
+                        <div class="overview-stat-icon accent-rose"><i class="fas fa-times-circle"></i></div>
+                        <div class="overview-stat-info">
+                            <div class="overview-stat-title">Cancelled Pujas</div>
+                            <div id="statCancelledPujas" class="overview-stat-val">0</div>
+                            <div class="overview-stat-trend" style="color:#E11D48;"><i class="fas fa-ban"></i> Voided / Cancelled</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Access Hub (18 Modern Cards) -->
+                <div class="quick-access-section">
+                    <h3 class="section-header-title">
+                        <i class="fas fa-th-large" style="color:var(--primary);"></i>
+                        Quick Access Hub
+                    </h3>
+                    <div class="quick-access-grid">
+                        <!-- 1. Astrologers -->
+                        <div class="quick-card" onclick="navAdmin('payouts', event)">
+                            <div class="quick-card-left">
+                                <div class="quick-icon-wrap accent-blue"><i class="fas fa-user-astronaut"></i></div>
+                                <div class="quick-card-text">
+                                    <div class="quick-card-title">Astrologers</div>
+                                    <div class="quick-card-desc">Profiles, approval & rates</div>
+                                </div>
+                            </div>
+                            <i class="fas fa-chevron-right quick-card-chevron"></i>
+                        </div>
+
+                        <!-- 2. Clients -->
+                        <div class="quick-card" onclick="navAdmin('users', event)">
+                            <div class="quick-card-left">
+                                <div class="quick-icon-wrap accent-purple"><i class="fas fa-users"></i></div>
+                                <div class="quick-card-text">
+                                    <div class="quick-card-title">Clients</div>
+                                    <div class="quick-card-desc">Users, wallets & history</div>
+                                </div>
+                            </div>
+                            <i class="fas fa-chevron-right quick-card-chevron"></i>
+                        </div>
+
+                        <!-- 3. Puja Bookings -->
+                        <div class="quick-card" onclick="navAdmin('puja-bookings', event)">
+                            <div class="quick-card-left">
+                                <div class="quick-icon-wrap accent-orange"><i class="fas fa-fire-alt"></i></div>
+                                <div class="quick-card-text">
+                                    <div class="quick-card-title">Puja Bookings</div>
+                                    <div class="quick-card-desc">Orders, pandits & dates</div>
+                                </div>
+                            </div>
+                            <i class="fas fa-chevron-right quick-card-chevron"></i>
+                        </div>
+
+                        <!-- 4. Withdrawals -->
+                        <div class="quick-card" onclick="navAdmin('withdrawals', event)">
+                            <div class="quick-card-left">
+                                <div class="quick-icon-wrap accent-amber"><i class="fas fa-hand-holding-usd"></i></div>
+                                <div class="quick-card-text">
+                                    <div class="quick-card-title">Withdrawals</div>
+                                    <div class="quick-card-desc">Payout requests & UPI</div>
+                                </div>
+                            </div>
+                            <i class="fas fa-chevron-right quick-card-chevron"></i>
+                        </div>
+
+                        <!-- 5. Payments -->
+                        <div class="quick-card" onclick="navAdmin('earnings', event)">
+                            <div class="quick-card-left">
+                                <div class="quick-icon-wrap accent-emerald"><i class="fas fa-wallet"></i></div>
+                                <div class="quick-card-text">
+                                    <div class="quick-card-title">Payments & Ledger</div>
+                                    <div class="quick-card-desc">Revenue, commission & fees</div>
+                                </div>
+                            </div>
+                            <i class="fas fa-chevron-right quick-card-chevron"></i>
+                        </div>
+
+                        <!-- 6. Offers & FCM -->
+                        <div class="quick-card" onclick="navAdmin('offers', event)">
+                            <div class="quick-card-left">
+                                <div class="quick-icon-wrap accent-rose"><i class="fas fa-paper-plane"></i></div>
+                                <div class="quick-card-text">
+                                    <div class="quick-card-title">Offers & FCM Push</div>
+                                    <div class="quick-card-desc">Send promo notifications</div>
+                                </div>
+                            </div>
+                            <i class="fas fa-chevron-right quick-card-chevron"></i>
+                        </div>
+
+                        <!-- 7. Academy Videos -->
+                        <div class="quick-card" onclick="navAdmin('academy', event)">
+                            <div class="quick-card-left">
+                                <div class="quick-icon-wrap accent-indigo"><i class="fas fa-graduation-cap"></i></div>
+                                <div class="quick-card-text">
+                                    <div class="quick-card-title">Academy Videos</div>
+                                    <div class="quick-card-desc">Astrology tutorials & clips</div>
+                                </div>
+                            </div>
+                            <i class="fas fa-chevron-right quick-card-chevron"></i>
+                        </div>
+
+                        <!-- 8. Rituals -->
+                        <div class="quick-card" onclick="navAdmin('rituals', event)">
+                            <div class="quick-card-left">
+                                <div class="quick-icon-wrap accent-amber"><i class="fas fa-magic"></i></div>
+                                <div class="quick-card-text">
+                                    <div class="quick-card-title">Rituals & Pujas</div>
+                                    <div class="quick-card-desc">Manage puja catalog items</div>
+                                </div>
+                            </div>
+                            <i class="fas fa-chevron-right quick-card-chevron"></i>
+                        </div>
+
+                        <!-- 9. App Banners -->
+                        <div class="quick-card" onclick="navAdmin('ads-banner', event)">
+                            <div class="quick-card-left">
+                                <div class="quick-icon-wrap accent-cyan"><i class="fas fa-images"></i></div>
+                                <div class="quick-card-text">
+                                    <div class="quick-card-title">App Banners</div>
+                                    <div class="quick-card-desc">Home promo slides & ads</div>
+                                </div>
+                            </div>
+                            <i class="fas fa-chevron-right quick-card-chevron"></i>
+                        </div>
+
+                        <!-- 10. Home Grid Services -->
+                        <div class="quick-card" onclick="navAdmin('services', event)">
+                            <div class="quick-card-left">
+                                <div class="quick-icon-wrap accent-teal"><i class="fas fa-th-large"></i></div>
+                                <div class="quick-card-text">
+                                    <div class="quick-card-title">Home Grid Services</div>
+                                    <div class="quick-card-desc">Dashboard feature cards</div>
+                                </div>
+                            </div>
+                            <i class="fas fa-chevron-right quick-card-chevron"></i>
+                        </div>
+
+                        <!-- 11. Commission / Slab Rates -->
+                        <div class="quick-card" onclick="navAdmin('slab', event)">
+                            <div class="quick-card-left">
+                                <div class="quick-icon-wrap accent-blue"><i class="fas fa-layer-group"></i></div>
+                                <div class="quick-card-text">
+                                    <div class="quick-card-title">Slab Rates & Commission</div>
+                                    <div class="quick-card-desc">Call duration pricing slabs</div>
+                                </div>
+                            </div>
+                            <i class="fas fa-chevron-right quick-card-chevron"></i>
+                        </div>
+
+                        <!-- 12. Feedback & Ratings -->
+                        <div class="quick-card" onclick="navAdmin('feedback', event)">
+                            <div class="quick-card-left">
+                                <div class="quick-icon-wrap accent-amber"><i class="fas fa-star"></i></div>
+                                <div class="quick-card-text">
+                                    <div class="quick-card-title">Feedback & Ratings</div>
+                                    <div class="quick-card-desc">Client reviews & stars</div>
+                                </div>
+                            </div>
+                            <i class="fas fa-chevron-right quick-card-chevron"></i>
+                        </div>
+
+                        <!-- 13. Communication History -->
+                        <div class="quick-card" onclick="navAdmin('history', event)">
+                            <div class="quick-card-left">
+                                <div class="quick-icon-wrap accent-purple"><i class="fas fa-history"></i></div>
+                                <div class="quick-card-text">
+                                    <div class="quick-card-title">Communication Logs</div>
+                                    <div class="quick-card-desc">Calls, chats & durations</div>
+                                </div>
+                            </div>
+                            <i class="fas fa-chevron-right quick-card-chevron"></i>
+                        </div>
+
+                        <!-- 14. Puja Products -->
+                        <div class="quick-card" onclick="navAdmin('referrals', event)">
+                            <div class="quick-card-left">
+                                <div class="quick-icon-wrap accent-emerald"><i class="fas fa-gem"></i></div>
+                                <div class="quick-card-text">
+                                    <div class="quick-card-title">Puja Products & Gemstones</div>
+                                    <div class="quick-card-desc">Store sales & referrals</div>
+                                </div>
+                            </div>
+                            <i class="fas fa-chevron-right quick-card-chevron"></i>
+                        </div>
+
+                        <!-- 15. Rasi Icons -->
+                        <div class="quick-card" onclick="navAdmin('rasi-icons', event)">
+                            <div class="quick-card-left">
+                                <div class="quick-icon-wrap accent-orange"><i class="fas fa-star-and-crescent"></i></div>
+                                <div class="quick-card-text">
+                                    <div class="quick-card-title">Rasi Icons</div>
+                                    <div class="quick-card-desc">Zodiac icons & symbols</div>
+                                </div>
+                            </div>
+                            <i class="fas fa-chevron-right quick-card-chevron"></i>
+                        </div>
+
+                        <!-- 16. System Configuration -->
+                        <div class="quick-card" onclick="navAdmin('settings', event)">
+                            <div class="quick-card-left">
+                                <div class="quick-icon-wrap accent-cyan"><i class="fas fa-sliders-h"></i></div>
+                                <div class="quick-card-text">
+                                    <div class="quick-card-title">System Configuration</div>
+                                    <div class="quick-card-desc">Global app parameters</div>
+                                </div>
+                            </div>
+                            <i class="fas fa-chevron-right quick-card-chevron"></i>
+                        </div>
+
+                        <!-- 17. SMTP / Email -->
+                        <div class="quick-card" onclick="navAdmin('smtp', event)">
+                            <div class="quick-card-left">
+                                <div class="quick-icon-wrap accent-indigo"><i class="fas fa-envelope-open-text"></i></div>
+                                <div class="quick-card-text">
+                                    <div class="quick-card-title">SMTP / Email</div>
+                                    <div class="quick-card-desc">Email server settings</div>
+                                </div>
+                            </div>
+                            <i class="fas fa-chevron-right quick-card-chevron"></i>
+                        </div>
+
+                        <!-- 18. System Health -->
+                        <div class="quick-card" onclick="navAdmin('workflow', event)">
+                            <div class="quick-card-left">
+                                <div class="quick-icon-wrap accent-teal"><i class="fas fa-heartbeat"></i></div>
+                                <div class="quick-card-text">
+                                    <div class="quick-card-title">System Health & Engine</div>
+                                    <div class="quick-card-desc">Microservices & ephemeris</div>
+                                </div>
+                            </div>
+                            <i class="fas fa-chevron-right quick-card-chevron"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Puja Bookings Dashboard Overview Card -->
+                <div class="puja-booking-container">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:10px;">
+                        <div>
+                            <h3 class="section-header-title" style="margin:0;">
+                                <i class="fas fa-fire-alt" style="color:var(--primary);"></i>
+                                Puja Bookings & Vedic Services
+                            </h3>
+                            <p style="font-size:0.75rem; color:var(--text-muted); margin:4px 0 0 0;">First-class live Puja booking management, customer contact & verified rituals.</p>
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <button onclick="navAdmin('puja-bookings', event)" class="btn-admin btn-primary-action" title="View Full Puja Bookings Table">
+                                <i class="fas fa-list-alt"></i> View All Puja Bookings
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Puja Summary Strip -->
+                    <div class="puja-stats-strip">
+                        <div class="puja-mini-stat" onclick="filterPujaStatusQuick('ALL')">
+                            <div class="puja-mini-stat-label">Total Bookings</div>
+                            <div id="pujaStripTotal" class="puja-mini-stat-val">0</div>
+                        </div>
+                        <div class="puja-mini-stat" onclick="filterPujaStatusQuick('TODAY')">
+                            <div class="puja-mini-stat-label" style="color:#059669;">Today's New</div>
+                            <div id="pujaStripNew" class="puja-mini-stat-val" style="color:#059669;">0</div>
+                        </div>
+                        <div class="puja-mini-stat" onclick="filterPujaStatusQuick('PENDING')">
+                            <div class="puja-mini-stat-label" style="color:#D97706;">Pending</div>
+                            <div id="pujaStripPending" class="puja-mini-stat-val" style="color:#D97706;">0</div>
+                        </div>
+                        <div class="puja-mini-stat" onclick="filterPujaStatusQuick('CONFIRMED')">
+                            <div class="puja-mini-stat-label" style="color:#2563EB;">Confirmed</div>
+                            <div id="pujaStripConfirmed" class="puja-mini-stat-val" style="color:#2563EB;">0</div>
+                        </div>
+                        <div class="puja-mini-stat" onclick="filterPujaStatusQuick('IN_PROGRESS')">
+                            <div class="puja-mini-stat-label" style="color:#4F46E5;">In Progress</div>
+                            <div id="pujaStripInProgress" class="puja-mini-stat-val" style="color:#4F46E5;">0</div>
+                        </div>
+                        <div class="puja-mini-stat" onclick="filterPujaStatusQuick('COMPLETED')">
+                            <div class="puja-mini-stat-label" style="color:#059669;">Completed</div>
+                            <div id="pujaStripCompleted" class="puja-mini-stat-val" style="color:#059669;">0</div>
+                        </div>
+                        <div class="puja-mini-stat" onclick="filterPujaStatusQuick('CANCELLED')">
+                            <div class="puja-mini-stat-label" style="color:#DC2626;">Cancelled</div>
+                            <div id="pujaStripCancelled" class="puja-mini-stat-val" style="color:#DC2626;">0</div>
+                        </div>
+                        <div class="puja-mini-stat" style="background:#ECFDF5; border-color:#A7F3D0;">
+                            <div class="puja-mini-stat-label" style="color:#047857;">Puja Revenue</div>
+                            <div id="pujaStripRevenue" class="puja-mini-stat-val" style="color:#047857;">₹0</div>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; padding:12px 16px; background:#F8FAF9; border-radius:10px; border:1px dashed var(--border-medium); flex-wrap:wrap; gap:10px;">
+                        <div style="font-size:0.82rem; color:var(--text-secondary); font-weight:600;">
+                            <i class="fas fa-info-circle" style="color:var(--primary); margin-right:6px;"></i>
+                            Access customer phone numbers, instant call buttons, rasi details, and complete rituals lifecycle in the dedicated screen.
+                        </div>
+                        <button onclick="navAdmin('puja-bookings', event)" class="btn-admin btn-secondary-action" style="white-space:nowrap;">
+                            Open Table View <i class="fas fa-arrow-right" style="margin-left:4px;"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div style="margin: 25px 0 15px 0; color: var(--text-muted); font-size: 0.8rem; font-weight:700; letter-spacing: 0.5px; display: flex; align-items: center; gap: 10px;">
                     <span style="width: 8px; height: 8px; border-radius: 50%; background: #10B981; box-shadow: 0 0 10px #10B981; display: inline-block; animation: pulse 2s infinite;"></span>
-                    LIVE REAL-TIME ACTIVITY
+                    LIVE REAL-TIME ACTIVITY & SESSIONS
                 </div>
 
                 <!-- Live Video Astrologers Visibility -->
@@ -193,35 +597,37 @@
                     }
                 </style>
 
+                <!-- Financial Performance Quick Strip -->
                 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:15px; margin-bottom: 25px;">
                     <div class="admin-card" style="display:flex; align-items:center; gap:15px; padding:15px; border-bottom:3px solid #10B981; background:rgba(16,185,129,0.02);">
                         <div style="width:40px; height:40px; border-radius:10px; background:rgba(16,185,129,0.1); display:flex; align-items:center; justify-content:center; color:#10B981; font-size:1.2rem;">
-                            <i class="fas fa-phone-alt"></i>
+                            <i class="fas fa-chart-line"></i>
                         </div>
                         <div>
-                            <div id="liveCalls" style="font-size:1.4rem; font-weight:bold; color:var(--text-main);">0</div>
-                            <div style="font-size:0.75rem; color:var(--text-dim); text-transform:uppercase; font-weight:600;">Active Calls</div>
+                            <div id="quickProfit" style="font-size:1.4rem; font-weight:bold; color:var(--text-main);">₹0</div>
+                            <div style="font-size:0.72rem; color:var(--text-dim); text-transform:uppercase; font-weight:700;">Net Profit</div>
                         </div>
                     </div>
-                    <div class="admin-card" style="display:flex; align-items:center; gap:15px; padding:15px; border-bottom:3px solid var(--primary); background:rgba(255, 204, 0,0.02);">
-                        <div style="width:40px; height:40px; border-radius:10px; background:rgba(255, 204, 0,0.1); display:flex; align-items:center; justify-content:center; color:var(--primary); font-size:1.2rem;">
-                            <i class="fas fa-user-astronaut"></i>
+                    <div class="admin-card" style="display:flex; align-items:center; gap:15px; padding:15px; border-bottom:3px solid #EF4444; background:rgba(239,68,68,0.02);">
+                        <div style="width:40px; height:40px; border-radius:10px; background:rgba(239,68,68,0.1); display:flex; align-items:center; justify-content:center; color:#EF4444; font-size:1.2rem;">
+                            <i class="fas fa-wallet"></i>
                         </div>
                         <div>
-                            <div id="liveAstros" style="font-size:1.4rem; font-weight:bold; color:var(--text-main);">0</div>
-                            <div style="font-size:0.75rem; color:var(--text-dim); text-transform:uppercase; font-weight:600;">Online Astros</div>
+                            <div id="quickPayout" style="font-size:1.4rem; font-weight:bold; color:var(--text-main);">₹0</div>
+                            <div style="font-size:0.72rem; color:var(--text-dim); text-transform:uppercase; font-weight:700;">Astro Payout</div>
                         </div>
                     </div>
-                    <div class="admin-card" style="display:flex; align-items:center; gap:15px; padding:15px; border-bottom:3px solid var(--accent); background:rgba(14,165,233,0.02);">
-                        <div style="width:40px; height:40px; border-radius:10px; background:rgba(14,165,233,0.1); display:flex; align-items:center; justify-content:center; color:var(--accent); font-size:1.2rem;">
-                            <i class="fas fa-users"></i>
+                    <div class="admin-card" style="display:flex; align-items:center; gap:15px; padding:15px; border-bottom:3px solid #3B82F6; background:rgba(59,130,246,0.02);">
+                        <div style="width:40px; height:40px; border-radius:10px; background:rgba(59,130,246,0.1); display:flex; align-items:center; justify-content:center; color:#3B82F6; font-size:1.2rem;">
+                            <i class="fas fa-clock"></i>
                         </div>
                         <div>
-                            <div id="liveClients" style="font-size:1.4rem; font-weight:bold; color:var(--text-main);">0</div>
-                            <div style="font-size:0.75rem; color:var(--text-dim); text-transform:uppercase; font-weight:600;">Active Clients</div>
+                            <div id="quickMins" style="font-size:1.4rem; font-weight:bold; color:var(--text-main);">0</div>
+                            <div style="font-size:0.72rem; color:var(--text-dim); text-transform:uppercase; font-weight:700;">Mins Billed</div>
                         </div>
                     </div>
                 </div>
+
                 <div class="chart-container">
                     <canvas id="revenueChart" height="200"></canvas>
                 </div>
@@ -1338,11 +1744,306 @@
                     <button class="btn-admin" style="background:var(--border-soft); color:var(--text-muted);" onclick="closeModal('modal-edit-user')">Cancel</button>
                 </div>
             </div>
+            <!-- Tab: Dedicated Puja Bookings Screen -->
+            <div id="admin-sect-puja-bookings" class="admin-tab-section">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+                    <div>
+                        <h2 style="font-size:1.5rem; font-weight:900; color:var(--text-main); margin:0;">
+                            <i class="fas fa-fire-alt" style="color:var(--primary);"></i> Puja Bookings Management
+                        </h2>
+                        <p style="font-size:0.8rem; color:var(--text-muted); margin:4px 0 0 0;">Review sacred puja orders, make direct phone calls to customers, verify payments, and manage rituals lifecycle.</p>
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <button onclick="loadPujaBookings(1)" class="btn-admin btn-secondary-action">
+                            <i class="fas fa-sync-alt"></i> Refresh Data
+                        </button>
+                    </div>
+                </div>
+
+                <div class="puja-booking-container" style="box-shadow:none; border:none; padding:0;">
+                    <!-- Embedded Puja Management View -->
+                    <div class="puja-stats-strip">
+                        <div class="puja-mini-stat" onclick="filterPujaStatusQuick('ALL')">
+                            <div class="puja-mini-stat-label">Total Bookings</div>
+                            <div class="puja-mini-stat-val" id="pujaFullStripTotal">0</div>
+                        </div>
+                        <div class="puja-mini-stat" onclick="filterPujaStatusQuick('TODAY')">
+                            <div class="puja-mini-stat-label" style="color:#059669;">Today's New</div>
+                            <div class="puja-mini-stat-val" id="pujaFullStripToday" style="color:#059669;">0</div>
+                        </div>
+                        <div class="puja-mini-stat" onclick="filterPujaStatusQuick('PENDING')">
+                            <div class="puja-mini-stat-label" style="color:#D97706;">Pending</div>
+                            <div class="puja-mini-stat-val" id="pujaFullStripPending" style="color:#D97706;">0</div>
+                        </div>
+                        <div class="puja-mini-stat" onclick="filterPujaStatusQuick('CONFIRMED')">
+                            <div class="puja-mini-stat-label" style="color:#2563EB;">Confirmed</div>
+                            <div class="puja-mini-stat-val" id="pujaFullStripConfirmed" style="color:#2563EB;">0</div>
+                        </div>
+                        <div class="puja-mini-stat" onclick="filterPujaStatusQuick('IN_PROGRESS')">
+                            <div class="puja-mini-stat-label" style="color:#4F46E5;">In Progress</div>
+                            <div class="puja-mini-stat-val" id="pujaFullStripInProgress" style="color:#4F46E5;">0</div>
+                        </div>
+                        <div class="puja-mini-stat" onclick="filterPujaStatusQuick('COMPLETED')">
+                            <div class="puja-mini-stat-label" style="color:#059669;">Completed</div>
+                            <div class="puja-mini-stat-val" id="pujaFullStripCompleted" style="color:#059669;">0</div>
+                        </div>
+                        <div class="puja-mini-stat" onclick="filterPujaStatusQuick('CANCELLED')">
+                            <div class="puja-mini-stat-label" style="color:#DC2626;">Cancelled</div>
+                            <div class="puja-mini-stat-val" id="pujaFullStripCancelled" style="color:#DC2626;">0</div>
+                        </div>
+                    </div>
+
+                    <!-- Puja Search & Filters Bar -->
+                    <div class="puja-filter-bar">
+                        <div class="puja-filter-inputs">
+                            <div style="position:relative; flex:1; min-width:200px;">
+                                <i class="fas fa-search" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--text-dim); font-size:0.8rem;"></i>
+                                <input type="text" id="pujaSearchInput" class="app-input" style="padding-left:30px; margin:0; height:36px;" placeholder="Search Booking ID, Customer, Phone, Puja, Rasi..." oninput="handlePujaSearch()">
+                            </div>
+                            <select id="pujaStatusFilter" class="puja-select" onchange="handlePujaFilterChange()">
+                                <option value="ALL">All Booking Status</option>
+                                <option value="PENDING">Pending</option>
+                                <option value="CONFIRMED">Confirmed</option>
+                                <option value="IN_PROGRESS">In Progress</option>
+                                <option value="COMPLETED">Completed</option>
+                                <option value="CANCELLED">Cancelled</option>
+                                <option value="REJECTED">Rejected</option>
+                            </select>
+                            <select id="pujaPaymentFilter" class="puja-select" onchange="handlePujaFilterChange()">
+                                <option value="ALL">All Payments</option>
+                                <option value="PAID">Paid</option>
+                                <option value="PENDING">Pending</option>
+                                <option value="FAILED">Failed</option>
+                                <option value="REFUNDED">Refunded</option>
+                            </select>
+                            <input type="date" id="pujaStartDate" class="puja-date-input" title="Start Date" onchange="handlePujaFilterChange()">
+                            <input type="date" id="pujaEndDate" class="puja-date-input" title="End Date" onchange="handlePujaFilterChange()">
+                            <select id="pujaSortSelect" class="puja-select" onchange="handlePujaFilterChange()">
+                                <option value="createdAt_desc">Latest First</option>
+                                <option value="createdAt_asc">Oldest First</option>
+                                <option value="amount_desc">Highest Amount</option>
+                                <option value="amount_asc">Lowest Amount</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Desktop Puja Table -->
+                    <div class="puja-table-wrap">
+                        <table class="puja-table">
+                            <thead>
+                                <tr>
+                                    <th>Booking ID</th>
+                                    <th>Customer & Contact</th>
+                                    <th>Puja Service & Sankalpam</th>
+                                    <th>Scheduled Date & Time</th>
+                                    <th>Amount</th>
+                                    <th>Payment</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th style="text-align:right;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pujaBookingsTableBody">
+                                <tr>
+                                    <td colspan="9" style="text-align:center; padding:30px; color:var(--text-muted);">
+                                        <div class="loader" style="margin: 0 auto 10px auto;"></div>
+                                        Loading Puja Bookings...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Mobile Puja Cards View -->
+                    <div id="pujaBookingsCardsView" class="puja-cards-view">
+                        <!-- Dynamic Mobile Cards injected here -->
+                    </div>
+
+                    <!-- Pagination -->
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; flex-wrap:wrap; gap:10px;">
+                        <div id="pujaPaginationInfo" style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">
+                            Showing 0 of 0 bookings
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <button id="btnPujaPrev" onclick="changePujaPage(-1)" class="btn-admin btn-secondary-action" style="padding:6px 12px; font-size:0.75rem;" disabled>
+                                <i class="fas fa-chevron-left"></i> Previous
+                            </button>
+                            <span id="pujaCurrentPageNum" style="display:inline-flex; align-items:center; padding:0 10px; font-size:0.78rem; font-weight:800; background:#F1F5F9; border-radius:8px;">1</span>
+                            <button id="btnPujaNext" onclick="changePujaPage(1)" class="btn-admin btn-secondary-action" style="padding:6px 12px; font-size:0.75rem;" disabled>
+                                Next <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
+        <!-- Puja Booking Details Drawer Modal -->
+        <div id="pujaDetailsDrawer" class="admin-drawer-overlay" onclick="if(event.target === this) closePujaDetails()">
+            <div class="admin-drawer">
+                <div class="drawer-header">
+                    <div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span id="drawerBookingId" style="font-weight:900; font-size:1.15rem; color:var(--text-main);">#PB00000</span>
+                            <span id="drawerStatusBadge" class="status-badge status-pending">PENDING</span>
+                        </div>
+                        <div id="drawerCreatedDate" style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">Created on -</div>
+                    </div>
+                    <button onclick="closePujaDetails()" class="btn-admin btn-secondary-action btn-admin-icon" title="Close Drawer">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="drawer-body">
+                    <!-- Customer Information -->
+                    <div class="drawer-section-title"><i class="fas fa-user"></i> Customer Information</div>
+                    <div class="drawer-info-grid">
+                        <div class="drawer-info-item">
+                            <label>Customer Name</label>
+                            <span id="drawerCustName">-</span>
+                        </div>
+                        <div class="drawer-info-item">
+                            <label>Mobile Number</label>
+                            <span id="drawerCustMobile">-</span>
+                        </div>
+                        <div class="drawer-info-item" style="grid-column: span 2;">
+                            <label>Email Address</label>
+                            <span id="drawerCustEmail">-</span>
+                        </div>
+                        <div class="drawer-info-item" style="grid-column: span 2;">
+                            <label>Address / Sankalpam Location</label>
+                            <span id="drawerCustAddress">-</span>
+                        </div>
+                    </div>
 
+                    <!-- Direct Contact Links -->
+                    <div style="display:flex; gap:10px; margin-top:10px;">
+                        <a id="drawerCallBtn" href="#" class="btn-admin btn-secondary-action" style="flex:1; text-decoration:none;">
+                            <i class="fas fa-phone-alt" style="color:#059669;"></i> Call Customer
+                        </a>
+                        <a id="drawerWaBtn" href="#" target="_blank" class="btn-admin btn-secondary-action" style="flex:1; text-decoration:none;">
+                            <i class="fab fa-whatsapp" style="color:#25D366;"></i> WhatsApp
+                        </a>
+                    </div>
 
-        <!-- Navigation -->
+                    <!-- Puja Information -->
+                    <div class="drawer-section-title"><i class="fas fa-om"></i> Puja Details</div>
+                    <div class="drawer-info-grid">
+                        <div class="drawer-info-item" style="grid-column: span 2;">
+                            <label>Puja Name</label>
+                            <span id="drawerPujaName">-</span>
+                        </div>
+                        <div class="drawer-info-item">
+                            <label>Category</label>
+                            <span id="drawerPujaCategory">-</span>
+                        </div>
+                        <div class="drawer-info-item">
+                            <label>Scheduled Date</label>
+                            <span id="drawerBookingDate">-</span>
+                        </div>
+                        <div class="drawer-info-item">
+                            <label>Preferred Time</label>
+                            <span id="drawerPreferredTime">-</span>
+                        </div>
+                        <div class="drawer-info-item">
+                            <label>Assigned Priest</label>
+                            <span id="drawerPriestName">-</span>
+                        </div>
+                        <div class="drawer-info-item">
+                            <label>Participants</label>
+                            <span id="drawerParticipants">1</span>
+                        </div>
+                        <div class="drawer-info-item">
+                            <label>Referral Astrologer</label>
+                            <span id="drawerReferralCode">None</span>
+                        </div>
+                        <div class="drawer-info-item">
+                            <label>Rasi / ராசி</label>
+                            <span id="drawerRasi" style="font-weight:700; color:var(--text-main);">-</span>
+                        </div>
+                        <div class="drawer-info-item">
+                            <label>Nakshatra / நட்சத்திரம்</label>
+                            <span id="drawerNakshatra" style="font-weight:700; color:var(--text-main);">-</span>
+                        </div>
+                        <div class="drawer-info-item" style="grid-column: span 2;">
+                            <label>Special Instructions / Notes</label>
+                            <span id="drawerInstructions">-</span>
+                        </div>
+                    </div>
+
+                    <!-- Payment Information -->
+                    <div class="drawer-section-title"><i class="fas fa-receipt"></i> Payment Information</div>
+                    <div class="drawer-info-grid">
+                        <div class="drawer-info-item">
+                            <label>Booking Amount</label>
+                            <span id="drawerAmount">₹0</span>
+                        </div>
+                        <div class="drawer-info-item">
+                            <label>Payment Method</label>
+                            <span id="drawerPaymentMethod">ONLINE</span>
+                        </div>
+                        <div class="drawer-info-item">
+                            <label>Payment Status</label>
+                            <span id="drawerPaymentBadge" class="status-badge payment-pending">PENDING</span>
+                        </div>
+                        <div class="drawer-info-item">
+                            <label>Transaction ID</label>
+                            <span id="drawerTransactionId">None</span>
+                        </div>
+                    </div>
+
+                    <!-- Admin Notes -->
+                    <div class="drawer-section-title"><i class="fas fa-sticky-note"></i> Internal Notes</div>
+                    <textarea id="drawerNotes" class="app-input" style="height:65px; margin:0;" placeholder="Add internal notes for pandit assignment or verification..."></textarea>
+                </div>
+
+                <!-- Admin Action Buttons -->
+                <div class="drawer-actions">
+                    <button onclick="changeCurrentPujaStatus('CONFIRMED')" class="btn-admin btn-primary-action" style="flex:1;">
+                        <i class="fas fa-check"></i> Confirm
+                    </button>
+                    <button onclick="changeCurrentPujaStatus('IN_PROGRESS')" class="btn-admin" style="background:#DBEAFE; color:#1D4ED8; flex:1;">
+                        <i class="fas fa-spinner"></i> In Progress
+                    </button>
+                    <button onclick="changeCurrentPujaStatus('COMPLETED')" class="btn-admin" style="background:#EDE9FE; color:#6D28D9; flex:1;">
+                        <i class="fas fa-flag-checkered"></i> Complete
+                    </button>
+                    <button onclick="toggleCurrentPujaPayment()" class="btn-admin" style="background:#ECFDF5; color:#047857; flex:1;">
+                        <i class="fas fa-credit-card"></i> Toggle Paid
+                    </button>
+                    <button onclick="changeCurrentPujaStatus('CANCELLED')" class="btn-admin btn-danger-action" style="flex:1;">
+                        <i class="fas fa-ban"></i> Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Bottom App Navigation Bar -->
+        <div class="mobile-bottom-nav">
+            <div class="bottom-nav-item active" onclick="navAdmin('home', event)">
+                <i class="fas fa-home"></i>
+                <span>Home</span>
+            </div>
+            <div class="bottom-nav-item" onclick="navAdmin('puja-bookings', event)">
+                <i class="fas fa-fire-alt"></i>
+                <span>Pujas</span>
+                <span id="bottom-puja-badge" class="bottom-nav-badge" style="display:none;">0</span>
+            </div>
+            <div class="bottom-nav-item" onclick="navAdmin('payouts', event)">
+                <i class="fas fa-user-astronaut"></i>
+                <span>Astros</span>
+            </div>
+            <div class="bottom-nav-item" onclick="navAdmin('users', event)">
+                <i class="fas fa-users"></i>
+                <span>Clients</span>
+            </div>
+            <div class="bottom-nav-item" onclick="toggleNav()">
+                <i class="fas fa-th-large"></i>
+                <span>More</span>
+            </div>
+        </div>
+
+        <!-- Navigation Sidebar / Slide-Over Drawer -->
         <div class="admin-nav" style="padding-top: 20px;">
             <!-- Category: Dashboard -->
             <div class="nav-category-header open" onclick="toggleNavCategory(this)">
@@ -1351,6 +2052,7 @@
             </div>
             <div class="nav-subcategory-list">
                 <div class="admin-nav-item active" onclick="navAdmin('home', event)"><i class="fas fa-home"></i><span>Dashboard</span></div>
+                <div class="admin-nav-item" onclick="navAdmin('puja-bookings', event)"><i class="fas fa-fire-alt" style="color:var(--primary);"></i><span>Puja Bookings <small id="nav-count-pujas" style="color:#EF4444; font-weight:bold;"></small></span></div>
                 <div class="admin-nav-item" onclick="navAdmin('performance', event)"><i class="fas fa-medal" style="color:#FFD700;"></i><span>Performance</span></div>
                 <div class="admin-nav-item" onclick="navAdmin('history', event)"><i class="fas fa-history" style="color:#FFB300;"></i><span>History Logs</span></div>
                 <div class="admin-nav-item" onclick="navAdmin('feedback', event)"><i class="fas fa-comment-alt"></i><span>Feedback</span></div>
@@ -1542,8 +2244,540 @@
             }
         };
 
+        // ==========================================
+        // PUJA BOOKINGS CONTROLLER & UI FUNCTIONS
+        // ==========================================
+        let pujaBookingsData = [];
+        let pujaTotalCount = 0;
+        let pujaCurrentPage = 1;
+        let pujaLimit = 15;
+        let pujaFilterStatus = 'ALL';
+        let pujaFilterPayment = 'ALL';
+        let pujaSearchQuery = '';
+        let pujaStartDate = '';
+        let pujaEndDate = '';
+        let pujaSortBy = 'createdAt';
+        let pujaSortOrder = 'desc';
+        let currentSelectedBooking = null;
+
+        async function fetchPujaSummary() {
+            try {
+                const res = await fetch('/api/puja-bookings/summary');
+                const json = await res.json();
+                if (json.success && json.stats) {
+                    const s = json.stats;
+                    // 12 Overview Stats Cards
+                    setText('statTotalPujas', s.totalBookings || 0);
+                    setText('statPendingPujas', s.pending || 0);
+                    setText('statConfirmedPujas', s.confirmed || 0);
+                    setText('statCompletedPujas', s.completed || 0);
+                    setText('statCancelledPujas', s.cancelled || 0);
+
+                    // Summary Strip on Dashboard
+                    setText('pujaStripTotal', s.totalBookings || 0);
+                    setText('pujaStripNew', s.newBookings || 0);
+                    setText('pujaStripPending', s.pending || 0);
+                    setText('pujaStripConfirmed', s.confirmed || 0);
+                    setText('pujaStripInProgress', s.inProgress || 0);
+                    setText('pujaStripCompleted', s.completed || 0);
+                    setText('pujaStripCancelled', s.cancelled || 0);
+                    setText('pujaStripRevenue', '₹' + (s.totalRevenue || 0).toLocaleString('en-IN'));
+
+                    // Dedicated Screen Strip
+                    setText('pujaFullStripTotal', s.totalBookings || 0);
+                    setText('pujaFullStripToday', s.newBookings || 0);
+                    setText('pujaFullStripPending', s.pending || 0);
+                    setText('pujaFullStripConfirmed', s.confirmed || 0);
+                    setText('pujaFullStripInProgress', s.inProgress || 0);
+                    setText('pujaFullStripCompleted', s.completed || 0);
+                    setText('pujaFullStripCancelled', s.cancelled || 0);
+
+                    // Header & Bottom Nav Badges
+                    const headerBadge = document.getElementById('header-puja-badge');
+                    const bottomBadge = document.getElementById('bottom-puja-badge');
+                    const navCountPujas = document.getElementById('nav-count-pujas');
+                    
+                    if (s.pending > 0) {
+                        if (headerBadge) { headerBadge.innerText = s.pending; headerBadge.style.display = 'inline-block'; }
+                        if (bottomBadge) { bottomBadge.innerText = s.pending; bottomBadge.style.display = 'inline-block'; }
+                        if (navCountPujas) { navCountPujas.innerText = '(' + s.pending + ')'; }
+                    } else {
+                        if (headerBadge) headerBadge.style.display = 'none';
+                        if (bottomBadge) bottomBadge.style.display = 'none';
+                        if (navCountPujas) navCountPujas.innerText = '';
+                    }
+                }
+            } catch (err) {
+                console.error('Error fetching puja summary:', err);
+            }
+        }
+
+        async function loadPujaBookings(page = 1) {
+            pujaCurrentPage = page;
+            const tbody = document.getElementById('pujaBookingsTableBody');
+            const cardsView = document.getElementById('pujaBookingsCardsView');
+            if (tbody) {
+                tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:30px; color:var(--text-muted);"><div class="loader" style="margin: 0 auto 10px auto;"></div>Loading Puja Bookings...</td></tr>`;
+            }
+            if (cardsView) {
+                cardsView.innerHTML = `<div style="text-align:center; padding:20px;"><div class="loader" style="margin: 0 auto 10px auto;"></div>Loading...</div>`;
+            }
+
+            try {
+                const params = new URLSearchParams({
+                    page: pujaCurrentPage,
+                    limit: pujaLimit,
+                    search: pujaSearchQuery,
+                    bookingStatus: pujaFilterStatus,
+                    paymentStatus: pujaFilterPayment,
+                    startDate: pujaStartDate,
+                    endDate: pujaEndDate,
+                    sortBy: pujaSortBy,
+                    sortOrder: pujaSortOrder
+                });
+
+                const res = await fetch(`/api/puja-bookings?${params.toString()}`);
+                const json = await res.json();
+
+                if (json.success) {
+                    pujaBookingsData = json.data || [];
+                    pujaTotalCount = json.total || 0;
+                    renderPujaBookingsUI(pujaBookingsData, json.page, json.totalPages, json.total);
+                } else {
+                    renderPujaErrorState(json.message || 'Failed to load bookings');
+                }
+            } catch (err) {
+                console.error('Error loading puja bookings:', err);
+                renderPujaErrorState(err.message || 'Network error');
+            }
+        }
+
+        function renderPujaBookingsUI(bookings, page, totalPages, total) {
+            const tbody = document.getElementById('pujaBookingsTableBody');
+            const cardsView = document.getElementById('pujaBookingsCardsView');
+
+            // Pagination Controls
+            const info = document.getElementById('pujaPaginationInfo');
+            const curr = document.getElementById('pujaCurrentPageNum');
+            const prev = document.getElementById('btnPujaPrev');
+            const next = document.getElementById('btnPujaNext');
+
+            if (info) info.innerText = `Showing ${bookings.length} of ${total} bookings (Page ${page} of ${totalPages || 1})`;
+            if (curr) curr.innerText = page;
+            if (prev) prev.disabled = page <= 1;
+            if (next) next.disabled = page >= totalPages;
+
+            if (!bookings || bookings.length === 0) {
+                const emptyHtml = `
+                    <div class="empty-state-box">
+                        <i class="fas fa-om empty-state-icon"></i>
+                        <div class="empty-state-text">No Puja Bookings Found</div>
+                        <div class="empty-state-sub">No records match your selected filters or search keyword.</div>
+                    </div>
+                `;
+                if (tbody) tbody.innerHTML = `<tr><td colspan="9">${emptyHtml}</td></tr>`;
+                if (cardsView) cardsView.innerHTML = emptyHtml;
+                return;
+            }
+
+            // Render Desktop Table Rows
+            if (tbody) {
+                tbody.innerHTML = bookings.map(b => {
+                    const statusClass = getPujaStatusClass(b.bookingStatus);
+                    const payClass = getPaymentStatusClass(b.paymentStatus);
+                    const dateFormatted = b.createdAt ? new Date(b.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+                    const rawPhone = (b.mobile || '').toString();
+                    const cleanPhone = rawPhone.replace(/[^0-9]/g, '');
+
+                    return `
+                        <tr>
+                            <td>
+                                <span style="font-weight:800; color:var(--primary); font-family:monospace; font-size:0.88rem;">#${b.bookingId}</span>
+                            </td>
+                            <td>
+                                <div style="font-weight:700; color:var(--text-main); font-size:0.9rem;">${escapeHtml(b.customerName || 'Anonymous')}</div>
+                                <div style="display:flex; align-items:center; gap:8px; margin-top:5px; flex-wrap:wrap;">
+                                    <span style="font-size:0.8rem; color:var(--text-muted); font-family:monospace; font-weight:600;">
+                                        <i class="fas fa-phone-alt" style="font-size:0.68rem; color:var(--text-dim);"></i> ${escapeHtml(b.mobile || '-')}
+                                    </span>
+                                    ${cleanPhone ? `
+                                        <a href="tel:${cleanPhone}" class="btn-puja-call" title="Direct Phone Call">
+                                            <i class="fas fa-phone-alt"></i> Call
+                                        </a>
+                                        <a href="https://wa.me/91${cleanPhone}?text=${encodeURIComponent(`Namaskaram ${b.customerName || ''}, regarding your Astro Eleven Puja booking #${b.bookingId} (${b.pujaName || ''}).`)}" target="_blank" class="btn-admin btn-secondary-action" style="padding:3px 7px; font-size:0.72rem; color:#25D366; text-decoration:none;" title="WhatsApp Chat">
+                                            <i class="fab fa-whatsapp"></i>
+                                        </a>
+                                    ` : ''}
+                                </div>
+                            </td>
+                            <td>
+                                <div style="font-weight:700; color:var(--text-main); font-size:0.88rem;">${escapeHtml(b.pujaName || 'Puja Service')}</div>
+                                <div style="font-size:0.72rem; color:var(--text-dim); margin-bottom:2px;">${escapeHtml(b.pujaCategory || 'Vedic Puja')}</div>
+                                ${(b.rasi || b.nakshatra) ? `
+                                    <div style="font-size:0.75rem; margin-top:3px; display:flex; gap:4px; flex-wrap:wrap;">
+                                        ${b.rasi ? `<span style="background:rgba(239,68,68,0.08); color:#DC2626; padding:1px 6px; border-radius:4px; font-weight:600;"><i class="fas fa-star" style="font-size:0.6rem;"></i> ${escapeHtml(b.rasi)}</span>` : ''}
+                                        ${b.nakshatra ? `<span style="background:rgba(79,70,229,0.08); color:#4F46E5; padding:1px 6px; border-radius:4px; font-weight:600;"><i class="fas fa-moon" style="font-size:0.6rem;"></i> ${escapeHtml(b.nakshatra)}</span>` : ''}
+                                    </div>` : ''
+                                }
+                                ${b.notes ? `<div style="font-size:0.72rem; color:var(--text-muted); margin-top:3px; max-width:240px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escapeHtml(b.notes)}"><i class="far fa-comment-dots"></i> ${escapeHtml(b.notes)}</div>` : ''}
+                            </td>
+                            <td>
+                                <div><i class="far fa-calendar-alt" style="color:var(--text-dim);"></i> ${escapeHtml(b.bookingDate || '-')}</div>
+                                <div style="font-size:0.7rem; color:var(--text-muted);"><i class="far fa-clock" style="color:var(--text-dim);"></i> ${escapeHtml(b.preferredTime || '-')}</div>
+                            </td>
+                            <td>
+                                <span style="font-weight:800; color:var(--text-main); font-size:0.9rem;">₹${(b.finalAmount || b.amount || 0).toLocaleString('en-IN')}</span>
+                            </td>
+                            <td>
+                                <span class="status-badge ${payClass}">${b.paymentStatus || 'PENDING'}</span>
+                            </td>
+                            <td>
+                                <span class="status-badge ${statusClass}">${b.bookingStatus || 'PENDING'}</span>
+                            </td>
+                            <td style="color:var(--text-dim); font-size:0.75rem;">
+                                ${dateFormatted}
+                            </td>
+                            <td style="text-align:right;">
+                                <button onclick="openPujaDetails('${b.bookingId}')" class="btn-admin btn-secondary-action" style="padding:4px 10px; font-size:0.75rem;">
+                                    <i class="fas fa-eye"></i> Details
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            // Render Mobile Cards View
+            if (cardsView) {
+                cardsView.innerHTML = bookings.map(b => {
+                    const statusClass = getPujaStatusClass(b.bookingStatus);
+                    const payClass = getPaymentStatusClass(b.paymentStatus);
+                    const rawPhone = (b.mobile || '').toString();
+                    const cleanPhone = rawPhone.replace(/[^0-9]/g, '');
+
+                    return `
+                        <div class="puja-mobile-card">
+                            <div class="puja-mobile-header">
+                                <div>
+                                    <span style="font-weight:900; color:var(--primary); font-family:monospace; font-size:0.95rem;">#${b.bookingId}</span>
+                                    <div style="font-size:0.72rem; color:var(--text-muted);">${b.bookingDate || 'Scheduled date'}</div>
+                                </div>
+                                <div style="display:flex; gap:6px;">
+                                    <span class="status-badge ${payClass}">${b.paymentStatus || 'PENDING'}</span>
+                                    <span class="status-badge ${statusClass}">${b.bookingStatus || 'PENDING'}</span>
+                                </div>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                                <div>
+                                    <div style="font-weight:800; font-size:0.92rem; color:var(--text-main);">${escapeHtml(b.customerName || 'Anonymous')}</div>
+                                    <div style="font-size:0.8rem; color:var(--text-muted); font-family:monospace; margin-top:2px;">
+                                        <i class="fas fa-phone-alt" style="font-size:0.7rem;"></i> ${escapeHtml(b.mobile || '-')}
+                                    </div>
+                                    <div style="font-size:0.82rem; color:var(--primary); font-weight:700; margin-top:3px;"><i class="fas fa-om"></i> ${escapeHtml(b.pujaName || 'Puja Service')}</div>
+                                    ${(b.rasi || b.nakshatra) ? `
+                                        <div style="font-size:0.73rem; margin-top:2px; color:var(--text-secondary);">
+                                            ${b.rasi ? `Rasi: <b>${escapeHtml(b.rasi)}</b> ` : ''}
+                                            ${b.nakshatra ? `Nakshatra: <b>${escapeHtml(b.nakshatra)}</b>` : ''}
+                                        </div>` : ''
+                                    }
+                                </div>
+                                <div style="text-align:right;">
+                                    <div style="font-size:1.1rem; font-weight:900; color:var(--text-main);">₹${(b.finalAmount || b.amount || 0).toLocaleString('en-IN')}</div>
+                                </div>
+                            </div>
+                            <div style="display:flex; gap:8px; margin-top:8px; padding-top:8px; border-top:1px solid var(--border-soft);">
+                                ${cleanPhone ? `
+                                    <a href="tel:${cleanPhone}" class="btn-puja-call" style="flex:1; justify-content:center; text-align:center; padding:8px 12px; font-size:0.8rem;">
+                                        <i class="fas fa-phone-alt"></i> Call Customer
+                                    </a>
+                                ` : ''}
+                                <button onclick="openPujaDetails('${b.bookingId}')" class="btn-admin btn-secondary-action" style="flex:1; padding:8px 12px; font-size:0.8rem;">
+                                    <i class="fas fa-eye"></i> Details
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        function getPujaStatusClass(status) {
+            switch ((status || '').toUpperCase()) {
+                case 'CONFIRMED': return 'status-confirmed';
+                case 'IN_PROGRESS': return 'status-inprogress';
+                case 'COMPLETED': return 'status-completed';
+                case 'CANCELLED': return 'status-cancelled';
+                case 'REJECTED': return 'status-rejected';
+                default: return 'status-pending';
+            }
+        }
+
+        function getPaymentStatusClass(status) {
+            switch ((status || '').toUpperCase()) {
+                case 'PAID': return 'payment-paid';
+                case 'FAILED': return 'payment-failed';
+                default: return 'payment-pending';
+            }
+        }
+
+        function renderPujaErrorState(msg) {
+            const tbody = document.getElementById('pujaBookingsTableBody');
+            const cardsView = document.getElementById('pujaBookingsCardsView');
+            const errHtml = `
+                <div class="empty-state-box">
+                    <i class="fas fa-exclamation-triangle empty-state-icon" style="color:#EF4444;"></i>
+                    <div class="empty-state-text" style="color:#EF4444;">Failed to Load Bookings</div>
+                    <div class="empty-state-sub">${escapeHtml(msg)}</div>
+                    <button onclick="loadPujaBookings()" class="btn-admin btn-secondary-action" style="margin-top:12px;">
+                        <i class="fas fa-redo"></i> Retry
+                    </button>
+                </div>
+            `;
+            if (tbody) tbody.innerHTML = `<tr><td colspan="9">${errHtml}</td></tr>`;
+            if (cardsView) cardsView.innerHTML = errHtml;
+        }
+
+        function handlePujaFilterChange() {
+            pujaFilterStatus = document.getElementById('pujaStatusFilter')?.value || 'ALL';
+            pujaFilterPayment = document.getElementById('pujaPaymentFilter')?.value || 'ALL';
+            pujaStartDate = document.getElementById('pujaStartDate')?.value || '';
+            pujaEndDate = document.getElementById('pujaEndDate')?.value || '';
+            
+            const sortVal = document.getElementById('pujaSortSelect')?.value || 'createdAt_desc';
+            const [by, order] = sortVal.split('_');
+            pujaSortBy = by || 'createdAt';
+            pujaSortOrder = order || 'desc';
+
+            loadPujaBookings(1);
+        }
+
+        let pujaSearchDebounceTimer = null;
+        function handlePujaSearch() {
+            clearTimeout(pujaSearchDebounceTimer);
+            pujaSearchDebounceTimer = setTimeout(() => {
+                pujaSearchQuery = document.getElementById('pujaSearchInput')?.value.trim() || '';
+                loadPujaBookings(1);
+            }, 300);
+        }
+
+        function filterPujaStatusQuick(status) {
+            navAdmin('puja-bookings');
+            if (status === 'TODAY') {
+                const today = new Date().toISOString().split('T')[0];
+                const sInput = document.getElementById('pujaStartDate');
+                const eInput = document.getElementById('pujaEndDate');
+                if (sInput) sInput.value = today;
+                if (eInput) eInput.value = today;
+                pujaStartDate = today;
+                pujaEndDate = today;
+                const filterEl = document.getElementById('pujaStatusFilter');
+                if (filterEl) filterEl.value = 'ALL';
+                pujaFilterStatus = 'ALL';
+            } else {
+                const sInput = document.getElementById('pujaStartDate');
+                const eInput = document.getElementById('pujaEndDate');
+                if (sInput) sInput.value = '';
+                if (eInput) eInput.value = '';
+                pujaStartDate = '';
+                pujaEndDate = '';
+                const filterEl = document.getElementById('pujaStatusFilter');
+                if (filterEl) filterEl.value = status;
+                pujaFilterStatus = status;
+            }
+            loadPujaBookings(1);
+            scrollToPujaSection();
+        }
+
+        function scrollToPujaSection() {
+            navAdmin('puja-bookings');
+            const el = document.getElementById('admin-sect-puja-bookings');
+            if (el) el.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function changePujaPage(delta) {
+            loadPujaBookings(pujaCurrentPage + delta);
+        }
+
+        function openPujaDetails(bookingId) {
+            const booking = pujaBookingsData.find(b => b.bookingId === bookingId);
+            if (!booking) return;
+
+            currentSelectedBooking = booking;
+
+            setText('drawerBookingId', '#' + booking.bookingId);
+            const statusEl = document.getElementById('drawerStatusBadge');
+            if (statusEl) {
+                statusEl.className = `status-badge ${getPujaStatusClass(booking.bookingStatus)}`;
+                statusEl.innerText = booking.bookingStatus || 'PENDING';
+            }
+
+            const payEl = document.getElementById('drawerPaymentBadge');
+            if (payEl) {
+                payEl.className = `status-badge ${getPaymentStatusClass(booking.paymentStatus)}`;
+                payEl.innerText = booking.paymentStatus || 'PENDING';
+            }
+
+            const createdStr = booking.createdAt ? new Date(booking.createdAt).toLocaleString('en-IN') : '-';
+            setText('drawerCreatedDate', `Booked on: ${createdStr}`);
+
+            // Customer
+            const rawPhone = (booking.mobile || '').toString();
+            const cleanPhone = rawPhone.replace(/[^0-9]/g, '');
+            setText('drawerCustName', booking.customerName || '-');
+            setText('drawerCustMobile', booking.mobile || '-');
+            setText('drawerCustEmail', booking.email || 'Not provided');
+            setText('drawerCustAddress', booking.address || booking.location || 'Online Sankalpam');
+
+            const callBtn = document.getElementById('drawerCallBtn');
+            if (callBtn) callBtn.href = cleanPhone ? `tel:${cleanPhone}` : '#';
+            const waBtn = document.getElementById('drawerWaBtn');
+            if (waBtn) waBtn.href = cleanPhone ? `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(`Namaskaram ${booking.customerName || ''}, regarding your Astro Eleven Puja booking #${booking.bookingId} (${booking.pujaName || ''}).`)}` : '#';
+
+            // Puja
+            setText('drawerPujaName', booking.pujaName || '-');
+            setText('drawerPujaCategory', booking.pujaCategory || 'Vedic Ritual');
+            setText('drawerBookingDate', booking.bookingDate || 'Not specified');
+            setText('drawerPreferredTime', booking.preferredTime || 'Morning');
+            setText('drawerPriestName', booking.priestName || 'To be assigned');
+            setText('drawerParticipants', booking.participants || 1);
+            setText('drawerReferralCode', booking.referralCode || 'Direct Customer');
+            setText('drawerRasi', booking.rasi || '-');
+            setText('drawerNakshatra', booking.nakshatra || '-');
+            setText('drawerInstructions', booking.specialInstructions || booking.notes || 'None');
+
+            // Payment
+            setText('drawerAmount', '₹' + (booking.finalAmount || booking.amount || 0).toLocaleString('en-IN'));
+            setText('drawerPaymentMethod', booking.paymentMethod || 'ONLINE');
+            setText('drawerTransactionId', booking.paymentTransactionId || 'None');
+
+            const notesEl = document.getElementById('drawerNotes');
+            if (notesEl) notesEl.value = booking.notes || '';
+
+            const drawer = document.getElementById('pujaDetailsDrawer');
+            if (drawer) drawer.classList.add('active');
+        }
+
+        function closePujaDetails() {
+            const drawer = document.getElementById('pujaDetailsDrawer');
+            if (drawer) drawer.classList.remove('active');
+            currentSelectedBooking = null;
+        }
+
+        async function changeCurrentPujaStatus(newStatus) {
+            if (!currentSelectedBooking) return;
+            const bookingId = currentSelectedBooking.bookingId;
+            const notes = document.getElementById('drawerNotes')?.value.trim() || '';
+
+            try {
+                const res = await fetch(`/api/puja-bookings/${bookingId}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ bookingStatus: newStatus, notes })
+                });
+                const json = await res.json();
+                if (json.success) {
+                    showAdminToast(`Booking #${bookingId} updated to ${newStatus}`, 'success');
+                    currentSelectedBooking.bookingStatus = newStatus;
+                    currentSelectedBooking.notes = notes;
+                    openPujaDetails(bookingId);
+                    loadPujaBookings(pujaCurrentPage);
+                    fetchPujaSummary();
+                } else {
+                    alert('Update failed: ' + (json.message || 'Error'));
+                }
+            } catch (err) {
+                alert('Server error updating status: ' + err.message);
+            }
+        }
+
+        async function toggleCurrentPujaPayment() {
+            if (!currentSelectedBooking) return;
+            const bookingId = currentSelectedBooking.bookingId;
+            const newPayment = currentSelectedBooking.paymentStatus === 'PAID' ? 'PENDING' : 'PAID';
+
+            try {
+                const res = await fetch(`/api/puja-bookings/${bookingId}/payment`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ paymentStatus: newPayment })
+                });
+                const json = await res.json();
+                if (json.success) {
+                    showAdminToast(`Payment for #${bookingId} marked ${newPayment}`, 'success');
+                    currentSelectedBooking.paymentStatus = newPayment;
+                    openPujaDetails(bookingId);
+                    loadPujaBookings(pujaCurrentPage);
+                    fetchPujaSummary();
+                } else {
+                    alert('Payment update failed: ' + json.message);
+                }
+            } catch (err) {
+                alert('Server error updating payment: ' + err.message);
+            }
+        }
+
+        function showAdminToast(msg, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = 'admin-toast';
+            toast.style.cssText = `
+                position: fixed;
+                bottom: 80px;
+                right: 24px;
+                background: ${type === 'success' ? '#059669' : '#1E293B'};
+                color: #FFFFFF;
+                padding: 12px 20px;
+                border-radius: 12px;
+                font-size: 0.85rem;
+                font-weight: 700;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+                z-index: 10006;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                animation: slideInRight 0.3s ease;
+            `;
+            toast.innerHTML = `<i class="fas fa-check-circle"></i> <span>${escapeHtml(msg)}</span>`;
+            document.body.appendChild(toast);
+            setTimeout(() => { if (toast.parentElement) toast.remove(); }, 3500);
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text.toString()
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Global search handler for header search box
+        let globalSearchDebounce = null;
+        function handleGlobalSearch(val) {
+            clearTimeout(globalSearchDebounce);
+            globalSearchDebounce = setTimeout(() => {
+                const q = (val || '').trim();
+                if (!q) return;
+
+                // Sync with puja search input
+                const pujaInput = document.getElementById('pujaSearchInput');
+                if (pujaInput) {
+                    pujaInput.value = q;
+                    pujaSearchQuery = q;
+                    loadPujaBookings(1);
+                }
+
+                // If user is searching on other tabs (e.g. users, astros), also filter clients
+                clientSearch = q;
+                clientPage = 1;
+                fetchAllUsers();
+            }, 350);
+        }
+
         function loadData() {
             fetchAdminStats();
+            loadPujaBookings(1);
+            fetchPujaSummary();
             fetchAllUsers();
             fetchAcademyVideos();
             fetchBanners();
@@ -1590,14 +2824,20 @@
                 endDate: overviewCustomEnd
             }, (res) => {
                 if (res.ok) {
-                    setText('quickRev', '₹' + res.stats.totalRevenue);
-                    setText('quickProfit', '₹' + res.stats.adminProfit);
-                    setText('quickPayout', '₹' + res.stats.astroPayout);
+                    setText('quickRev', '₹' + (res.stats.totalRevenue || 0).toLocaleString('en-IN'));
+                    setText('quickProfit', '₹' + (res.stats.adminProfit || 0).toLocaleString('en-IN'));
+                    setText('quickPayout', '₹' + (res.stats.astroPayout || 0).toLocaleString('en-IN'));
                     setText('quickMins', Math.round(res.stats.totalDuration / 60));
 
                     setText('liveCalls', res.stats.activeSessions || 0);
                     setText('liveAstros', res.stats.onlineAstros || 0);
                     setText('liveClients', res.stats.onlineClients || 0);
+
+                    // 12 Overview Statistics Cards
+                    setText('statTotalAstros', res.stats.totalAstros || 0);
+                    setText('statActiveAstros', res.stats.activeAstros || res.stats.totalAstros || 0);
+                    setText('statTotalClients', res.stats.totalUsers || 0);
+                    setText('statPendingWithdrawals', res.stats.pendingWithdrawals || 0);
 
                     // Sidebar Counts
                     setText('nav-count-astros', '(' + (res.stats.totalAstros || 0) + ')');
@@ -1611,6 +2851,7 @@
                     renderLedger(res.fullLedger);
                     renderChart(res.stats);
                     renderLiveAstros(res.liveAstrologersData);
+                    fetchPujaSummary();
                 }
             });
         }
@@ -1812,6 +3053,15 @@
             const sect = document.getElementById('admin-sect-' + id);
             if (sect) sect.classList.add('active');
 
+            if (id === 'puja-bookings') {
+                if (typeof loadPujaBookings === 'function') loadPujaBookings(1);
+                if (typeof fetchPujaSummary === 'function') fetchPujaSummary();
+            }
+            if (id === 'home') {
+                if (typeof loadPujaBookings === 'function') loadPujaBookings(1);
+                if (typeof fetchPujaSummary === 'function') fetchPujaSummary();
+                if (typeof fetchAdminStats === 'function') fetchAdminStats();
+            }
             if (id === 'withdrawals') loadAllWithdrawals();
             if (id === 'slab') loadSlabRates();
             if (id === 'offers') fetchOfferUsers();
@@ -1831,15 +3081,27 @@
             if (id === 'ads-banner') fetchBanners();
 
             document.querySelectorAll('.admin-nav-item').forEach(i => i.classList.remove('active'));
-            if (ev) ev.currentTarget.classList.add('active');
+            if (ev && ev.currentTarget && ev.currentTarget.classList.contains('admin-nav-item')) {
+                ev.currentTarget.classList.add('active');
+            }
+
+            // Sync Mobile Bottom Navigation
+            document.querySelectorAll('.bottom-nav-item').forEach(b => {
+                const onclickAttr = b.getAttribute('onclick') || '';
+                if (onclickAttr.includes(`'${id}'`)) {
+                    b.classList.add('active');
+                } else {
+                    b.classList.remove('active');
+                }
+            });
             
             // Close nav on mobile after selection
             if (window.innerWidth < 1024) {
                 const nav = document.querySelector('.admin-nav');
                 const overlay = document.getElementById('nav-overlay');
-                if (nav.classList.contains('open')) {
+                if (nav && nav.classList.contains('open')) {
                     nav.classList.remove('open');
-                    overlay.classList.remove('active');
+                    if (overlay) overlay.classList.remove('active');
                 }
             }
         };
@@ -3217,6 +4479,23 @@
             
             // Sound Effect
             try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch (e) { }
+        });
+
+        // Realtime Puja Booking Socket Listener
+        socket.on('new-puja-booking', (booking) => {
+            console.log('⚡ [SOCKET] Realtime Puja Booking received:', booking);
+            if (typeof showAdminToast === 'function') {
+                showAdminToast(`🔥 New Puja Booking #${booking.bookingId || ''}: ${booking.customerName || 'Customer'} (${booking.pujaName || ''})`, 'success');
+            }
+            if (typeof loadPujaBookings === 'function') {
+                loadPujaBookings(1);
+            }
+            if (typeof fetchPujaSummary === 'function') {
+                fetchPujaSummary();
+            }
+            if (typeof fetchAdminStats === 'function') {
+                fetchAdminStats();
+            }
         });
 
         window.toggleNotifDropdown = () => {

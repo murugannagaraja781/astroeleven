@@ -247,22 +247,24 @@ class GuestDashboardActivity : AppCompatActivity() {
     }
 
     private fun handleServiceClick(serviceName: String) {
-        when (serviceName.replace("\n", " ")) {
-            "Free  horoscope" -> {
+        val s = serviceName.replace("\n", " ").trim()
+        when {
+            s.contains("Kundali", true) || s.contains("Kundeli", true) ||
+            s.contains("ஜாதகம்", true) || (s.contains("Horoscope", true) && !s.contains("Daily", true) && !s.contains("தினசரி", true)) -> {
                 val intent = Intent(this, com.astroeleven.app.ui.horoscope.FreeHoroscopeActivity::class.java)
                 startActivity(intent)
             }
-            "Horoscope Match" -> {
+            s.contains("Match", true) || s.contains("பொருத்தம்", true) -> {
                 redirectToLogin()
             }
-            "Daily Horoscope" -> {
+            s.contains("Daily", true) || s.contains("தினசரி", true) || s.contains("ராசிபலன்", true) -> {
                 val intent = Intent(this, com.astroeleven.app.ui.rasipalan.RasipalanActivity::class.java)
                 startActivity(intent)
             }
-            "Astro Academy" -> {
+            s.contains("Academy", true) || s.contains("அகாடமி", true) -> {
                 Toast.makeText(this, "Astro Academy - Basic content available!", Toast.LENGTH_SHORT).show()
             }
-            "Free  Star Services" -> {
+            s.contains("Star", true) -> {
                 Toast.makeText(this, "Free Star Services - Available for guests!", Toast.LENGTH_SHORT).show()
             }
             else -> {

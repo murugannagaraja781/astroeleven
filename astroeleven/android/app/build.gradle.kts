@@ -16,8 +16,8 @@ android {
         applicationId = "com.astroeleven.app"
         minSdk = 24
         targetSdk = 36
-        versionCode = 36
-        versionName = "1.0.0"
+        versionCode = 38
+        versionName = "1.0.2"
 
 
         ndk {
@@ -31,7 +31,7 @@ android {
                 envFile.inputStream().use { load(it) }
             }
         }
-        val serverUrl = env.getProperty("SERVER_URL") ?: "https://socket.astroeleven.com"
+        val serverUrl = env.getProperty("SERVER_URL") ?: "https://astroeleven.com"
         buildConfigField("String", "SERVER_URL", "\"$serverUrl\"")
     }
 

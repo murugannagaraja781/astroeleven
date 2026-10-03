@@ -670,28 +670,32 @@ fun FreeHoroscopeScreen(
                     // Generate Rasi Chart Button (Glossy orange gradient)
                     Button(
                         onClick = {
-                            if (validateInputs(name, day, month, year, hour, minute, cityName, timezoneOffset)) {
-                                isLoading = true
+                            if (validateInputs(name, day, month, year, hour, minute, cityName)) {
                                 val h = hour.toIntOrNull() ?: 0
                                 val hour24 = if (amPm == "PM" && h < 12) h + 12
                                             else if (amPm == "AM" && h == 12) 0
                                             else h
 
+                                val safeTz = timezoneOffset ?: timezone ?: 5.5
+                                val safeLat = latitude ?: 13.0827
+                                val safeLon = longitude ?: 80.2707
+
                                 onGenerateChart(BirthData(
                                     name = name,
-                                    day = day.toIntOrNull() ?: 0,
-                                    month = month.toIntOrNull() ?: 0,
-                                    year = year.toIntOrNull() ?: 0,
+                                    day = day.toIntOrNull() ?: 1,
+                                    month = month.toIntOrNull() ?: 1,
+                                    year = year.toIntOrNull() ?: 1995,
                                     hour = hour24,
                                     minute = minute.toIntOrNull() ?: 0,
                                     gender = gender,
-                                    country = countryName,
-                                    state = stateName,
+                                    country = countryName.ifBlank { "India" },
+                                    state = stateName.ifBlank { "Tamil Nadu" },
                                     city = cityName,
-                                    timezone = timezoneOffset ?: 5.5,
-                                    latitude = latitude ?: 0.0,
-                                    longitude = longitude ?: 0.0
+                                    timezone = safeTz,
+                                    latitude = safeLat,
+                                    longitude = safeLon
                                 ))
+                                isLoading = false
                             } else {
                                 Toast.makeText(context, "Please fill all details", Toast.LENGTH_SHORT).show()
                             }
@@ -833,8 +837,7 @@ private fun validateInputs(
     year: String,
     hour: String,
     minute: String,
-    city: String,
-    timezone: Double?
+    city: String
 ): Boolean {
     return name.isNotBlank() &&
             day.isNotBlank() &&
@@ -842,8 +845,7 @@ private fun validateInputs(
             year.isNotBlank() &&
             hour.isNotBlank() &&
             minute.isNotBlank() &&
-            city.isNotBlank() &&
-            timezone != null
+            city.isNotBlank()
 }
 
 private fun computeTimezoneOffsetHours(

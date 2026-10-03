@@ -50,7 +50,7 @@ class CSCDatabaseHelper(private val context: Context) : SQLiteOpenHelper(context
             val mInput: InputStream = context.assets.open(DB_NAME)
             val outFile = File(DB_PATH + DB_NAME)
             val mOutput: OutputStream = FileOutputStream(outFile)
-            val mBuffer = ByteArray(1024)
+            val mBuffer = ByteArray(64 * 1024)
             var mLength: Int
             while (mInput.read(mBuffer).also { mLength = it } > 0) {
                 mOutput.write(mBuffer, 0, mLength)

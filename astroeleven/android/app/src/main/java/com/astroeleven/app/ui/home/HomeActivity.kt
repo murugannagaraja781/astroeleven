@@ -542,23 +542,29 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun handleServiceClick(serviceName: String) {
-        when (serviceName.replace("\n", " ")) {
-            "Free  horoscope" -> {
+        val s = serviceName.replace("\n", " ").trim()
+        when {
+            s.contains("Kundali", true) || s.contains("Kundeli", true) ||
+            s.contains("ஜாதகம்", true) || (s.contains("Horoscope", true) && !s.contains("Daily", true) && !s.contains("தினசரி", true)) -> {
                 val intent = Intent(this, com.astroeleven.app.ui.horoscope.FreeHoroscopeActivity::class.java)
                 startActivity(intent)
             }
-            "Horoscope Match" -> {
+            s.contains("Match", true) || s.contains("பொருத்தம்", true) -> {
                 val intent = Intent(this, com.astroeleven.app.ui.intake.IntakeActivity::class.java).apply {
                     putExtra("type", "match")
                     putExtra("isMatching", true)
                 }
                 startActivity(intent)
             }
-            "Daily Horoscope" -> {
+            s.contains("Daily", true) || s.contains("தினசரி", true) || s.contains("ராசிபலன்", true) -> {
                 val intent = Intent(this, com.astroeleven.app.ui.rasipalan.RasipalanActivity::class.java)
                 startActivity(intent)
             }
-            "Free  Star Services" -> {
+            s.contains("Academy", true) || s.contains("அகாடமி", true) -> {
+                val intent = Intent(this, com.astroeleven.app.ui.academy.AcademyActivity::class.java)
+                startActivity(intent)
+            }
+            s.contains("Star", true) -> {
                 Toast.makeText(this, "Free Star Services - Coming Soon!", Toast.LENGTH_SHORT).show()
             }
             else -> {

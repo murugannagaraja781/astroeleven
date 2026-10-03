@@ -5,11 +5,8 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.border
-import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -17,36 +14,29 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AccountBalanceWallet
-import androidx.compose.material.icons.rounded.AddCircle
-import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.rounded.AccountBalanceWallet
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.painterResource
-
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.res.stringResource
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import com.astroeleven.app.R
 import com.astroeleven.app.data.api.ApiClient
-import com.astroeleven.app.utils.Constants
 import com.astroeleven.app.data.local.TokenManager
 import com.astroeleven.app.ui.theme.CosmicAppTheme
-import com.astroeleven.app.ui.theme.AstroDimens
+import com.astroeleven.app.utils.Constants
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
@@ -54,25 +44,30 @@ import okhttp3.Request
 import org.json.JSONObject
 import java.util.ArrayList
 
+data class WalletRechargePack(
+    val amount: Int,
+    val extraPercent: Int,
+    val extraText: String = if (extraPercent > 0) "Get $extraPercent% Extra" else "Get 0% Extra"
+)
+
 class WalletActivity : ComponentActivity() {
 
     private lateinit var tokenManager: TokenManager
     private val transactionsState = mutableStateListOf<JSONObject>()
     private var balanceState by mutableDoubleStateOf(0.0)
     private var superBalanceState by mutableDoubleStateOf(0.0)
-    private var bannerTitle by mutableStateOf<String?>(null)
-    private var bannerSubtitle by mutableStateOf<String?>(null)
-    private var ctaText by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         tokenManager = TokenManager(this)
 
-        updateBalanceFromSession()
+        // Set status bar to yellow with dark icons matching the top bar
+        try {
+            window.statusBarColor = android.graphics.Color.parseColor("#FFE600")
+            WindowInsetsControllerCompat(window, window.decorView).isAppearanceLightStatusBars = true
+        } catch (_: Exception) {}
 
-        bannerTitle = intent.getStringExtra("bannerTitle")
-        bannerSubtitle = intent.getStringExtra("bannerSubtitle")
-        ctaText = intent.getStringExtra("ctaText")
+        updateBalanceFromSession()
 
         setContent {
             CosmicAppTheme {
@@ -80,9 +75,6 @@ class WalletActivity : ComponentActivity() {
                     balance = balanceState,
                     superBalance = superBalanceState,
                     transactions = transactionsState,
-                    bannerTitle = bannerTitle,
-                    bannerSubtitle = bannerSubtitle,
-                    ctaText = ctaText,
                     onAddMoney = { amount, promo ->
                         if (amount < 1) {
                             Toast.makeText(this, getString(R.string.enter_valid_amount), Toast.LENGTH_SHORT).show()
@@ -95,7 +87,10 @@ class WalletActivity : ComponentActivity() {
                             startActivity(intent)
                         }
                     },
-                    onRefreshHistory = { loadPaymentHistory() }
+                    onRefreshHistory = {
+                        refreshWalletBalance()
+                        loadPaymentHistory()
+                    }
                 )
             }
         }
@@ -193,401 +188,329 @@ fun WalletScreen(
     balance: Double,
     superBalance: Double = 0.0,
     transactions: List<JSONObject>,
-    bannerTitle: String? = null,
-    bannerSubtitle: String? = null,
-    ctaText: String? = null,
     onAddMoney: (Int, String?) -> Unit,
     onRefreshHistory: () -> Unit
 ) {
     val context = LocalContext.current
-    val tokenManager = remember { TokenManager(context) }
-    val isNewUser = tokenManager.getUserSession()?.isNewUser == true
-    var amountInput by remember { mutableStateOf(if (isNewUser) "20" else "") }
-    var couponInput by remember { mutableStateOf("") }
-    var appliedCoupon by remember { mutableStateOf<String?>(null) }
-    var couponBonus by remember { mutableStateOf(0.0) }
-    var couponMessage by remember { mutableStateOf<String?>(null) }
-    var isCouponLoading by remember { mutableStateOf(false) }
+    var customAmountInput by remember { mutableStateOf("") }
 
-    val colors = CosmicAppTheme.colors
-    val goldPrimary = colors.accent
-    val successGreen = Color(0xFF22C55E)
+    // Color definitions matching the screenshot
+    val yellowHeader = Color(0xFFFFDE03) // Bright Yellow Header
+    val yellowBadge = Color(0xFFFFDE03)  // Bright Yellow Extra Offer Badge
+    val cardBorder = Color(0xFFE5E7EB)
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(CosmicAppTheme.backgroundBrush)
-    ) {
-        Scaffold(
-            containerColor = Color.Transparent,
-            topBar = {
-                CenterAlignedTopAppBar(
-                    title = {
-                        Text(
-                            text = stringResource(R.string.wallet_title),
-                            style = MaterialTheme.typography.titleLarge,
-                            color = CosmicAppTheme.colors.accent,
-                            fontWeight = FontWeight.Bold
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = { (context as ComponentActivity).finish() }) {
-                            Icon(androidx.compose.material.icons.Icons.Default.ArrowBack, "Back", tint = CosmicAppTheme.colors.accent)
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = onRefreshHistory) {
-                            Icon(Icons.Rounded.History, "Refresh", tint = CosmicAppTheme.colors.accent)
-                        }
-                    },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color(0xFF0F0B1E))
-                )
-            }
-        ) { padding ->
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
-            ) {
-                // 1. Promotional Banner
-                if (!bannerTitle.isNullOrEmpty()) {
-                    item {
-                        Surface(
-                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                            shape = RoundedCornerShape(AstroDimens.RadiusMedium),
-                            color = CosmicAppTheme.colors.cardBg,
-                            border = BorderStroke(1.dp, CosmicAppTheme.colors.accent.copy(alpha = 0.3f))
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(AstroDimens.Medium),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Surface(
-                                    modifier = Modifier.size(40.dp),
-                                    shape = CircleShape,
-                                    color = CosmicAppTheme.colors.accent.copy(alpha = 0.15f)
-                                ) {
-                                    Icon(Icons.Rounded.AddCircle, null, tint = CosmicAppTheme.colors.accent, modifier = Modifier.padding(8.dp))
-                                }
-                                Spacer(modifier = Modifier.width(16.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(bannerTitle!!, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = CosmicAppTheme.colors.textPrimary)
-                                    if (!bannerSubtitle.isNullOrEmpty()) {
-                                        Text(bannerSubtitle!!, style = MaterialTheme.typography.labelSmall, color = CosmicAppTheme.colors.textSecondary)
-                                    }
-                                }
-                                Button(
-                                    onClick = {
-                                        if (appliedCoupon == "WELCOME50") {
-                                            appliedCoupon = null
-                                            couponInput = ""
-                                            couponBonus = 0.0
-                                            couponMessage = null
-                                        } else {
-                                            if (amountInput.isEmpty()) amountInput = "500"
-                                            val amt = amountInput.toDoubleOrNull() ?: 500.0
-                                            appliedCoupon = "WELCOME50"
-                                            couponInput = "WELCOME50"
-                                            couponBonus = amt * 0.5
-                                            couponMessage = "✅ Applied: ₹${couponBonus.toInt()} Bonus"
-                                        }
-                                    },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = if (appliedCoupon == "WELCOME50") successGreen else Color.Transparent
-                                    ),
-                                    shape = RoundedCornerShape(AstroDimens.RadiusSmall),
-                                    modifier = Modifier.height(36.dp),
-                                    border = BorderStroke(1.dp, if (appliedCoupon == "WELCOME50") successGreen else CosmicAppTheme.colors.accent)
-                                ) {
-                                    Text(
-                                        text = if (appliedCoupon == "WELCOME50") stringResource(R.string.applied) else stringResource(R.string.apply),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (appliedCoupon == "WELCOME50") Color.White else CosmicAppTheme.colors.accent
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
+    // Exact packs shown in the screenshot
+    val rechargePacks = remember {
+        listOf(
+            WalletRechargePack(50, 50, "Get 50% Extra"),
+            WalletRechargePack(100, 100, "Get 100% Extra"),
+            WalletRechargePack(500, 100, "Get 100% Extra"),
+            WalletRechargePack(1000, 100, "Get 100% Extra"),
+            WalletRechargePack(200, 10, "Get 10% Extra"),
+            WalletRechargePack(5000, 20, "Get 20% Extra"),
+            WalletRechargePack(2000, 100, "Get 100% Extra"),
+            WalletRechargePack(20, 50, "Get 50% Extra"),
+            WalletRechargePack(2, 0, "Get 0% Extra")
+        )
+    }
 
-                // 2. Balance Card (Premium Black/Gold Aesthetic)
-                item {
-                    val cardGradient = Brush.linearGradient(
-                        colors = listOf(
-                            Color(0xFF1E1E2C),
-                            Color(0xFF2D2D44)
+    Scaffold(
+        containerColor = Color.White,
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Add money to wallet",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = Color(0xFF111827)
                         )
                     )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp)
-                            .shadow(24.dp, RoundedCornerShape(24.dp), spotColor = goldPrimary.copy(alpha = 0.3f))
-                            .clip(RoundedCornerShape(24.dp))
-                            .background(cardGradient)
-                            .border(1.dp, goldPrimary.copy(alpha = 0.2f), RoundedCornerShape(24.dp))
-                    ) {
-                        // Decorative Elements
-                        Box(modifier = Modifier.fillMaxSize().padding(24.dp)) {
-                            // Chip Icon Placeholder
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp, 30.dp)
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(goldPrimary.copy(alpha = 0.6f))
-                                    .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
-                                    .align(Alignment.TopStart)
-                            )
-                            
-                            Icon(
-                                Icons.Rounded.AccountBalanceWallet, 
-                                null, 
-                                tint = goldPrimary.copy(alpha = 0.1f), 
-                                modifier = Modifier.size(120.dp).align(Alignment.BottomEnd).offset(x = 20.dp, y = 20.dp)
-                            )
-
-                            Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
-                                Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-                                    Spacer(modifier = Modifier.width(44.dp))
-                                    Text(
-                                        "ASTROELEVEN PLATINUM", 
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = goldPrimary.copy(alpha = 0.8f),
-                                        fontWeight = FontWeight.Bold,
-                                        letterSpacing = 2.sp
-                                    )
-                                }
-                                
-                                Column(modifier = Modifier.padding(top = 10.dp)) {
-                                    Text(
-                                        stringResource(R.string.total_balance).uppercase(), 
-                                        color = Color.White.copy(0.6f), 
-                                        fontSize = 11.sp, 
-                                        fontWeight = FontWeight.Bold,
-                                        letterSpacing = 1.sp
-                                    )
-                                    Text(
-                                        "₹ ${"%,.2f".format(balance)}", 
-                                        style = MaterialTheme.typography.displaySmall.copy(
-                                            fontWeight = FontWeight.Black, 
-                                            fontSize = 38.sp,
-                                            letterSpacing = 1.sp
-                                        ), 
-                                        color = Color.White
-                                    )
-                                    if (superBalance > 0.0) {
-                                        Text(
-                                            "SUPER WALLET: ₹ ${superBalance.toInt()}", 
-                                            color = goldPrimary, 
-                                            fontSize = 12.sp, 
-                                            fontWeight = FontWeight.ExtraBold, 
-                                            modifier = Modifier.padding(top = 4.dp)
-                                        )
-                                    }
-                                }
-
-                                Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.Bottom) {
-                                    Text(
-                                        stringResource(R.string.valid_user).uppercase(), 
-                                        color = Color.White.copy(0.4f), 
-                                        fontSize = 10.sp, 
-                                        fontWeight = FontWeight.Bold,
-                                        letterSpacing = 1.sp
-                                    )
-                                    Image(
-                                        painter = painterResource(id = com.astroeleven.app.R.mipmap.ic_launcher_foreground),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(40.dp).graphicsLayer(alpha = 0.6f),
-                                        colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(goldPrimary)
-                                    )
-                                }
-                            }
-                        }
+                },
+                navigationIcon = {
+                    IconButton(onClick = { (context as ComponentActivity).finish() }) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color(0xFF111827)
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onRefreshHistory) {
+                        Icon(
+                            imageVector = Icons.Rounded.History,
+                            contentDescription = "Refresh",
+                            tint = Color(0xFF111827)
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = yellowHeader,
+                    titleContentColor = Color(0xFF111827),
+                    navigationIconContentColor = Color(0xFF111827),
+                    actionIconContentColor = Color(0xFF111827)
+                )
+            )
+        }
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .background(Color.White),
+            contentPadding = PaddingValues(bottom = 32.dp)
+        ) {
+            // 1. Available Total Balance Section
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 18.dp)
+                ) {
+                    Text(
+                        text = "Available Total Balance",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Normal,
+                        color = Color(0xFF6B7280) // Muted Grey
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "₹ ${String.format(java.util.Locale.US, "%.1f", balance)}",
+                        fontSize = 34.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF111827) // Solid Black
+                    )
+                    if (superBalance > 0.0) {
+                        Text(
+                            text = "Super Wallet Bonus: ₹ ${superBalance.toInt()}",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFFD97706),
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
                     }
                 }
+            }
 
-
-                // 3. Recharge & Trust Section
-                item {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth().shadow(AstroDimens.ElevationMedium, RoundedCornerShape(AstroDimens.RadiusLarge)),
-                        shape = RoundedCornerShape(AstroDimens.RadiusLarge),
-                        color = CosmicAppTheme.colors.cardBg,
-                        border = BorderStroke(1.dp, CosmicAppTheme.colors.cardStroke.copy(0.15f))
-                    ) {
-                        Column(modifier = Modifier.padding(AstroDimens.Medium), verticalArrangement = Arrangement.spacedBy(AstroDimens.Medium)) {
-                            Text(stringResource(R.string.recharge_wallet), color = CosmicAppTheme.colors.accent, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
-
-                            Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
-                                val rechargeOptions = if (isNewUser) listOf(20, 100, 500, 1000) else listOf(100, 500, 1000, 2000)
-                                rechargeOptions.forEach { amount ->
-                                    val isSelected = amountInput == amount.toString()
-                                    Surface(
-                                        onClick = { amountInput = amount.toString() },
-                                        modifier = Modifier.weight(1f),
-                                        shape = RoundedCornerShape(AstroDimens.RadiusSmall),
-                                        color = if (isSelected) CosmicAppTheme.colors.accent else CosmicAppTheme.colors.bgStart,
-                                        border = BorderStroke(1.dp, if (isSelected) CosmicAppTheme.colors.accent else CosmicAppTheme.colors.cardStroke.copy(0.2f))
-                                    ) {
-                                        Text(
-                                            text = "₹$amount", 
-                                            modifier = Modifier.padding(vertical = 10.dp), 
-                                            style = MaterialTheme.typography.labelMedium,
-                                            fontWeight = FontWeight.Bold, 
-                                            color = if (isSelected) CosmicAppTheme.colors.bgStart else CosmicAppTheme.colors.textPrimary, 
-                                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                                        )
-                                    }
-                                }
-                            }
-
-                            OutlinedTextField(
-                                value = amountInput,
-                                onValueChange = { amountInput = it.filter { c -> c.isDigit() } },
-                                label = { Text(stringResource(R.string.enter_amount), color = CosmicAppTheme.colors.textSecondary) },
-                                modifier = Modifier.fillMaxWidth(),
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                shape = RoundedCornerShape(AstroDimens.RadiusMedium),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = CosmicAppTheme.colors.accent, 
-                                    unfocusedBorderColor = CosmicAppTheme.colors.cardStroke.copy(0.3f), 
-                                    focusedTextColor = CosmicAppTheme.colors.textPrimary, 
-                                    unfocusedTextColor = CosmicAppTheme.colors.textPrimary,
-                                    focusedContainerColor = CosmicAppTheme.colors.bgStart,
-                                    unfocusedContainerColor = CosmicAppTheme.colors.bgStart
-                                ),
-                                prefix = { Text("₹ ", color = CosmicAppTheme.colors.accent, fontWeight = FontWeight.Bold) },
-                                singleLine = true
-                            )
-
-                            // Trust Badges
-                            Column(modifier = Modifier.fillMaxWidth().background(CosmicAppTheme.colors.bgStart.copy(0.5f), RoundedCornerShape(AstroDimens.RadiusSmall)).padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Rounded.AccountBalanceWallet, null, tint = successGreen, modifier = Modifier.size(16.dp))
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(stringResource(R.string.trust_secure_payment), color = CosmicAppTheme.colors.textSecondary, style = MaterialTheme.typography.labelSmall)
-                                }
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Rounded.History, null, tint = CosmicAppTheme.colors.accent, modifier = Modifier.size(16.dp))
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(stringResource(R.string.trust_rbi_verified), color = CosmicAppTheme.colors.textSecondary, style = MaterialTheme.typography.labelSmall)
-                                }
-                            }
-
-                            // Coupon
-                            Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp), Alignment.CenterVertically) {
-                                OutlinedTextField(
-                                    value = couponInput,
-                                    onValueChange = { couponInput = it.uppercase() },
-                                    placeholder = { Text("COUPON", color = CosmicAppTheme.colors.textSecondary.copy(0.5f), style = MaterialTheme.typography.bodyMedium) },
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(AstroDimens.RadiusSmall),
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = CosmicAppTheme.colors.accent, 
-                                        unfocusedBorderColor = CosmicAppTheme.colors.cardStroke.copy(0.3f), 
-                                        focusedTextColor = CosmicAppTheme.colors.textPrimary, 
-                                        unfocusedTextColor = CosmicAppTheme.colors.textPrimary,
-                                        focusedContainerColor = CosmicAppTheme.colors.bgStart,
-                                        unfocusedContainerColor = CosmicAppTheme.colors.bgStart
-                                    ),
-                                    singleLine = true
-                                )
-                                Button(
-                                    onClick = {
-                                        if (couponInput.isEmpty()) return@Button
-                                        val amt = amountInput.toDoubleOrNull() ?: 0.0
-                                        if (amt < 1) { couponMessage = "Enter amount first"; return@Button }
-                                        if (couponInput == "WELCOME50") {
-                                            appliedCoupon = couponInput
-                                            couponBonus = amt * 0.5
-                                            couponMessage = "✅ Applied: ₹${couponBonus.toInt()} Bonus"
-                                        } else {
-                                            appliedCoupon = null
-                                            couponBonus = 0.0
-                                            couponMessage = "❌ Invalid Code"
-                                        }
-                                    },
-                                    colors = ButtonDefaults.buttonColors(containerColor = CosmicAppTheme.colors.bgStart),
-                                    shape = RoundedCornerShape(AstroDimens.RadiusSmall), 
-                                    modifier = Modifier.height(54.dp),
-                                    border = BorderStroke(1.dp, CosmicAppTheme.colors.cardStroke.copy(alpha = 0.3f))
-                                ) {
-                                    Text("APPLY", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = CosmicAppTheme.colors.accent)
-                                }
-                            }
-                            if (couponMessage != null) Text(couponMessage!!, color = if (appliedCoupon != null) successGreen else Color.Red, style = MaterialTheme.typography.labelSmall)
-
-                            // Summary
-                            val tc = amountInput.toIntOrNull() ?: 0
-                            if (tc > 0) {
-                                HorizontalDivider(color = CosmicAppTheme.colors.cardStroke.copy(0.1f))
-                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-                                        Text("Wallet Credit:", color = CosmicAppTheme.colors.textSecondary, style = MaterialTheme.typography.bodyMedium)
-                                        Text("₹$tc", color = CosmicAppTheme.colors.textPrimary, fontWeight = FontWeight.Bold)
-                                    }
-                                    if (appliedCoupon != null) {
-                                        Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-                                            Text("Bonus Credit:", color = successGreen, style = MaterialTheme.typography.bodyMedium)
-                                            Text("+ ₹${couponBonus.toInt()}", color = successGreen, fontWeight = FontWeight.Bold)
-                                        }
-                                    }
-                                    Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-                                        val total = tc + (tc * 0.18).toInt()
-                                        Text("Total (incl. GST):", color = CosmicAppTheme.colors.accent, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                                        Text("₹$total", color = CosmicAppTheme.colors.accent, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
-                                    }
-                                }
-                            }
-
-                            com.astroeleven.app.ui.theme.components.AstroButton(
-                                text = stringResource(R.string.invest_now),
+            // 2. 2-Column Recharge Packs Grid (Direct click-to-pay)
+            val chunkedPacks = rechargePacks.chunked(2)
+            items(chunkedPacks) { rowPacks ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    for (pack in rowPacks) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            WalletPackCard(
+                                pack = pack,
+                                yellowColor = yellowBadge,
+                                borderColor = cardBorder,
                                 onClick = {
-                                    val amt = amountInput.toIntOrNull() ?: 0
+                                    val promo = if (pack.extraPercent > 0) "EXTRA${pack.extraPercent}" else null
+                                    onAddMoney(pack.amount, promo)
+                                }
+                            )
+                        }
+                    }
+                    if (rowPacks.size == 1) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+
+            // 3. Custom Amount Input Option
+            item {
+                Spacer(modifier = Modifier.height(18.dp))
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color(0xFFF9FAFB),
+                    border = BorderStroke(1.dp, Color(0xFFE5E7EB))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text(
+                            text = "Custom Recharge Amount",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF374151)
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedTextField(
+                                value = customAmountInput,
+                                onValueChange = { customAmountInput = it.filter { c -> c.isDigit() } },
+                                placeholder = { Text("Enter ₹ Amount", fontSize = 14.sp) },
+                                modifier = Modifier.weight(1f),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                shape = RoundedCornerShape(12.dp),
+                                prefix = { Text("₹ ", fontWeight = FontWeight.Bold, color = Color(0xFF111827)) },
+                                singleLine = true,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = yellowHeader,
+                                    unfocusedBorderColor = Color(0xFFD1D5DB)
+                                )
+                            )
+                            Button(
+                                onClick = {
+                                    val amt = customAmountInput.toIntOrNull() ?: 0
                                     if (amt >= 1) {
-                                        onAddMoney(amt, appliedCoupon)
+                                        onAddMoney(amt, null)
                                     } else {
                                         Toast.makeText(context, context.getString(R.string.enter_valid_amount), Toast.LENGTH_SHORT).show()
                                     }
                                 },
-                                modifier = Modifier.fillMaxWidth()
-                            )
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = yellowHeader),
+                                modifier = Modifier.height(52.dp)
+                            ) {
+                                Text(
+                                    text = "Pay Now",
+                                    color = Color(0xFF111827),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp
+                                )
+                            }
                         }
                     }
                 }
+            }
 
-                // 4. History
+            // 4. Recent Transactions History
+            if (transactions.isNotEmpty()) {
                 item {
-                    Text(stringResource(R.string.recent_transactions), color = CosmicAppTheme.colors.accent, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
+                    Text(
+                        text = stringResource(R.string.recent_transactions),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF111827),
+                        modifier = Modifier.padding(start = 20.dp, top = 26.dp, bottom = 8.dp)
+                    )
                 }
 
                 items(transactions) { tx ->
                     val amt = tx.optDouble("amount", 0.0)
                     val status = tx.optString("status", "pending")
                     val date = tx.optString("createdAt", "").take(10)
+                    val isSuccess = status == "success"
+
                     Surface(
-                        modifier = Modifier.fillMaxWidth(), 
-                        shape = RoundedCornerShape(AstroDimens.RadiusMedium), 
-                        color = CosmicAppTheme.colors.cardBg,
-                        border = BorderStroke(1.dp, CosmicAppTheme.colors.cardStroke.copy(0.1f))
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFF9FAFB),
+                        border = BorderStroke(1.dp, Color(0xFFF3F4F6))
                     ) {
-                        Row(modifier = Modifier.padding(AstroDimens.Medium), verticalAlignment = Alignment.CenterVertically) {
-                            Surface(modifier = Modifier.size(40.dp), shape = CircleShape, color = if(status=="success") successGreen.copy(0.15f) else Color.Red.copy(0.15f)) {
-                                Icon(if(status=="success") Icons.Rounded.AccountBalanceWallet else Icons.Rounded.History, null, tint = if(status=="success") successGreen else Color.Red, modifier = Modifier.padding(10.dp))
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                modifier = Modifier.size(38.dp),
+                                shape = CircleShape,
+                                color = if (isSuccess) Color(0xFFDCFCE7) else Color(0xFFFEE2E2)
+                            ) {
+                                Icon(
+                                    imageVector = if (isSuccess) Icons.Rounded.AccountBalanceWallet else Icons.Rounded.History,
+                                    contentDescription = null,
+                                    tint = if (isSuccess) Color(0xFF16A34A) else Color(0xFFDC2626),
+                                    modifier = Modifier.padding(8.dp)
+                                )
                             }
-                            Spacer(Modifier.width(16.dp))
+                            Spacer(Modifier.width(12.dp))
                             Column(Modifier.weight(1f)) {
-                                Text(if(status=="success") "Recharge Success" else "Payment $status", color = CosmicAppTheme.colors.textPrimary, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                                Text(date, style = MaterialTheme.typography.labelSmall, color = CosmicAppTheme.colors.textSecondary)
+                                Text(
+                                    text = if (isSuccess) "Recharge Success" else "Payment $status",
+                                    color = Color(0xFF1F2937),
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 14.sp
+                                )
+                                Text(
+                                    text = date,
+                                    fontSize = 12.sp,
+                                    color = Color(0xFF9CA3AF)
+                                )
                             }
-                            Text("₹${amt.toInt()}", style = MaterialTheme.typography.titleMedium, color = if(status=="success") CosmicAppTheme.colors.accent else CosmicAppTheme.colors.textPrimary, fontWeight = FontWeight.Black)
+                            Text(
+                                text = "₹${amt.toInt()}",
+                                fontSize = 16.sp,
+                                color = if (isSuccess) Color(0xFF15803D) else Color(0xFF374151),
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
                 }
-                item { Spacer(Modifier.height(20.dp)) }
+            }
+        }
+    }
+}
+
+@Composable
+fun WalletPackCard(
+    pack: WalletRechargePack,
+    yellowColor: Color,
+    borderColor: Color,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = 2.dp,
+                shape = RoundedCornerShape(14.dp),
+                clip = false
+            ),
+        shape = RoundedCornerShape(14.dp),
+        color = Color.White,
+        border = BorderStroke(1.dp, borderColor)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            // Top Half (White Background) - Amount
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.White)
+                    .padding(vertical = 18.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "₹ ${pack.amount}",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = Color(0xFF111827)
+                )
+            }
+
+            // Bottom Half (Yellow Background) - Extra Offer Tag
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(yellowColor)
+                    .padding(vertical = 10.dp, horizontal = 4.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = pack.extraText,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF111827),
+                    textAlign = TextAlign.Center
+                )
             }
         }
     }

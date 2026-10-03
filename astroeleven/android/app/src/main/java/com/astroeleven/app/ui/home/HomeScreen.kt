@@ -620,6 +620,7 @@ fun HomeScreen(
         var poojaPhone by remember { mutableStateOf("") }
         var poojaNotes by remember { mutableStateOf("") }
         var showTypeDropdown by remember { mutableStateOf(false) }
+        var isSubmittingPooja by remember { mutableStateOf(false) }
 
         val poojaTypesList = listOf(
             "Ganapathy Homam / கணபதி ஹோமம்",
@@ -632,41 +633,80 @@ fun HomeScreen(
         )
 
         AlertDialog(
-            onDismissRequest = { showPoojaDialog = false },
+            onDismissRequest = { if (!isSubmittingPooja) showPoojaDialog = false },
             confirmButton = {
                 Button(
                     onClick = {
+                        val cleanPhone = poojaPhone.trim().replace(Regex("[^0-9]"), "")
                         if (poojaName.isBlank() || poojaPhone.isBlank()) {
                             Toast.makeText(context, if (isTamil) "பெயர் மற்றும் மொபைல் எண் கட்டாயம்!" else "Name and Phone are required!", Toast.LENGTH_SHORT).show()
+                        } else if (cleanPhone.length < 10) {
+                            Toast.makeText(context, if (isTamil) "சரியான 10 இலக்க மொபைல் எண்ணை உள்ளிடவும்!" else "Please enter a valid 10-digit mobile number!", Toast.LENGTH_SHORT).show()
                         } else {
-                            val message = """
-                                🕉️ *AstroEleven Pooja Booking* 🕉️
-                                ----------------------------------
-                                👤 *Name / பெயர்:* $poojaName
-                                🌟 *Rasi / ராசி:* $poojaRasi
-                                🌙 *Nakshatram:* $poojaNakshatra
-                                🔱 *Pooja / பூஜை:* $poojaType
-                                📞 *Phone / எண்:* $poojaPhone
-                                📝 *Notes / குறிப்புகள்:* $poojaNotes
-                            """.trimIndent()
-
-                            try {
-                                val url = "https://api.whatsapp.com/send?phone=917305307369&text=${java.net.URLEncoder.encode(message, "UTF-8")}"
-                                val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
-                                context.startActivity(intent)
-                                showPoojaDialog = false
-                            } catch (e: Exception) {
-                                Toast.makeText(context, "WhatsApp not installed!", Toast.LENGTH_SHORT).show()
+                            isSubmittingPooja = true
+                            scope.launch(Dispatchers.IO) {
+                                try {
+                                    val payload = JsonObject().apply {
+                                        addProperty("customerName", poojaName.trim())
+                                        addProperty("mobile", cleanPhone)
+                                        addProperty("pujaName", poojaType.trim())
+                                        addProperty("pujaCategory", "Vedic Puja")
+                                        addProperty("rasi", poojaRasi.trim())
+                                        addProperty("nakshatra", poojaNakshatra.trim())
+                                        addProperty("notes", poojaNotes.trim())
+                                        addProperty("amount", 0)
+                                    }
+                                    val response = ApiClient.api.createPujaBooking(payload)
+                                    withContext(Dispatchers.Main) {
+                                        isSubmittingPooja = false
+                                        if (response.isSuccessful && response.body()?.get("success")?.asBoolean == true) {
+                                            val bookingId = response.body()?.get("bookingId")?.asString ?: ""
+                                            val successMsg = if (isTamil) {
+                                                "பூஜை முன்பதிவு வெற்றிகரமாக முடிந்தது! (ID: #$bookingId) எங்களது குழு விரைவில் தொடர்பு கொள்ளும்."
+                                            } else {
+                                                "Puja booking submitted successfully! (ID: #$bookingId) Our team will contact you shortly."
+                                            }
+                                            Toast.makeText(context, successMsg, Toast.LENGTH_LONG).show()
+                                            showPoojaDialog = false
+                                        } else {
+                                            val errorMsg = response.body()?.get("message")?.asString
+                                                ?: if (isTamil) "பதிவு செய்வதில் பிழை ஏற்பட்டது. மீண்டும் முயற்சிக்கவும்." else "Failed to submit booking. Please try again."
+                                            Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                    withContext(Dispatchers.Main) {
+                                        isSubmittingPooja = false
+                                        val errorMsg = if (isTamil) "இணைப்பு பிழை: ${e.localizedMessage}" else "Connection error: ${e.localizedMessage}"
+                                        Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
+                                    }
+                                }
                             }
                         }
                     },
+                    enabled = !isSubmittingPooja,
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB3262A))
                 ) {
-                    Text(if (isTamil) "அனுப்புக (WhatsApp)" else "Submit (WhatsApp)", color = Color.White)
+                    if (isSubmittingPooja) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(if (isTamil) "பதிவாகிறது..." else "Submitting...", color = Color.White)
+                    } else {
+                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(if (isTamil) "முன்பதிவு செய்க" else "Book Puja", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showPoojaDialog = false }) {
+                TextButton(
+                    onClick = { showPoojaDialog = false },
+                    enabled = !isSubmittingPooja
+                ) {
                     Text(if (isTamil) "ரத்து" else "Cancel", color = Color.Gray)
                 }
             },
@@ -3433,14 +3473,14 @@ fun TopServicesSection(services: List<GridService>, isTamil: Boolean) {
                 modifier = Modifier.weight(1f)
             ) {
                 val actionType = when (service.id) {
-                    "free_kundeli" -> "kundali"
-                    "marriage_matching" -> "match"
+                    "free_kundeli", "free_kundali", "kundali", "kundeli", "horoscope" -> "kundali"
+                    "marriage_matching", "match" -> "match"
                     "daily_horoscope" -> "rasi"
                     "academy" -> "academy"
                     else -> {
                         val name = service.title
                         when {
-                            name.contains("Kundeli", true) || name.contains("Horoscope", true) || name.contains("ஜாதகம்", true) -> {
+                            name.contains("Kundali", true) || name.contains("Kundeli", true) || name.contains("Horoscope", true) || name.contains("ஜாதகம்", true) -> {
                                  if (name.contains("Daily", true) || name.contains("தினசரி", true)) "rasi" else "kundali"
                             }
                             name.contains("Marriage", true) || name.contains("Matching", true) || name.contains("பொருத்தம்", true) -> "match"

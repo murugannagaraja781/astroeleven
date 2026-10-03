@@ -4491,7 +4491,7 @@
 
     window.shareAstroProfile = function(id, name, price, ev) {
         if (ev) ev.stopPropagation();
-        const shareUrl = window.location.origin + '/?astro=' + (id || '');
+        const shareUrl = window.location.origin + '/astrologer/' + (id || '');
         const shareText = `Consult with ${name || 'Astrologer'} on Astro Eleven for accurate life predictions! Rate: ₹${price || 15}/min. ${shareUrl}`;
         if (navigator.share) {
             navigator.share({

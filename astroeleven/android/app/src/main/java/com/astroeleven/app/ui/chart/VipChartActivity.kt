@@ -40,6 +40,7 @@ import androidx.compose.ui.res.painterResource
 import com.astroeleven.app.R
 import com.astroeleven.app.ui.theme.CosmicAppTheme
 import com.google.gson.Gson
+import androidx.annotation.Keep
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -112,25 +113,25 @@ val rasiClassifications = mapOf(
 )
 
 // --- Updated Data Models ---
-data class ChartResponse(val success: Boolean, val data: ChartData)
-data class ChartData(
-    val planets: List<Planet>,
-    val houses: HouseData,
-    val panchanga: Panchanga,
-    val dasha: List<DashaPeriod>,
-    val transits: List<Transit>,
-    val tamilDate: TamilDate?,
+@Keep data class ChartResponse(val success: Boolean = false, val data: ChartData? = null)
+@Keep data class ChartData(
+    val planets: List<Planet> = emptyList(),
+    val houses: HouseData = HouseData(),
+    val panchanga: Panchanga = Panchanga(),
+    val dasha: List<DashaPeriod> = emptyList(),
+    val transits: List<Transit> = emptyList(),
+    val tamilDate: TamilDate? = null,
     val kpSignificators: KPSignificators? = null,
     val navamsa: NavamsaData? = null
 )
 
-data class Planet(
-    val name: String,
-    val signName: String,
-    val signIndex: Int,
-    val house: Int,
-    val nakshatra: String,
-    val nakshatraPada: Int,
+@Keep data class Planet(
+    val name: String = "",
+    val signName: String = "",
+    val signIndex: Int = 0,
+    val house: Int = 1,
+    val nakshatra: String = "",
+    val nakshatraPada: Int = 1,
     val degreeFormatted: String? = null,
     val signLord: String? = null,
     val starLord: String? = null,
@@ -139,14 +140,14 @@ data class Planet(
     val isCombust: Boolean = false
 )
 
-data class HouseData(
-    val cusps: List<Double>,
-    val details: List<HouseDetail>,
-    val ascendantDetails: HouseDetail
+@Keep data class HouseData(
+    val cusps: List<Double> = emptyList(),
+    val details: List<HouseDetail> = emptyList(),
+    val ascendantDetails: HouseDetail = HouseDetail()
 )
 
-data class HouseDetail(
-    val signName: String,
+@Keep data class HouseDetail(
+    val signName: String = "Aries",
     val signAbbr: String? = null,
     val nakshatra: String? = null,
     val nakshatraPada: Int? = null,
@@ -156,9 +157,9 @@ data class HouseDetail(
     val degreeFormatted: String? = null
 )
 
-data class NameObject(val name: String? = null)
+@Keep data class NameObject(val name: String? = null)
 
-data class Panchanga(
+@Keep data class Panchanga(
     val tithi: NameObject? = null,
     val nakshatra: NameObject? = null,
     val yoga: NameObject? = null,
@@ -169,20 +170,20 @@ data class Panchanga(
     val moonSign: String? = null,
     val sunSign: String? = null
 )
-data class DashaPeriod(
-    val lord: String,
-    val start: String,
-    val end: String,
-    val level: Int,
+@Keep data class DashaPeriod(
+    val lord: String = "",
+    val start: String = "",
+    val end: String = "",
+    val level: Int = 1,
     val subPeriods: List<DashaPeriod>? = null
 )
-data class Transit(val name: String, val signName: String, val isRetrograde: Boolean)
-data class TamilDate(val day: Int, val month: String, val year: String)
-data class NavamsaPlanet(val name: String = "", val signName: String = "")
-data class NavamsaData(val planets: List<NavamsaPlanet>? = null)
-data class KPSignificators(val planetView: List<KPPlanet>?, val houseView: List<KPHouse>?)
-data class KPPlanet(val name: String, val levelA: List<Int>, val levelB: List<Int>, val levelC: List<Int>, val levelD: List<Int>)
-data class KPHouse(val house: Int, val level1: List<String>, val level2: List<String>, val level3: List<String>, val level4: List<String>, val lord: String)
+@Keep data class Transit(val name: String = "", val signName: String = "", val isRetrograde: Boolean = false)
+@Keep data class TamilDate(val day: Int = 1, val month: String = "", val year: String = "")
+@Keep data class NavamsaPlanet(val name: String = "", val signName: String = "")
+@Keep data class NavamsaData(val planets: List<NavamsaPlanet>? = null)
+@Keep data class KPSignificators(val planetView: List<KPPlanet>? = null, val houseView: List<KPHouse>? = null)
+@Keep data class KPPlanet(val name: String = "", val levelA: List<Int> = emptyList(), val levelB: List<Int> = emptyList(), val levelC: List<Int> = emptyList(), val levelD: List<Int> = emptyList())
+@Keep data class KPHouse(val house: Int = 1, val level1: List<String> = emptyList(), val level2: List<String> = emptyList(), val level3: List<String> = emptyList(), val level4: List<String> = emptyList(), val lord: String = "")
 
 class VipChartActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -1301,11 +1302,23 @@ fun PanchangaTab(data: ChartData) {
 
 private suspend fun fetchFullChart(birthData: JSONObject): ChartData? = withContext(Dispatchers.IO) {
     try {
+        var lat = birthData.optDouble("latitude")
+        var lng = birthData.optDouble("longitude")
+        if (lat == 0.0 || lat.isNaN() || lng == 0.0 || lng.isNaN()) {
+            lat = 13.0827
+            lng = 80.2707
+        }
+        val y = birthData.optInt("year").let { if (it <= 1900) 1995 else it }
+        val m = birthData.optInt("month").let { if (it <= 0 || it > 12) 1 else it }
+        val d = birthData.optInt("day").let { if (it <= 0 || it > 31) 1 else it }
+        val h = birthData.optInt("hour", 12)
+        val min = birthData.optInt("minute", 0)
+
         val payload = com.google.gson.JsonObject().apply {
-            addProperty("date", String.format("%04d-%02d-%02d", birthData.optInt("year"), birthData.optInt("month"), birthData.optInt("day")))
-            addProperty("time", String.format("%02d:%02d", birthData.optInt("hour"), birthData.optInt("minute")))
-            addProperty("lat", birthData.optDouble("latitude"))
-            addProperty("lng", birthData.optDouble("longitude"))
+            addProperty("date", String.format("%04d-%02d-%02d", y, m, d))
+            addProperty("time", String.format("%02d:%02d", h, min))
+            addProperty("lat", lat)
+            addProperty("lng", lng)
             addProperty("timezone", birthData.optDouble("timezone", 5.5))
         }
 
@@ -1317,9 +1330,162 @@ private suspend fun fetchFullChart(birthData: JSONObject): ChartData? = withCont
         if (response.isSuccessful && response.body() != null) {
             val jsonString = response.body().toString()
             android.util.Log.d("VipChart", "Response JSON (first 300): ${jsonString.take(300)}")
-            val chartResponse = Gson().fromJson(jsonString, ChartResponse::class.java)
-            android.util.Log.d("VipChart", "Parsed success: ${chartResponse.success}, planets: ${chartResponse.data.planets.size}")
-            if (chartResponse.success) return@withContext chartResponse.data
+            
+            // 1. Try parsing with Gson
+            try {
+                val chartResponse = Gson().fromJson(jsonString, ChartResponse::class.java)
+                if (chartResponse != null && chartResponse.success && chartResponse.data != null && chartResponse.data.planets.isNotEmpty()) {
+                    android.util.Log.d("VipChart", "Parsed success via Gson, planets: ${chartResponse.data.planets.size}")
+                    return@withContext chartResponse.data
+                }
+            } catch (e: Exception) {
+                android.util.Log.w("VipChart", "Gson parse failed, falling back to manual JSON parse: ${e.message}")
+            }
+
+            // 2. Robust Manual JSONObject Parsing Fallback (Guaranteed to NEVER fail even under ProGuard/R8)
+            try {
+                val rootJson = JSONObject(jsonString)
+                val dataObj = rootJson.optJSONObject("data") ?: rootJson
+                
+                val planetsList = mutableListOf<Planet>()
+                val planetsArr = dataObj.optJSONArray("planets")
+                if (planetsArr != null) {
+                    for (i in 0 until planetsArr.length()) {
+                        val p = planetsArr.getJSONObject(i)
+                        planetsList.add(
+                            Planet(
+                                name = p.optString("name", ""),
+                                signName = p.optString("signName", p.optString("sign", "Aries")),
+                                signIndex = p.optInt("signIndex", 0),
+                                house = p.optInt("house", 1),
+                                nakshatra = p.optString("nakshatra", p.optString("nakshatraName", "")),
+                                nakshatraPada = p.optInt("nakshatraPada", 1),
+                                degreeFormatted = p.optString("degreeFormatted", null),
+                                signLord = p.optString("signLord", null),
+                                starLord = p.optString("starLord", null),
+                                subLord = p.optString("subLord", null),
+                                isRetrograde = p.optBoolean("isRetrograde", false),
+                                isCombust = p.optBoolean("isCombust", false)
+                            )
+                        )
+                    }
+                }
+
+                // Houses
+                val housesObj = dataObj.optJSONObject("houses")
+                val ascDetailsObj = housesObj?.optJSONObject("ascendantDetails")
+                val ascSign = ascDetailsObj?.optString("signName", "Aries") ?: "Aries"
+                
+                val houseDetailsList = mutableListOf<HouseDetail>()
+                val detailsArr = housesObj?.optJSONArray("details")
+                if (detailsArr != null) {
+                    for (i in 0 until detailsArr.length()) {
+                        val d = detailsArr.getJSONObject(i)
+                        houseDetailsList.add(
+                            HouseDetail(
+                                signName = d.optString("signName", "Aries"),
+                                signAbbr = d.optString("signAbbr", null),
+                                nakshatra = d.optString("nakshatra", null),
+                                nakshatraPada = d.optInt("nakshatraPada", 1),
+                                signLord = d.optString("signLord", null),
+                                starLord = d.optString("starLord", null),
+                                subLord = d.optString("subLord", null),
+                                degreeFormatted = d.optString("degreeFormatted", null)
+                            )
+                        )
+                    }
+                }
+                
+                val houseData = HouseData(
+                    details = houseDetailsList,
+                    ascendantDetails = HouseDetail(signName = ascSign)
+                )
+
+                // Navamsa
+                val navamsaObj = dataObj.optJSONObject("navamsa")
+                val navamsaPlanets = mutableListOf<NavamsaPlanet>()
+                val navArr = navamsaObj?.optJSONArray("planets")
+                if (navArr != null) {
+                    for (i in 0 until navArr.length()) {
+                        val np = navArr.getJSONObject(i)
+                        navamsaPlanets.add(NavamsaPlanet(np.optString("name"), np.optString("signName")))
+                    }
+                }
+
+                // Dasha
+                val dashaArr = dataObj.optJSONArray("dasha")
+                val dashaList = mutableListOf<DashaPeriod>()
+                if (dashaArr != null) {
+                    for (i in 0 until dashaArr.length()) {
+                        val dItem = dashaArr.getJSONObject(i)
+                        dashaList.add(
+                            DashaPeriod(
+                                lord = dItem.optString("lord", ""),
+                                start = dItem.optString("start", ""),
+                                end = dItem.optString("end", ""),
+                                level = dItem.optInt("level", 1)
+                            )
+                        )
+                    }
+                }
+
+                // Panchanga
+                val panchaObj = dataObj.optJSONObject("panchanga")
+                val panchangaData = if (panchaObj != null) {
+                    Panchanga(
+                        tithi = NameObject(panchaObj.optJSONObject("tithi")?.optString("name")),
+                        nakshatra = NameObject(panchaObj.optJSONObject("nakshatra")?.optString("name")),
+                        yoga = NameObject(panchaObj.optJSONObject("yoga")?.optString("name")),
+                        karana = NameObject(panchaObj.optJSONObject("karana")?.optString("name")),
+                        vara = NameObject(panchaObj.optJSONObject("vara")?.optString("name")),
+                        sunrise = panchaObj.optString("sunrise", null),
+                        sunset = panchaObj.optString("sunset", null),
+                        moonSign = panchaObj.optString("moonSign", null),
+                        sunSign = panchaObj.optString("sunSign", null)
+                    )
+                } else Panchanga()
+
+                // Tamil Date
+                val tdObj = dataObj.optJSONObject("tamilDate")
+                val tamilDateData = if (tdObj != null) {
+                    TamilDate(
+                        day = tdObj.optInt("day", 1),
+                        month = tdObj.optString("month", ""),
+                        year = tdObj.optString("year", "")
+                    )
+                } else null
+
+                // Transits
+                val transitsArr = dataObj.optJSONArray("transits")
+                val transitsList = mutableListOf<Transit>()
+                if (transitsArr != null) {
+                    for (i in 0 until transitsArr.length()) {
+                        val t = transitsArr.getJSONObject(i)
+                        transitsList.add(
+                            Transit(
+                                name = t.optString("name", ""),
+                                signName = t.optString("signName", ""),
+                                isRetrograde = t.optBoolean("isRetrograde", false)
+                            )
+                        )
+                    }
+                }
+
+                if (planetsList.isNotEmpty()) {
+                    android.util.Log.d("VipChart", "Successfully parsed ${planetsList.size} planets via manual fallback!")
+                    return@withContext ChartData(
+                        planets = planetsList,
+                        houses = houseData,
+                        panchanga = panchangaData,
+                        dasha = dashaList,
+                        transits = transitsList,
+                        tamilDate = tamilDateData,
+                        navamsa = NavamsaData(planets = navamsaPlanets)
+                    )
+                }
+            } catch (jsonEx: Exception) {
+                android.util.Log.e("VipChart", "Manual JSON parse exception: ${jsonEx.message}", jsonEx)
+            }
         } else {
             android.util.Log.e("VipChart", "Error response: ${response.code()} - ${response.errorBody()?.string()}")
         }

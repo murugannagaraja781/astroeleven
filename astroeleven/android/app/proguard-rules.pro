@@ -170,6 +170,12 @@
 -keep class com.astroeleven.app.data.** { *; }
 -keep class com.astroeleven.app.model.** { *; }
 -keep class com.astroeleven.app.network.** { *; }
+-keep class com.astroeleven.app.ui.chart.** { *; }
+-keepclassmembers class com.astroeleven.app.ui.chart.** { *; }
+-keep class com.astroeleven.app.ui.horoscope.** { *; }
+-keepclassmembers class com.astroeleven.app.ui.horoscope.** { *; }
+-keep class com.astroeleven.app.data.api.** { *; }
+-keepclassmembers class com.astroeleven.app.data.api.** { *; }
 
 
 # ---- Prevent R8 from removing used classes ----

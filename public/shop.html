@@ -411,9 +411,49 @@
         return;
       }
 
+      // 1. Puja Booking Flow -> POST /api/puja-bookings (proper DB persistence, unique PB ID, realtime admin notification)
+      if (selectedItem && selectedItem.type === 'pujas') {
+        const pujaPayload = {
+          customerId: phone,
+          customerName: name,
+          mobile: phone,
+          pujaId: selectedItem.id || 'p1',
+          pujaName: selectedItem.name,
+          pujaCategory: selectedItem.tag || 'Vedic Puja',
+          amount: selectedItem.price,
+          finalAmount: selectedItem.price,
+          paymentMethod: 'ONLINE',
+          paymentStatus: 'PENDING',
+          referralCode: code || null
+        };
+
+        try {
+          const res = await fetch('/api/puja-bookings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(pujaPayload)
+          });
+          const json = await res.json();
+          if (json.success) {
+            closeCheckout();
+            showToast(`Puja Booking Confirmed! Booking ID: ${json.bookingId}`);
+            document.getElementById('custName').value = '';
+            document.getElementById('custPhone').value = '';
+            document.getElementById('referralCode').value = '';
+          } else {
+            alert("Booking failed: " + (json.message || 'Error occurred'));
+          }
+        } catch (err) {
+          console.error("Puja booking error:", err);
+          alert("Failed to submit Puja booking. Please check connection and try again.");
+        }
+        return;
+      }
+
+      // 2. Astro Product Order Flow -> POST /api/shop/checkout
       const body = {
         userId: phone,
-        itemType: selectedItem.type === 'pujas' ? 'puja' : 'product',
+        itemType: 'product',
         itemId: selectedItem.id,
         itemName: selectedItem.name,
         price: selectedItem.price,
@@ -429,7 +469,7 @@
         const json = await res.json();
         if (json.success) {
           closeCheckout();
-          showToast("Booking Successful! Our team will contact you shortly.");
+          showToast("Order Placed Successfully! Our team will contact you shortly.");
           document.getElementById('custName').value = '';
           document.getElementById('custPhone').value = '';
           document.getElementById('referralCode').value = '';

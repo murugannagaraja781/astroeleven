@@ -48,57 +48,143 @@ import com.astroeleven.app.ui.theme.CosmicAppTheme
 import com.astroeleven.app.ui.theme.AstroDimens
 import coil.compose.AsyncImage
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import androidx.compose.runtime.LaunchedEffect
+
 class AstrologerProfileActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val astroName = intent.getStringExtra("astro_name") ?: "Astrologer"
-        val astroExp = intent.getStringExtra("astro_exp") ?: "5"
-        val astroSkills = intent.getStringExtra("astro_skills") ?: "Vedic, Tarot"
-        val astroId = intent.getStringExtra("astro_id") ?: ""
-        val astroImage = intent.getStringExtra("astro_image") ?: ""
-        val astroPrice = intent.getIntExtra("astro_price", 15)
-        val chatPrice = intent.getIntExtra("chat_price", 15)
-        val callPrice = intent.getIntExtra("call_price", 15)
-        val videoPrice = intent.getIntExtra("video_price", 20)
-        val isChatOnline = intent.getBooleanExtra("is_chat_online", false)
-        val isAudioOnline = intent.getBooleanExtra("is_audio_online", false)
-        val isVideoOnline = intent.getBooleanExtra("is_video_online", false)
+        var astroId = intent.getStringExtra("astro_id") ?: ""
+        val initialName = intent.getStringExtra("astro_name") ?: ""
+        val initialExp = intent.getStringExtra("astro_exp") ?: ""
+        val initialSkills = intent.getStringExtra("astro_skills") ?: ""
+        val initialImage = intent.getStringExtra("astro_image") ?: ""
+        val initialPrice = intent.getIntExtra("astro_price", 15)
+        val initialChatPrice = intent.getIntExtra("chat_price", 15)
+        val initialCallPrice = intent.getIntExtra("call_price", 15)
+        val initialVideoPrice = intent.getIntExtra("video_price", 20)
+        val initialChatOnline = intent.getBooleanExtra("is_chat_online", false)
+        val initialAudioOnline = intent.getBooleanExtra("is_audio_online", false)
+        val initialVideoOnline = intent.getBooleanExtra("is_video_online", false)
+
+        // Parse deep link URI if launched from URL (e.g., https://astroeleven.com/astrologer/123 or astroeleven://astrologer/123)
+        val uri = intent.data
+        if (uri != null) {
+            val path = uri.path ?: ""
+            val queryAstro = uri.getQueryParameter("astro") ?: uri.getQueryParameter("id")
+            val extractedId = when {
+                !queryAstro.isNullOrEmpty() -> queryAstro
+                path.contains("/astrologer/") -> path.substringAfter("/astrologer/").trim('/')
+                uri.host == "astrologer" -> path.trim('/')
+                else -> uri.lastPathSegment ?: ""
+            }
+            if (extractedId.isNotEmpty() && extractedId != "astrologer") {
+                astroId = extractedId
+            }
+        }
 
         setContent {
             CosmicAppTheme(forceLight = true) {
-                AstrologerProfileScreen(
-                    id = astroId,
-                    name = astroName,
-                    exp = astroExp,
-                    skills = astroSkills,
-                    image = astroImage,
-                    price = astroPrice,
-                    chatPrice = chatPrice,
-                    callPrice = callPrice,
-                    videoPrice = videoPrice,
-                    isChatOnline = isChatOnline,
-                    isAudioOnline = isAudioOnline,
-                    isVideoOnline = isVideoOnline,
-                    onBack = { finish() },
-                    onAction = { type ->
-                        val intent = android.content.Intent(this, com.astroeleven.app.ui.intake.IntakeActivity::class.java).apply {
-                            putExtra("partnerId", astroId)
-                            putExtra("partnerName", astroName)
-                            putExtra("partnerImage", astroImage)
-                            putExtra("type", type)
-                            val selectedPrice = when(type) {
-                                "chat" -> chatPrice
-                                "audio" -> callPrice
-                                "video" -> videoPrice
-                                else -> astroPrice
+                var currentAstroId by remember { mutableStateOf(astroId) }
+                var currentName by remember { mutableStateOf(if (initialName.isNotEmpty()) initialName else "Astrologer") }
+                var currentExp by remember { mutableStateOf(if (initialExp.isNotEmpty()) initialExp else "5") }
+                var currentSkills by remember { mutableStateOf(if (initialSkills.isNotEmpty()) initialSkills else "Vedic, Tarot") }
+                var currentImage by remember { mutableStateOf(initialImage) }
+                var currentPrice by remember { mutableStateOf(initialPrice) }
+                var currentChatPrice by remember { mutableStateOf(initialChatPrice) }
+                var currentCallPrice by remember { mutableStateOf(initialCallPrice) }
+                var currentVideoPrice by remember { mutableStateOf(initialVideoPrice) }
+                var currentChatOnline by remember { mutableStateOf(initialChatOnline) }
+                var currentAudioOnline by remember { mutableStateOf(initialAudioOnline) }
+                var currentVideoOnline by remember { mutableStateOf(initialVideoOnline) }
+                var isLoading by remember { mutableStateOf(initialName.isEmpty() && astroId.isNotEmpty()) }
+
+                LaunchedEffect(astroId) {
+                    if (astroId.isNotEmpty() && (initialName.isEmpty() || initialName == "Astrologer")) {
+                        withContext(Dispatchers.IO) {
+                            try {
+                                val url = "${com.astroeleven.app.utils.Constants.SERVER_URL}/api/astrology/astrologer/$astroId"
+                                val client = okhttp3.OkHttpClient()
+                                val req = okhttp3.Request.Builder().url(url).get().build()
+                                client.newCall(req).execute().use { resp ->
+                                    if (resp.isSuccessful) {
+                                        val jsonStr = resp.body?.string() ?: ""
+                                        val obj = org.json.JSONObject(jsonStr)
+                                        if (obj.optBoolean("ok") && obj.has("astrologer")) {
+                                            val a = obj.getJSONObject("astrologer")
+                                            currentName = a.optString("name", currentName)
+                                            currentExp = a.optInt("experience", 5).toString()
+                                            val skillsArr = a.optJSONArray("skills")
+                                            if (skillsArr != null && skillsArr.length() > 0) {
+                                                val sList = mutableListOf<String>()
+                                                for (i in 0 until skillsArr.length()) sList.add(skillsArr.getString(i))
+                                                currentSkills = sList.joinToString(", ")
+                                            }
+                                            currentImage = a.optString("image", currentImage)
+                                            currentPrice = a.optInt("price", 15)
+                                            currentChatPrice = a.optInt("chatPrice", currentPrice)
+                                            currentCallPrice = a.optInt("callPrice", currentPrice)
+                                            currentVideoPrice = a.optInt("videoPrice", 20)
+                                            currentChatOnline = a.optBoolean("isChatOnline", false)
+                                            currentAudioOnline = a.optBoolean("isAudioOnline", false)
+                                            currentVideoOnline = a.optBoolean("isVideoOnline", false)
+                                        }
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                android.util.Log.e("AstrologerProfile", "Failed to load astro details: ${e.message}")
+                            } finally {
+                                isLoading = false
                             }
-                            putExtra("partnerPrice", selectedPrice)
                         }
-                        startActivity(intent)
                     }
-                )
+                }
+
+                if (isLoading) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(CosmicAppTheme.backgroundBrush),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = Color(0xFFE87A1E))
+                    }
+                } else {
+                    AstrologerProfileScreen(
+                        id = currentAstroId,
+                        name = currentName,
+                        exp = currentExp,
+                        skills = currentSkills,
+                        image = currentImage,
+                        price = currentPrice,
+                        chatPrice = currentChatPrice,
+                        callPrice = currentCallPrice,
+                        videoPrice = currentVideoPrice,
+                        isChatOnline = currentChatOnline,
+                        isAudioOnline = currentAudioOnline,
+                        isVideoOnline = currentVideoOnline,
+                        onBack = { finish() },
+                        onAction = { type ->
+                            val intent = android.content.Intent(this@AstrologerProfileActivity, com.astroeleven.app.ui.intake.IntakeActivity::class.java).apply {
+                                putExtra("partnerId", currentAstroId)
+                                putExtra("partnerName", currentName)
+                                putExtra("partnerImage", currentImage)
+                                putExtra("type", type)
+                                val selectedPrice = when(type) {
+                                    "chat" -> currentChatPrice
+                                    "audio" -> currentCallPrice
+                                    "video" -> currentVideoPrice
+                                    else -> currentPrice
+                                }
+                                putExtra("partnerPrice", selectedPrice)
+                            }
+                            startActivity(intent)
+                        }
+                    )
+                }
             }
         }
     }
@@ -160,7 +246,8 @@ fun AstrologerProfileScreen(
                         )
                     }
                     IconButton(onClick = {
-                        val shareText = "Consult with ${name} on Astro Eleven: https://astroeleven.in/?astro=${id}"
+                        val shareUrl = "https://astroeleven.com/astrologer/${id}"
+                        val shareText = "Consult with ${name} on Astro Eleven for accurate life predictions & guidance!\nProfile: ${shareUrl}"
                         val sendIntent = android.content.Intent().apply {
                             action = android.content.Intent.ACTION_SEND
                             putExtra(android.content.Intent.EXTRA_TEXT, shareText)

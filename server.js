@@ -349,6 +349,51 @@ app.get('/wallet', (req, res) => {
   `);
 });
 
+// Astrologer Web Profile Page & Deep Link Route
+const { renderAstrologerProfileHtml } = require('./views/astrologerProfilePage');
+app.get('/astrologer/:id', async (req, res) => {
+  try {
+    const astroId = req.params.id;
+    const astro = await User.findOne({
+      $or: [
+        { userId: astroId },
+        { _id: mongoose.Types.ObjectId.isValid(astroId) ? astroId : null }
+      ],
+      role: 'astrologer'
+    }).lean();
+
+    if (!astro) {
+      return res.redirect('/astrologers.html');
+    }
+
+    const { formatImageUrl } = require('./utils/formatImage');
+    const formattedAstro = {
+      userId: astro.userId,
+      name: astro.name || 'Astrologer',
+      skills: astro.skills || [],
+      price: astro.price || 15,
+      chatPrice: astro.chatPrice || astro.price || 15,
+      callPrice: astro.callPrice || astro.price || 15,
+      videoPrice: astro.videoPrice || astro.price || 20,
+      isOnline: !!astro.isOnline,
+      isChatOnline: !!astro.isChatOnline,
+      isAudioOnline: !!astro.isAudioOnline,
+      isVideoOnline: !!astro.isVideoOnline,
+      experience: astro.experience || 5,
+      isVerified: !!astro.isVerified,
+      isBusy: !!astro.isBusy,
+      image: formatImageUrl(astro.image, astro.name, SERVER_URL),
+      languages: astro.languages || ['Tamil', 'English']
+    };
+
+    const html = renderAstrologerProfileHtml(formattedAstro, SERVER_URL);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.send(html);
+  } catch (err) {
+    console.error('Error rendering astrologer profile page:', err);
+    res.redirect('/');
+  }
+});
 
 // Routes
 const rasiEngRouter = require("./routes/rasiEng");
@@ -364,6 +409,7 @@ const horoscopeRoutes = require('./routes/horoscope.routes');
 const userRoutes = require('./routes/user.routes');
 const paymentRoutes = require('./routes/payment.routes');
 const pageRoutes = require('./routes/page.routes');
+const pujaBookingRoutes = require('./routes/pujaBooking.routes');
 
 app.use("/api/rasi-eng", rasiEngRouter);
 app.use("/api/rasipalan", rasipalanRouter);
@@ -380,6 +426,7 @@ app.use('/api', horoscopeRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/chat', userRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/puja-bookings', pujaBookingRoutes);
 
 // Shop, Puja Booking, and Astrologer Referral System API
 app.get('/api/shop/items', async (req, res) => {
@@ -1034,6 +1081,56 @@ app.get('/api/astrology/astrologers', async (req, res) => {
     res.json({ ok: true, astrologers: formatted });
   } catch (err) {
     console.error('Error fetching astrologers:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Single Astrologer Profile API (Used by Mobile App & Deep Links)
+app.get('/api/astrology/astrologer/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const formatted = await getFormattedAstrologers(SERVER_URL);
+    const found = formatted.find(a => a.userId === id || a.id === id);
+    if (found) {
+      return res.json({ ok: true, astrologer: found });
+    }
+    const a = await User.findOne({
+      $or: [
+        { userId: id },
+        { _id: mongoose.Types.ObjectId.isValid(id) ? id : null }
+      ],
+      role: 'astrologer'
+    }).lean();
+
+    if (!a) {
+      return res.status(404).json({ ok: false, message: 'Astrologer not found' });
+    }
+
+    const { formatImageUrl } = require('./utils/formatImage');
+    return res.json({
+      ok: true,
+      astrologer: {
+        userId: a.userId,
+        name: a.name,
+        skills: a.skills || [],
+        price: a.price || 15,
+        chatPrice: a.chatPrice || a.price || 15,
+        callPrice: a.callPrice || a.price || 15,
+        videoPrice: a.videoPrice || a.price || 20,
+        isOnline: a.isOnline || false,
+        isChatOnline: a.isChatOnline || false,
+        isAudioOnline: a.isAudioOnline || false,
+        isVideoOnline: a.isVideoOnline || false,
+        experience: a.experience || 0,
+        isVerified: a.isVerified || false,
+        isBusy: a.isBusy || false,
+        image: formatImageUrl(a.image, a.name, SERVER_URL),
+        languages: a.languages || ['Tamil', 'English'],
+        orderCount: a.orderCount || 0
+      }
+    });
+  } catch (err) {
+    console.error('Error fetching single astrologer:', err);
     res.status(500).json({ ok: false, error: err.message });
   }
 });
@@ -3055,7 +3152,13 @@ io.on('connection', (socket) => {
       // Get user counts
       const totalUsers = await User.countDocuments({ role: 'client' });
       const totalAstros = await User.countDocuments({ role: 'astrologer' });
+      const activeAstros = await User.countDocuments({ role: 'astrologer', approvalStatus: 'approved' });
       const pendingAstros = await User.countDocuments({ role: 'astrologer', approvalStatus: 'pending' });
+      
+      let pendingWithdrawals = 0;
+      try {
+        pendingWithdrawals = await Withdrawal.countDocuments({ status: 'pending' });
+      } catch (err) {}
 
       // Live Activity Totals
       const onlineUserIds = Array.from(userSockets.keys());
@@ -3077,7 +3180,9 @@ io.on('connection', (socket) => {
         totalDuration: (billing.totalMinutes || 0) * 60,
         totalUsers: totalUsers,
         totalAstros: totalAstros,
+        activeAstros: activeAstros,
         pendingAstros: pendingAstros,
+        pendingWithdrawals: pendingWithdrawals,
         activeSessions: activeCallCount,
         onlineAstros: onlineAstros,
         onlineClients: onlineClients

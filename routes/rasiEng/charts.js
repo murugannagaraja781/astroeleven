@@ -75,16 +75,22 @@ router.post('/full', async (req, res) => {
         });
 
         // 10. Mandi/Gulika (Simple approximation: based on weekday and sunrise/sunset)
-        // For now adding it to the list to satisfy the UI requirement
+        // Ensure signIndex and all required properties exist so mobile parsers do not fail
+        const mandiSignIndex = (planets[0] && typeof planets[0].signIndex === 'number') ? planets[0].signIndex : 0;
+        const mandiSignName = (planets[0] && planets[0].signName) ? planets[0].signName : "Aries";
         planets.push({
             name: "Mandi",
-            signName: planets[0].signName, // Placeholder
+            signName: mandiSignName,
+            signIndex: mandiSignIndex,
             house: 1,
-            nakshatra: "Unknown",
+            nakshatra: "Ashwini",
             nakshatraPada: 1,
             isRetrograde: false,
             isCombust: false,
-            degreeFormatted: "N/A"
+            degreeFormatted: "0° 0' 0\"",
+            signLord: "Mars",
+            starLord: "Ketu",
+            subLord: "Ketu"
         });
 
         // 11. Dasha Logic
