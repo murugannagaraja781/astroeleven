@@ -23,16 +23,18 @@
         <div id="nav-overlay" class="nav-overlay" onclick="toggleNav()"></div>
         <div class="app-header">
             <div class="header-left">
-                <div class="menu-trigger" onclick="toggleNav()" title="Toggle Menu">
-                    <i class="fas fa-bars"></i>
-                </div>
-                <div class="header-logo-wrap" onclick="navAdmin('home', event)">
+                <div class="header-logo-wrap" onclick="navAdmin('home', event)" title="Astro Eleven Super Admin Hub">
                     <img src="images/astroeleven_icon.svg" alt="Astro Eleven">
                     <div class="header-brand-title">
                         <span>Astro Eleven</span>
-                        <span class="admin-badge-pill">Super Admin</span>
+                        <span class="admin-badge-pill"><i class="fas fa-crown"></i> Super Admin</span>
                     </div>
                 </div>
+                <!-- Dynamic Back to Hub button visible in inner sections -->
+                <button id="header-back-hub-btn" class="btn-header-back-hub" onclick="navAdmin('home', event)" style="display:none;" title="Return to App Launcher Hub">
+                    <i class="fas fa-th-large"></i>
+                    <span>Back to Hub</span>
+                </button>
             </div>
 
             <!-- Global Quick Search -->
@@ -85,6 +87,63 @@
         </div>
 
         <div class="admin-content-area">
+            <!-- Global Sticky Sub-Header when inside an inner tool section -->
+            <div id="section-top-navigation-bar" class="section-top-navigation-bar" style="display:none;">
+                <div class="section-nav-left">
+                    <button class="btn-back-to-hub" onclick="navAdmin('home', event)">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>Back to Hub</span>
+                    </button>
+                    <div class="section-breadcrumb">
+                        <span class="breadcrumb-root" onclick="navAdmin('home', event)"><i class="fas fa-th-large"></i> Hub</span>
+                        <i class="fas fa-chevron-right breadcrumb-sep"></i>
+                        <span id="section-current-breadcrumb-title" class="breadcrumb-current">Section</span>
+                    </div>
+                </div>
+                <div class="section-nav-right">
+                    <div class="quick-module-jump">
+                        <i class="fas fa-compass"></i>
+                        <select id="quickModuleSelect" onchange="if(this.value) navAdmin(this.value, event)">
+                            <option value="">Quick Jump...</option>
+                            <optgroup label="Operations & Bookings">
+                                <option value="puja-bookings">Puja Bookings</option>
+                                <option value="earnings">Financial Ledger</option>
+                                <option value="performance">Performance</option>
+                                <option value="history">Session Logs</option>
+                                <option value="feedback">Feedback & Reviews</option>
+                            </optgroup>
+                            <optgroup label="Astrologers">
+                                <option value="payouts">Astrologers Directory</option>
+                                <option value="pending">Pending Approvals</option>
+                                <option value="add-astro">Add New Astrologer</option>
+                                <option value="slab">Slab Rates & Commission</option>
+                                <option value="withdrawals">Withdrawals</option>
+                            </optgroup>
+                            <optgroup label="Users & Community">
+                                <option value="users">Clients Directory</option>
+                                <option value="notifications">Push Notifications</option>
+                                <option value="offers">Offers & FCM</option>
+                                <option value="referrals">Referrals & Rewards</option>
+                            </optgroup>
+                            <optgroup label="App Content">
+                                <option value="slider">Slider Banners</option>
+                                <option value="ads-banner">Ads Banners</option>
+                                <option value="services">Services Icons</option>
+                                <option value="rituals">Rituals & Pujas</option>
+                                <option value="rasi-icons">Rasi Icons</option>
+                                <option value="academy">Academy Videos</option>
+                            </optgroup>
+                            <optgroup label="System">
+                                <option value="settings">Global Settings</option>
+                                <option value="smtp">SMTP Email</option>
+                                <option value="workflow">Workflow & Health</option>
+                                <option value="refunds">Refunds</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
             <!-- Tab 1: Home Dashboard -->
             <div id="admin-sect-home" class="admin-tab-section active">
                 <div id="adminAlertArea_Home" style="margin-bottom: 25px;">
@@ -260,227 +319,474 @@
                     </div>
                 </div>
 
-                <!-- Quick Access Hub (18 Modern Cards) -->
-                <div class="quick-access-section">
-                    <h3 class="section-header-title">
-                        <i class="fas fa-th-large" style="color:var(--primary);"></i>
-                        Quick Access Hub
-                    </h3>
-                    <div class="quick-access-grid">
-                        <!-- 1. Astrologers -->
-                        <div class="quick-card" onclick="navAdmin('payouts', event)">
-                            <div class="quick-card-left">
-                                <div class="quick-icon-wrap accent-blue"><i class="fas fa-user-astronaut"></i></div>
-                                <div class="quick-card-text">
-                                    <div class="quick-card-title">Astrologers</div>
-                                    <div class="quick-card-desc">Profiles, approval & rates</div>
-                                </div>
-                            </div>
-                            <i class="fas fa-chevron-right quick-card-chevron"></i>
+                <!-- Categorized App Launcher Hub -->
+                <div class="app-launcher-hub-section">
+                    <div class="hub-header-row">
+                        <div>
+                            <h3 class="hub-main-title">
+                                <i class="fas fa-th-large"></i> Platform Management Modules
+                            </h3>
+                            <p class="hub-subtitle">Categorized control center for Vedic astrology services, bookings, community, and system operations.</p>
                         </div>
-
-                        <!-- 2. Clients -->
-                        <div class="quick-card" onclick="navAdmin('users', event)">
-                            <div class="quick-card-left">
-                                <div class="quick-icon-wrap accent-purple"><i class="fas fa-users"></i></div>
-                                <div class="quick-card-text">
-                                    <div class="quick-card-title">Clients</div>
-                                    <div class="quick-card-desc">Users, wallets & history</div>
-                                </div>
-                            </div>
-                            <i class="fas fa-chevron-right quick-card-chevron"></i>
+                        <div class="hub-search-indicator" id="hubSearchIndicator" style="display:none;">
+                            <span id="hubSearchFilterText">Filtering modules</span>
+                            <button onclick="clearHubSearch()" class="btn-clear-hub-filter"><i class="fas fa-times"></i> Clear</button>
                         </div>
+                    </div>
 
-                        <!-- 3. Puja Bookings -->
-                        <div class="quick-card" onclick="navAdmin('puja-bookings', event)">
-                            <div class="quick-card-left">
-                                <div class="quick-icon-wrap accent-orange"><i class="fas fa-fire-alt"></i></div>
-                                <div class="quick-card-text">
-                                    <div class="quick-card-title">Puja Bookings</div>
-                                    <div class="quick-card-desc">Orders, pandits & dates</div>
+                    <!-- Category 1: Operations & Bookings -->
+                    <div class="hub-category-block" data-category="operations">
+                        <div class="hub-category-header">
+                            <div class="cat-header-left">
+                                <div class="cat-icon-badge cat-accent-emerald"><i class="fas fa-chart-line"></i></div>
+                                <div>
+                                    <div class="cat-title">Operations & Bookings</div>
+                                    <div class="cat-desc">Live bookings, finance, session history & client satisfaction</div>
                                 </div>
                             </div>
-                            <i class="fas fa-chevron-right quick-card-chevron"></i>
+                            <span class="cat-count-pill">5 Modules</span>
                         </div>
-
-                        <!-- 4. Withdrawals -->
-                        <div class="quick-card" onclick="navAdmin('withdrawals', event)">
-                            <div class="quick-card-left">
-                                <div class="quick-icon-wrap accent-amber"><i class="fas fa-hand-holding-usd"></i></div>
-                                <div class="quick-card-text">
-                                    <div class="quick-card-title">Withdrawals</div>
-                                    <div class="quick-card-desc">Payout requests & UPI</div>
+                        <div class="hub-cards-grid">
+                            <!-- 1. Puja Bookings -->
+                            <div class="hub-app-card" onclick="navAdmin('puja-bookings', event)" data-keywords="puja bookings vedic orders pandits rituals pooja">
+                                <div class="hub-card-top">
+                                    <div class="hub-icon-container gradient-orange"><i class="fas fa-fire-alt"></i></div>
+                                    <span id="nav-count-pujas" class="hub-tile-badge pulse-badge"></span>
+                                </div>
+                                <div class="hub-card-body">
+                                    <div class="hub-card-title">Puja Bookings</div>
+                                    <div class="hub-card-desc">Manage devotee orders, assign Vedic pandits, and track ritual schedules.</div>
+                                </div>
+                                <div class="hub-card-footer">
+                                    <span>Launch Module</span>
+                                    <i class="fas fa-arrow-right"></i>
                                 </div>
                             </div>
-                            <i class="fas fa-chevron-right quick-card-chevron"></i>
+
+                            <!-- 2. Financial Ledger -->
+                            <div class="hub-app-card" onclick="navAdmin('earnings', event)" data-keywords="financial ledger earnings revenue payments profit fees payout commission">
+                                <div class="hub-card-top">
+                                    <div class="hub-icon-container gradient-emerald"><i class="fas fa-wallet"></i></div>
+                                </div>
+                                <div class="hub-card-body">
+                                    <div class="hub-card-title">Financial Ledger</div>
+                                    <div class="hub-card-desc">Platform revenue streams, astrologer splits, taxes & transaction inflow.</div>
+                                </div>
+                                <div class="hub-card-footer">
+                                    <span>Launch Module</span>
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
+                            </div>
+
+                            <!-- 3. Performance -->
+                            <div class="hub-app-card" onclick="navAdmin('performance', event)" data-keywords="performance leaderboard rankings top astrologers ratings earnings">
+                                <div class="hub-card-top">
+                                    <div class="hub-icon-container gradient-amber"><i class="fas fa-medal"></i></div>
+                                </div>
+                                <div class="hub-card-body">
+                                    <div class="hub-card-title">Performance Leaderboard</div>
+                                    <div class="hub-card-desc">Top-rated astrologers, call minutes consumed & revenue generation ranks.</div>
+                                </div>
+                                <div class="hub-card-footer">
+                                    <span>Launch Module</span>
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
+                            </div>
+
+                            <!-- 4. Communication Logs -->
+                            <div class="hub-app-card" onclick="navAdmin('history', event)" data-keywords="communication history calls chats durations logs recording audio video">
+                                <div class="hub-card-top">
+                                    <div class="hub-icon-container gradient-purple"><i class="fas fa-history"></i></div>
+                                </div>
+                                <div class="hub-card-body">
+                                    <div class="hub-card-title">Communication Logs</div>
+                                    <div class="hub-card-desc">Full archive of voice calls, chats, billing durations & consultation history.</div>
+                                </div>
+                                <div class="hub-card-footer">
+                                    <span>Launch Module</span>
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
+                            </div>
+
+                            <!-- 5. Feedback & Reviews -->
+                            <div class="hub-app-card" onclick="navAdmin('feedback', event)" data-keywords="feedback ratings reviews stars client comments complaints">
+                                <div class="hub-card-top">
+                                    <div class="hub-icon-container gradient-rose"><i class="fas fa-comment-alt"></i></div>
+                                </div>
+                                <div class="hub-card-body">
+                                    <div class="hub-card-title">Feedback & Reviews</div>
+                                    <div class="hub-card-desc">Client star ratings, reviews, testimonial approvals & service feedback.</div>
+                                </div>
+                                <div class="hub-card-footer">
+                                    <span>Launch Module</span>
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
+                            </div>
                         </div>
+                    </div>
 
-                        <!-- 5. Payments -->
-                        <div class="quick-card" onclick="navAdmin('earnings', event)">
-                            <div class="quick-card-left">
-                                <div class="quick-icon-wrap accent-emerald"><i class="fas fa-wallet"></i></div>
-                                <div class="quick-card-text">
-                                    <div class="quick-card-title">Payments & Ledger</div>
-                                    <div class="quick-card-desc">Revenue, commission & fees</div>
+                    <!-- Category 2: Astrologers Management -->
+                    <div class="hub-category-block" data-category="astrologers">
+                        <div class="hub-category-header">
+                            <div class="cat-header-left">
+                                <div class="cat-icon-badge cat-accent-blue"><i class="fas fa-user-astronaut"></i></div>
+                                <div>
+                                    <div class="cat-title">Astrologers Management</div>
+                                    <div class="cat-desc">Vedic scholars directory, verifications, rates & withdrawal approvals</div>
                                 </div>
                             </div>
-                            <i class="fas fa-chevron-right quick-card-chevron"></i>
+                            <span class="cat-count-pill">5 Modules</span>
                         </div>
-
-                        <!-- 6. Offers & FCM -->
-                        <div class="quick-card" onclick="navAdmin('offers', event)">
-                            <div class="quick-card-left">
-                                <div class="quick-icon-wrap accent-rose"><i class="fas fa-paper-plane"></i></div>
-                                <div class="quick-card-text">
-                                    <div class="quick-card-title">Offers & FCM Push</div>
-                                    <div class="quick-card-desc">Send promo notifications</div>
+                        <div class="hub-cards-grid">
+                            <!-- 1. Astrologers Directory -->
+                            <div class="hub-app-card" onclick="navAdmin('payouts', event)" data-keywords="astrologers directory astros profiles status rates kyc payout balance">
+                                <div class="hub-card-top">
+                                    <div class="hub-icon-container gradient-blue"><i class="fas fa-user-astronaut"></i></div>
+                                    <span id="nav-count-astros" class="hub-tile-badge"></span>
+                                </div>
+                                <div class="hub-card-body">
+                                    <div class="hub-card-title">Astrologers Directory</div>
+                                    <div class="hub-card-desc">Browse registered astrologers, view live statuses, edit profiles & balances.</div>
+                                </div>
+                                <div class="hub-card-footer">
+                                    <span>Launch Module</span>
+                                    <i class="fas fa-arrow-right"></i>
                                 </div>
                             </div>
-                            <i class="fas fa-chevron-right quick-card-chevron"></i>
+
+                            <!-- 2. Pending Approvals -->
+                            <div class="hub-app-card" onclick="navAdmin('pending', event)" data-keywords="pending approvals verification kyc new astrologers review documents">
+                                <div class="hub-card-top">
+                                    <div class="hub-icon-container gradient-amber"><i class="fas fa-user-clock"></i></div>
+                                    <span id="nav-count-pending" class="hub-tile-badge alert-badge"></span>
+                                </div>
+                                <div class="hub-card-body">
+                                    <div class="hub-card-title">Pending Approvals</div>
+                                    <div class="hub-card-desc">Review KYC documents, astrology credentials & approve/reject new astrologers.</div>
+                                </div>
+                                <div class="hub-card-footer">
+                                    <span>Launch Module</span>
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
+                            </div>
+
+                            <!-- 3. Add Astrologer -->
+                            <div class="hub-app-card" onclick="navAdmin('add-astro', event)" data-keywords="add astrologer new onboard create profile register">
+                                <div class="hub-card-top">
+                                    <div class="hub-icon-container gradient-teal"><i class="fas fa-user-plus"></i></div>
+                                </div>
+                                <div class="hub-card-body">
+                                    <div class="hub-card-title">Add New Astrologer</div>
+                                    <div class="hub-card-desc">Directly onboard and create a new verified astrologer profile from admin.</div>
+                                </div>
+                                <div class="hub-card-footer">
+                                    <span>Launch Module</span>
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
+                            </div>
+
+                            <!-- 4. Slab Rates & Commission -->
+                            <div class="hub-app-card" onclick="navAdmin('slab', event)" data-keywords="slab rates commission call duration pricing minutes slabs cut margins">
+                                <div class="hub-card-top">
+                                    <div class="hub-icon-container gradient-indigo"><i class="fas fa-layer-group"></i></div>
+                                </div>
+                                <div class="hub-card-body">
+                                    <div class="hub-card-title">Slab Rates & Commission</div>
+                                    <div class="hub-card-desc">Configure consultation call minute tiers, customer rates & astrologer pay cuts.</div>
+                                </div>
+                                <div class="hub-card-footer">
+                                    <span>Launch Module</span>
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
+                            </div>
+
+                            <!-- 5. Withdrawal Requests -->
+                            <div class="hub-app-card" onclick="navAdmin('withdrawals', event)" data-keywords="withdrawals payout requests upi bank transfer payout astrologer cash">
+                                <div class="hub-card-top">
+                                    <div class="hub-icon-container gradient-rose"><i class="fas fa-hand-holding-usd"></i></div>
+                                </div>
+                                <div class="hub-card-body">
+                                    <div class="hub-card-title">Withdrawal Requests</div>
+                                    <div class="hub-card-desc">Process astrologer wallet cash-out requests, UPI transfers & bank payouts.</div>
+                                </div>
+                                <div class="hub-card-footer">
+                                    <span>Launch Module</span>
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
+                            </div>
                         </div>
+                    </div>
 
-                        <!-- 7. Academy Videos -->
-                        <div class="quick-card" onclick="navAdmin('academy', event)">
-                            <div class="quick-card-left">
-                                <div class="quick-icon-wrap accent-indigo"><i class="fas fa-graduation-cap"></i></div>
-                                <div class="quick-card-text">
-                                    <div class="quick-card-title">Academy Videos</div>
-                                    <div class="quick-card-desc">Astrology tutorials & clips</div>
+                    <!-- Category 3: Users & Community -->
+                    <div class="hub-category-block" data-category="users">
+                        <div class="hub-category-header">
+                            <div class="cat-header-left">
+                                <div class="cat-icon-badge cat-accent-purple"><i class="fas fa-users"></i></div>
+                                <div>
+                                    <div class="cat-title">Users & Community</div>
+                                    <div class="cat-desc">App clients, wallet recharges, push broadcasts & promotional campaigns</div>
                                 </div>
                             </div>
-                            <i class="fas fa-chevron-right quick-card-chevron"></i>
+                            <span class="cat-count-pill">4 Modules</span>
                         </div>
-
-                        <!-- 8. Rituals -->
-                        <div class="quick-card" onclick="navAdmin('rituals', event)">
-                            <div class="quick-card-left">
-                                <div class="quick-icon-wrap accent-amber"><i class="fas fa-magic"></i></div>
-                                <div class="quick-card-text">
-                                    <div class="quick-card-title">Rituals & Pujas</div>
-                                    <div class="quick-card-desc">Manage puja catalog items</div>
+                        <div class="hub-cards-grid">
+                            <!-- 1. Clients & Users -->
+                            <div class="hub-app-card" onclick="navAdmin('users', event)" data-keywords="clients users accounts wallets balance block recharge customer">
+                                <div class="hub-card-top">
+                                    <div class="hub-icon-container gradient-purple"><i class="fas fa-users"></i></div>
+                                    <span id="nav-count-users" class="hub-tile-badge"></span>
+                                </div>
+                                <div class="hub-card-body">
+                                    <div class="hub-card-title">Clients & Users</div>
+                                    <div class="hub-card-desc">Manage registered user accounts, view wallet balances & manage permissions.</div>
+                                </div>
+                                <div class="hub-card-footer">
+                                    <span>Launch Module</span>
+                                    <i class="fas fa-arrow-right"></i>
                                 </div>
                             </div>
-                            <i class="fas fa-chevron-right quick-card-chevron"></i>
+
+                            <!-- 2. Push Notifications -->
+                            <div class="hub-app-card" onclick="navAdmin('notifications', event)" data-keywords="push notifications fcm broadcast alerts notices messages">
+                                <div class="hub-card-top">
+                                    <div class="hub-icon-container gradient-rose"><i class="fas fa-bell"></i></div>
+                                    <span id="nav-count-notifs" class="hub-tile-badge"></span>
+                                </div>
+                                <div class="hub-card-body">
+                                    <div class="hub-card-title">Push Notifications</div>
+                                    <div class="hub-card-desc">Compose and dispatch Firebase push notification broadcasts to all mobile app users.</div>
+                                </div>
+                                <div class="hub-card-footer">
+                                    <span>Launch Module</span>
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
+                            </div>
+
+                            <!-- 3. Offers & Campaigns -->
+                            <div class="hub-app-card" onclick="navAdmin('offers', event)" data-keywords="offers campaigns fcm push discount vouchers promo promo-code">
+                                <div class="hub-card-top">
+                                    <div class="hub-icon-container gradient-pink"><i class="fas fa-paper-plane"></i></div>
+                                </div>
+                                <div class="hub-card-body">
+                                    <div class="hub-card-title">Offers & Campaigns</div>
+                                    <div class="hub-card-desc">Create festive discount offers, coupon codes, and targeted push promotions.</div>
+                                </div>
+                                <div class="hub-card-footer">
+                                    <span>Launch Module</span>
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
+                            </div>
+
+                            <!-- 4. Referrals & Rewards -->
+                            <div class="hub-app-card" onclick="navAdmin('referrals', event)" data-keywords="referrals rewards bonus program invite wallet earnings affiliate">
+                                <div class="hub-card-top">
+                                    <div class="hub-icon-container gradient-orange"><i class="fas fa-gift"></i></div>
+                                </div>
+                                <div class="hub-card-body">
+                                    <div class="hub-card-title">Referrals & Rewards</div>
+                                    <div class="hub-card-desc">Manage client referral bonuses, invite tracking & reward wallet payouts.</div>
+                                </div>
+                                <div class="hub-card-footer">
+                                    <span>Launch Module</span>
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
+                            </div>
                         </div>
+                    </div>
 
-                        <!-- 9. App Banners -->
-                        <div class="quick-card" onclick="navAdmin('ads-banner', event)">
-                            <div class="quick-card-left">
-                                <div class="quick-icon-wrap accent-cyan"><i class="fas fa-images"></i></div>
-                                <div class="quick-card-text">
-                                    <div class="quick-card-title">App Banners</div>
-                                    <div class="quick-card-desc">Home promo slides & ads</div>
+                    <!-- Category 4: App Content & Layouts -->
+                    <div class="hub-category-block" data-category="layouts">
+                        <div class="hub-category-header">
+                            <div class="cat-header-left">
+                                <div class="cat-icon-badge cat-accent-cyan"><i class="fas fa-palette"></i></div>
+                                <div>
+                                    <div class="cat-title">App Content & Layouts</div>
+                                    <div class="cat-desc">Visual banners, services grid, rituals catalog, zodiac icons & tutorials</div>
                                 </div>
                             </div>
-                            <i class="fas fa-chevron-right quick-card-chevron"></i>
+                            <span class="cat-count-pill">7 Modules</span>
                         </div>
-
-                        <!-- 10. Home Grid Services -->
-                        <div class="quick-card" onclick="navAdmin('services', event)">
-                            <div class="quick-card-left">
-                                <div class="quick-icon-wrap accent-teal"><i class="fas fa-th-large"></i></div>
-                                <div class="quick-card-text">
-                                    <div class="quick-card-title">Home Grid Services</div>
-                                    <div class="quick-card-desc">Dashboard feature cards</div>
+                        <div class="hub-cards-grid">
+                            <!-- 1. Slider Banners -->
+                            <div class="hub-app-card" onclick="navAdmin('slider', event)" data-keywords="slider banners carousel promo images home top app">
+                                <div class="hub-card-top">
+                                    <div class="hub-icon-container gradient-cyan"><i class="fas fa-images"></i></div>
+                                </div>
+                                <div class="hub-card-body">
+                                    <div class="hub-card-title">Slider Banners</div>
+                                    <div class="hub-card-desc">Manage top promotional carousel slides on the Astro Eleven home screen.</div>
+                                </div>
+                                <div class="hub-card-footer">
+                                    <span>Launch Module</span>
+                                    <i class="fas fa-arrow-right"></i>
                                 </div>
                             </div>
-                            <i class="fas fa-chevron-right quick-card-chevron"></i>
+
+                            <!-- 2. Ads Banners -->
+                            <div class="hub-app-card" onclick="navAdmin('ads-banner', event)" data-keywords="ads banners promotional advertisements marketing banners">
+                                <div class="hub-card-top">
+                                    <div class="hub-icon-container gradient-blue"><i class="fas fa-ad"></i></div>
+                                </div>
+                                <div class="hub-card-body">
+                                    <div class="hub-card-title">Ads Banners</div>
+                                    <div class="hub-card-desc">Secondary horizontal advertising banners placed across app screens.</div>
+                                </div>
+                                <div class="hub-card-footer">
+                                    <span>Launch Module</span>
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
+                            </div>
+
+                            <!-- 3. Services Grid -->
+                            <div class="hub-app-card" onclick="navAdmin('services', event)" data-keywords="services grid icons horoscope matching prashna kundli modules">
+                                <div class="hub-card-top">
+                                    <div class="hub-icon-container gradient-emerald"><i class="fas fa-th-large"></i></div>
+                                </div>
+                                <div class="hub-card-body">
+                                    <div class="hub-card-title">Services Grid Icons</div>
+                                    <div class="hub-card-desc">Configure dashboard service icons (Kundli, Match Making, Daily Horoscope).</div>
+                                </div>
+                                <div class="hub-card-footer">
+                                    <span>Launch Module</span>
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
+                            </div>
+
+                            <!-- 4. Rituals & Pujas Catalog -->
+                            <div class="hub-app-card" onclick="navAdmin('rituals', event)" data-keywords="rituals pujas catalog items prices packages homam archana vedic">
+                                <div class="hub-card-top">
+                                    <div class="hub-icon-container gradient-amber"><i class="fas fa-magic"></i></div>
+                                </div>
+                                <div class="hub-card-body">
+                                    <div class="hub-card-title">Rituals & Pujas Catalog</div>
+                                    <div class="hub-card-desc">Edit puja catalog items, deity descriptions, benefits & service fees.</div>
+                                </div>
+                                <div class="hub-card-footer">
+                                    <span>Launch Module</span>
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
+                            </div>
+
+                            <!-- 5. Rasi Icons -->
+                            <div class="hub-app-card" onclick="navAdmin('rasi-icons', event)" data-keywords="rasi icons zodiac signs symbols 12 rasi tamil astrology artwork">
+                                <div class="hub-card-top">
+                                    <div class="hub-icon-container gradient-yellow"><i class="fas fa-star-and-crescent"></i></div>
+                                </div>
+                                <div class="hub-card-body">
+                                    <div class="hub-card-title">Zodiac Rasi Icons</div>
+                                    <div class="hub-card-desc">Upload and manage visual icons for the 12 Rasis and planetary artwork.</div>
+                                </div>
+                                <div class="hub-card-footer">
+                                    <span>Launch Module</span>
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
+                            </div>
+
+                            <!-- 6. Academy Videos -->
+                            <div class="hub-app-card" onclick="navAdmin('academy', event)" data-keywords="academy videos lessons tutorials video clips astrology courses youtube">
+                                <div class="hub-card-top">
+                                    <div class="hub-icon-container gradient-indigo"><i class="fas fa-graduation-cap"></i></div>
+                                </div>
+                                <div class="hub-card-body">
+                                    <div class="hub-card-title">Academy Videos</div>
+                                    <div class="hub-card-desc">Publish educational Vedic astrology videos, tutorials & workshop links.</div>
+                                </div>
+                                <div class="hub-card-footer">
+                                    <span>Launch Module</span>
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
+                            </div>
+
+                            <!-- 7. Products Store -->
+                            <div class="hub-app-card" onclick="window.open('https://astroeleven.in/wp-login.php?loggedout=true&wp_lang=en_US', '_blank')" data-keywords="products store ecommerce gemstones rudraksha yantras shop">
+                                <div class="hub-card-top">
+                                    <div class="hub-icon-container gradient-teal"><i class="fas fa-shopping-bag"></i></div>
+                                    <span class="hub-ext-badge"><i class="fas fa-external-link-alt"></i> Store</span>
+                                </div>
+                                <div class="hub-card-body">
+                                    <div class="hub-card-title">E-Commerce Products Store</div>
+                                    <div class="hub-card-desc">Access WooCommerce backend for gemstones, rudraksha & puja samagri sales.</div>
+                                </div>
+                                <div class="hub-card-footer">
+                                    <span>Open Store Admin</span>
+                                    <i class="fas fa-external-link-alt"></i>
+                                </div>
+                            </div>
                         </div>
+                    </div>
 
-                        <!-- 11. Commission / Slab Rates -->
-                        <div class="quick-card" onclick="navAdmin('slab', event)">
-                            <div class="quick-card-left">
-                                <div class="quick-icon-wrap accent-blue"><i class="fas fa-layer-group"></i></div>
-                                <div class="quick-card-text">
-                                    <div class="quick-card-title">Slab Rates & Commission</div>
-                                    <div class="quick-card-desc">Call duration pricing slabs</div>
+                    <!-- Category 5: System Configuration -->
+                    <div class="hub-category-block" data-category="system">
+                        <div class="hub-category-header">
+                            <div class="cat-header-left">
+                                <div class="cat-icon-badge cat-accent-slate"><i class="fas fa-sliders-h"></i></div>
+                                <div>
+                                    <div class="cat-title">System Configuration</div>
+                                    <div class="cat-desc">Application controls, email infrastructure, microservices health & refunds</div>
                                 </div>
                             </div>
-                            <i class="fas fa-chevron-right quick-card-chevron"></i>
+                            <span class="cat-count-pill">4 Modules</span>
                         </div>
-
-                        <!-- 12. Feedback & Ratings -->
-                        <div class="quick-card" onclick="navAdmin('feedback', event)">
-                            <div class="quick-card-left">
-                                <div class="quick-icon-wrap accent-amber"><i class="fas fa-star"></i></div>
-                                <div class="quick-card-text">
-                                    <div class="quick-card-title">Feedback & Ratings</div>
-                                    <div class="quick-card-desc">Client reviews & stars</div>
+                        <div class="hub-cards-grid">
+                            <!-- 1. App Settings -->
+                            <div class="hub-app-card" onclick="navAdmin('settings', event)" data-keywords="app settings system configuration maintenance version params config">
+                                <div class="hub-card-top">
+                                    <div class="hub-icon-container gradient-sky"><i class="fas fa-cog"></i></div>
+                                </div>
+                                <div class="hub-card-body">
+                                    <div class="hub-card-title">Global Settings</div>
+                                    <div class="hub-card-desc">Configure app versioning, maintenance toggle, payment gates & parameters.</div>
+                                </div>
+                                <div class="hub-card-footer">
+                                    <span>Launch Module</span>
+                                    <i class="fas fa-arrow-right"></i>
                                 </div>
                             </div>
-                            <i class="fas fa-chevron-right quick-card-chevron"></i>
-                        </div>
 
-                        <!-- 13. Communication History -->
-                        <div class="quick-card" onclick="navAdmin('history', event)">
-                            <div class="quick-card-left">
-                                <div class="quick-icon-wrap accent-purple"><i class="fas fa-history"></i></div>
-                                <div class="quick-card-text">
-                                    <div class="quick-card-title">Communication Logs</div>
-                                    <div class="quick-card-desc">Calls, chats & durations</div>
+                            <!-- 2. SMTP Config -->
+                            <div class="hub-app-card" onclick="navAdmin('smtp', event)" data-keywords="smtp email mail server credentials port tls ssl gateway">
+                                <div class="hub-card-top">
+                                    <div class="hub-icon-container gradient-indigo"><i class="fas fa-envelope-open-text"></i></div>
+                                </div>
+                                <div class="hub-card-body">
+                                    <div class="hub-card-title">SMTP Email Gateway</div>
+                                    <div class="hub-card-desc">Configure transactional email servers, ports, authentication & templates.</div>
+                                </div>
+                                <div class="hub-card-footer">
+                                    <span>Launch Module</span>
+                                    <i class="fas fa-arrow-right"></i>
                                 </div>
                             </div>
-                            <i class="fas fa-chevron-right quick-card-chevron"></i>
-                        </div>
 
-                        <!-- 14. Puja Products -->
-                        <div class="quick-card" onclick="navAdmin('referrals', event)">
-                            <div class="quick-card-left">
-                                <div class="quick-icon-wrap accent-emerald"><i class="fas fa-gem"></i></div>
-                                <div class="quick-card-text">
-                                    <div class="quick-card-title">Puja Products & Gemstones</div>
-                                    <div class="quick-card-desc">Store sales & referrals</div>
+                            <!-- 3. Workflow Engine & Health -->
+                            <div class="hub-app-card" onclick="navAdmin('workflow', event)" data-keywords="workflow health microservices swiss ephemeris kundli engine server uptime">
+                                <div class="hub-card-top">
+                                    <div class="hub-icon-container gradient-emerald"><i class="fas fa-microchip"></i></div>
+                                </div>
+                                <div class="hub-card-body">
+                                    <div class="hub-card-title">Engine Workflow & Health</div>
+                                    <div class="hub-card-desc">Inspect real-time status of Swiss Ephemeris microservices & Kundli math engines.</div>
+                                </div>
+                                <div class="hub-card-footer">
+                                    <span>Launch Module</span>
+                                    <i class="fas fa-arrow-right"></i>
                                 </div>
                             </div>
-                            <i class="fas fa-chevron-right quick-card-chevron"></i>
-                        </div>
 
-                        <!-- 15. Rasi Icons -->
-                        <div class="quick-card" onclick="navAdmin('rasi-icons', event)">
-                            <div class="quick-card-left">
-                                <div class="quick-icon-wrap accent-orange"><i class="fas fa-star-and-crescent"></i></div>
-                                <div class="quick-card-text">
-                                    <div class="quick-card-title">Rasi Icons</div>
-                                    <div class="quick-card-desc">Zodiac icons & symbols</div>
+                            <!-- 4. Refunds -->
+                            <div class="hub-app-card" onclick="navAdmin('refunds', event)" data-keywords="refunds cancellations wallet credit payment dispute adjustment">
+                                <div class="hub-card-top">
+                                    <div class="hub-icon-container gradient-rose"><i class="fas fa-undo"></i></div>
+                                </div>
+                                <div class="hub-card-body">
+                                    <div class="hub-card-title">Refund Management</div>
+                                    <div class="hub-card-desc">Review cancelled orders, approve user wallet refunds & rectify deductions.</div>
+                                </div>
+                                <div class="hub-card-footer">
+                                    <span>Launch Module</span>
+                                    <i class="fas fa-arrow-right"></i>
                                 </div>
                             </div>
-                            <i class="fas fa-chevron-right quick-card-chevron"></i>
-                        </div>
-
-                        <!-- 16. System Configuration -->
-                        <div class="quick-card" onclick="navAdmin('settings', event)">
-                            <div class="quick-card-left">
-                                <div class="quick-icon-wrap accent-cyan"><i class="fas fa-sliders-h"></i></div>
-                                <div class="quick-card-text">
-                                    <div class="quick-card-title">System Configuration</div>
-                                    <div class="quick-card-desc">Global app parameters</div>
-                                </div>
-                            </div>
-                            <i class="fas fa-chevron-right quick-card-chevron"></i>
-                        </div>
-
-                        <!-- 17. SMTP / Email -->
-                        <div class="quick-card" onclick="navAdmin('smtp', event)">
-                            <div class="quick-card-left">
-                                <div class="quick-icon-wrap accent-indigo"><i class="fas fa-envelope-open-text"></i></div>
-                                <div class="quick-card-text">
-                                    <div class="quick-card-title">SMTP / Email</div>
-                                    <div class="quick-card-desc">Email server settings</div>
-                                </div>
-                            </div>
-                            <i class="fas fa-chevron-right quick-card-chevron"></i>
-                        </div>
-
-                        <!-- 18. System Health -->
-                        <div class="quick-card" onclick="navAdmin('workflow', event)">
-                            <div class="quick-card-left">
-                                <div class="quick-icon-wrap accent-teal"><i class="fas fa-heartbeat"></i></div>
-                                <div class="quick-card-text">
-                                    <div class="quick-card-title">System Health & Engine</div>
-                                    <div class="quick-card-desc">Microservices & ephemeris</div>
-                                </div>
-                            </div>
-                            <i class="fas fa-chevron-right quick-card-chevron"></i>
                         </div>
                     </div>
                 </div>
@@ -2021,8 +2327,8 @@
         <!-- Mobile Bottom App Navigation Bar -->
         <div class="mobile-bottom-nav">
             <div class="bottom-nav-item active" onclick="navAdmin('home', event)">
-                <i class="fas fa-home"></i>
-                <span>Home</span>
+                <i class="fas fa-th-large"></i>
+                <span>Hub</span>
             </div>
             <div class="bottom-nav-item" onclick="navAdmin('puja-bookings', event)">
                 <i class="fas fa-fire-alt"></i>
@@ -2037,50 +2343,46 @@
                 <i class="fas fa-users"></i>
                 <span>Clients</span>
             </div>
-            <div class="bottom-nav-item" onclick="toggleNav()">
-                <i class="fas fa-th-large"></i>
-                <span>More</span>
+            <div class="bottom-nav-item" onclick="navAdmin('settings', event)">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
             </div>
         </div>
 
-        <!-- Navigation Sidebar / Slide-Over Drawer -->
-        <div class="admin-nav" style="padding-top: 20px;">
-            <!-- Category: Dashboard -->
+        <!-- Hidden Legacy Navigation Sidebar for backwards DOM compatibility -->
+        <div class="admin-nav" style="display: none !important;">
             <div class="nav-category-header open" onclick="toggleNavCategory(this)">
                 <span>Dashboard & Logs</span>
                 <i class="fas fa-chevron-right toggle-icon"></i>
             </div>
             <div class="nav-subcategory-list">
                 <div class="admin-nav-item active" onclick="navAdmin('home', event)"><i class="fas fa-home"></i><span>Dashboard</span></div>
-                <div class="admin-nav-item" onclick="navAdmin('puja-bookings', event)"><i class="fas fa-fire-alt" style="color:var(--primary);"></i><span>Puja Bookings <small id="nav-count-pujas" style="color:#EF4444; font-weight:bold;"></small></span></div>
+                <div class="admin-nav-item" onclick="navAdmin('puja-bookings', event)"><i class="fas fa-fire-alt" style="color:var(--primary);"></i><span>Puja Bookings <small id="legacy-nav-count-pujas" style="color:#EF4444; font-weight:bold;"></small></span></div>
                 <div class="admin-nav-item" onclick="navAdmin('performance', event)"><i class="fas fa-medal" style="color:#FFD700;"></i><span>Performance</span></div>
                 <div class="admin-nav-item" onclick="navAdmin('history', event)"><i class="fas fa-history" style="color:#FFB300;"></i><span>History Logs</span></div>
                 <div class="admin-nav-item" onclick="navAdmin('feedback', event)"><i class="fas fa-comment-alt"></i><span>Feedback</span></div>
             </div>
 
-            <!-- Category: Astrologers -->
             <div class="nav-category-header open" onclick="toggleNavCategory(this)">
                 <span>Astrologers</span>
                 <i class="fas fa-chevron-right toggle-icon"></i>
             </div>
             <div class="nav-subcategory-list">
-                <div class="admin-nav-item" onclick="navAdmin('payouts', event)"><i class="fas fa-user-astronaut"></i><span>Astros <small id="nav-count-astros" style="color:#EF4444; font-weight:bold;"></small></span></div>
-                <div class="admin-nav-item" onclick="navAdmin('pending', event)"><i class="fas fa-user-clock"></i><span>Pending <small id="nav-count-pending" style="color:#EF4444; font-weight:bold;"></small></span></div>
+                <div class="admin-nav-item" onclick="navAdmin('payouts', event)"><i class="fas fa-user-astronaut"></i><span>Astros <small id="legacy-nav-count-astros" style="color:#EF4444; font-weight:bold;"></small></span></div>
+                <div class="admin-nav-item" onclick="navAdmin('pending', event)"><i class="fas fa-user-clock"></i><span>Pending <small id="legacy-nav-count-pending" style="color:#EF4444; font-weight:bold;"></small></span></div>
                 <div class="admin-nav-item" onclick="navAdmin('add-astro', event)"><i class="fas fa-user-plus"></i><span>Add Astro</span></div>
                 <div class="admin-nav-item" onclick="navAdmin('slab', event)"><i class="fas fa-layer-group"></i><span>Slab Rates</span></div>
             </div>
 
-            <!-- Category: Users & Notifs -->
             <div class="nav-category-header open" onclick="toggleNavCategory(this)">
                 <span>Users & Notifications</span>
                 <i class="fas fa-chevron-right toggle-icon"></i>
             </div>
             <div class="nav-subcategory-list">
-                <div class="admin-nav-item" onclick="navAdmin('users', event)"><i class="fas fa-users"></i><span>Users <small id="nav-count-users" style="color:#EF4444; font-weight:bold;"></small></span></div>
-                <div class="admin-nav-item" onclick="navAdmin('notifications', event)"><i class="fas fa-bell"></i><span>Notifications <small id="nav-count-notifs" style="color:#EF4444; font-weight:bold;"></small></span></div>
+                <div class="admin-nav-item" onclick="navAdmin('users', event)"><i class="fas fa-users"></i><span>Users <small id="legacy-nav-count-users" style="color:#EF4444; font-weight:bold;"></small></span></div>
+                <div class="admin-nav-item" onclick="navAdmin('notifications', event)"><i class="fas fa-bell"></i><span>Notifications <small id="legacy-nav-count-notifs" style="color:#EF4444; font-weight:bold;"></small></span></div>
             </div>
 
-            <!-- Category: Content Layouts -->
             <div class="nav-category-header open" onclick="toggleNavCategory(this)">
                 <span>App Layouts</span>
                 <i class="fas fa-chevron-right toggle-icon"></i>
@@ -2094,7 +2396,6 @@
                 <div class="admin-nav-item" onclick="navAdmin('academy', event)"><i class="fas fa-graduation-cap"></i><span>Academy Videos</span></div>
             </div>
 
-            <!-- Category: Shop & Referrals -->
             <div class="nav-category-header open" onclick="toggleNavCategory(this)">
                 <span>E-Commerce</span>
                 <i class="fas fa-chevron-right toggle-icon"></i>
@@ -2104,7 +2405,6 @@
                 <div class="admin-nav-item" onclick="window.open('https://astroeleven.in/wp-login.php?loggedout=true&wp_lang=en_US', '_blank')"><i class="fas fa-shopping-bag" style="color:#EAB308;"></i><span>Products Store</span></div>
             </div>
 
-            <!-- Category: System Configuration -->
             <div class="nav-category-header open" onclick="toggleNavCategory(this)">
                 <span>System Config</span>
                 <i class="fas fa-chevron-right toggle-icon"></i>
@@ -2751,9 +3051,56 @@
                 .replace(/'/g, "&#039;");
         }
 
+        // Real-time instant Hub module search filter
+        function filterHubCards(q) {
+            const query = (q || '').trim().toLowerCase();
+            const cards = document.querySelectorAll('.hub-app-card');
+            const categories = document.querySelectorAll('.hub-category-block');
+            const indicator = document.getElementById('hubSearchIndicator');
+            const filterText = document.getElementById('hubSearchFilterText');
+            
+            if (!query) {
+                cards.forEach(c => c.style.display = '');
+                categories.forEach(cat => cat.style.display = '');
+                if (indicator) indicator.style.display = 'none';
+                return;
+            }
+            
+            if (indicator) {
+                indicator.style.display = 'inline-flex';
+                if (filterText) filterText.textContent = `Filtering: "${query}"`;
+            }
+
+            let totalMatches = 0;
+            categories.forEach(cat => {
+                let matchCount = 0;
+                const catCards = cat.querySelectorAll('.hub-app-card');
+                catCards.forEach(c => {
+                    const text = ((c.getAttribute('data-keywords') || '') + ' ' + c.innerText).toLowerCase();
+                    if (text.includes(query)) {
+                        c.style.display = '';
+                        matchCount++;
+                        totalMatches++;
+                    } else {
+                        c.style.display = 'none';
+                    }
+                });
+                cat.style.display = matchCount > 0 ? '' : 'none';
+            });
+        }
+
+        window.clearHubSearch = () => {
+            const input = document.getElementById('globalSearchInput');
+            if (input) input.value = '';
+            filterHubCards('');
+        };
+
         // Global search handler for header search box
         let globalSearchDebounce = null;
         function handleGlobalSearch(val) {
+            // Instant client-side hub filtering
+            filterHubCards(val);
+
             clearTimeout(globalSearchDebounce);
             globalSearchDebounce = setTimeout(() => {
                 const q = (val || '').trim();
@@ -3047,11 +3394,59 @@
       `;
         }
 
-        // Tabs
+        // Tabs and Hub Navigation System
+        const ADMIN_MODULE_TITLES = {
+            'home': 'Dashboard Hub',
+            'puja-bookings': 'Puja Bookings & Vedic Services',
+            'earnings': 'Financial Ledger & Platform Revenue',
+            'payouts': 'Astrologers Directory & Payouts',
+            'performance': 'Astrologer Performance Leaderboard',
+            'notifications': 'Push Notifications Broadcast',
+            'pending': 'Pending Astrologer Approvals',
+            'users': 'Clients & Users Management',
+            'add-astro': 'Add New Astrologer',
+            'withdrawals': 'Astrologer Withdrawal Requests',
+            'academy': 'Academy Video Tutorials',
+            'rituals': 'Puja & Rituals Catalog',
+            'ads-banner': 'Promotional Ads Banners',
+            'slider': 'Home Slider Banners',
+            'services': 'Services Grid Icons',
+            'slab': 'Call Duration Slab Rates & Commission',
+            'offers': 'Promotions & Offers',
+            'refunds': 'Transaction Refunds Management',
+            'settings': 'Global System Settings',
+            'smtp': 'SMTP Email Gateway',
+            'workflow': 'Workflow Engine & Health',
+            'feedback': 'Customer Feedback & Reviews',
+            'history': 'Communication Session Logs',
+            'referrals': 'Referrals & Bonus Program',
+            'rasi-icons': 'Zodiac Rasi Icons'
+        };
+
         window.navAdmin = (id, ev) => {
             document.querySelectorAll('.admin-tab-section').forEach(s => s.classList.remove('active'));
             const sect = document.getElementById('admin-sect-' + id);
             if (sect) sect.classList.add('active');
+
+            // Synchronize Sticky Section Sub-Header & Header Back Button
+            const topNav = document.getElementById('section-top-navigation-bar');
+            const headerBackBtn = document.getElementById('header-back-hub-btn');
+            const breadcrumbTitle = document.getElementById('section-current-breadcrumb-title');
+            const quickSelect = document.getElementById('quickModuleSelect');
+
+            if (id === 'home') {
+                if (topNav) topNav.style.display = 'none';
+                if (headerBackBtn) headerBackBtn.style.display = 'none';
+            } else {
+                if (topNav) topNav.style.display = 'flex';
+                if (headerBackBtn) headerBackBtn.style.display = 'inline-flex';
+                if (breadcrumbTitle) breadcrumbTitle.textContent = ADMIN_MODULE_TITLES[id] || id;
+                if (quickSelect) quickSelect.value = id;
+            }
+
+            // Smooth scroll content area to top on view change
+            const contentArea = document.querySelector('.admin-content-area');
+            if (contentArea) contentArea.scrollTo({ top: 0, behavior: 'smooth' });
 
             if (id === 'puja-bookings') {
                 if (typeof loadPujaBookings === 'function') loadPujaBookings(1);
@@ -3095,7 +3490,7 @@
                 }
             });
             
-            // Close nav on mobile after selection
+            // Close nav on mobile after selection if open
             if (window.innerWidth < 1024) {
                 const nav = document.querySelector('.admin-nav');
                 const overlay = document.getElementById('nav-overlay');
