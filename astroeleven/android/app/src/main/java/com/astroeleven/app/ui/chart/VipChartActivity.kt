@@ -313,6 +313,10 @@ fun VipChartScreen(birthData: JSONObject, onBack: () -> Unit) {
 
 @Composable
 fun ChartsTab(data: ChartData, birthData: JSONObject) {
+    val currentAscSign = data.planets.find { it.name.equals("Ascendant", ignoreCase = true) || it.name.equals("Lagna", ignoreCase = true) }?.signName
+        ?: data.houses.ascendantDetails.signName.takeIf { it.isNotBlank() }
+        ?: "Aries"
+
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
 
         Text("ராசி கட்டம் (Rasi)", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF5D1212), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
@@ -320,7 +324,7 @@ fun ChartsTab(data: ChartData, birthData: JSONObject) {
         SouthIndianGridEnhanced(
             planets = data.planets,
             houses = null,
-            ascSign = data.houses.ascendantDetails.signName,
+            ascSign = currentAscSign,
             title = "ராசி",
             isBhava = false
         )
@@ -347,7 +351,7 @@ fun ChartsTab(data: ChartData, birthData: JSONObject) {
         SouthIndianGridEnhanced(
             planets = data.planets, // In Bhava, planet positions might be different, but if we don't have separate bhava planets, we use Rasi planets
             houses = data.houses.details,
-            ascSign = data.houses.ascendantDetails.signName,
+            ascSign = currentAscSign,
             title = "பாவகம்",
             isBhava = true
         )
@@ -516,7 +520,7 @@ fun SouthIndianGridEnhanced(
                                     }
 
                                     // Planets in this sign
-                                    val signPlanets = planets.filter { it.signName == signEn }
+                                    val signPlanets = planets.filter { it.signName == signEn && !it.name.equals("Ascendant", ignoreCase = true) && !it.name.equals("Lagna", ignoreCase = true) }
                                     signPlanets.forEach { p ->
                                         val abbr = planetAbbrTamil[p.name] ?: p.name.take(3)
                                         val deg = p.degreeFormatted ?: ""
@@ -772,8 +776,10 @@ fun PlanetsTab(data: ChartData) {
 
 @Composable
 fun SubhaAsubhaTab(data: ChartData) {
-    val ascendantPlanet = data.planets.find { it.name.equals("Ascendant", ignoreCase = true) }
-    val lagnaSignEn = ascendantPlanet?.signName ?: "Aries"
+    val ascendantPlanet = data.planets.find { it.name.equals("Ascendant", ignoreCase = true) || it.name.equals("Lagna", ignoreCase = true) }
+    val lagnaSignEn = ascendantPlanet?.signName
+        ?: data.houses.ascendantDetails.signName.takeIf { it.isNotBlank() }
+        ?: "Aries"
     val lagnaSignTa = signTamil[lagnaSignEn] ?: lagnaSignEn
     val details = rasiClassifications[lagnaSignEn]
 
@@ -1374,7 +1380,13 @@ private suspend fun fetchFullChart(birthData: JSONObject): ChartData? = withCont
                 // Houses
                 val housesObj = dataObj.optJSONObject("houses")
                 val ascDetailsObj = housesObj?.optJSONObject("ascendantDetails")
-                val ascSign = ascDetailsObj?.optString("signName", "Aries") ?: "Aries"
+                val ascSign = ascDetailsObj?.optString("signName", "")?.takeIf { it.isNotBlank() }
+                    ?: planetsList.find { it.name.equals("Ascendant", true) }?.signName
+                    ?: "Aries"
+
+                if (!planetsList.any { it.name.equals("Ascendant", true) }) {
+                    planetsList.add(0, Planet(name = "Ascendant", signName = ascSign))
+                }
                 
                 val houseDetailsList = mutableListOf<HouseDetail>()
                 val detailsArr = housesObj?.optJSONArray("details")
