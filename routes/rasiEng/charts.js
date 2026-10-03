@@ -93,6 +93,34 @@ router.post('/full', async (req, res) => {
             subLord: "Ketu"
         });
 
+        // 10b. Include Ascendant in planets list for direct mobile/web chart access
+        if (houses && houses.ascendantDetails) {
+            planets.unshift({
+                id: 100,
+                name: "Ascendant",
+                longitude: houses.ascendant,
+                latitude: 0,
+                distance: 1,
+                speed: 0,
+                isRetrograde: false,
+                sign: houses.ascendantDetails.signName,
+                signName: houses.ascendantDetails.signName,
+                signIndex: typeof houses.ascendant === 'number' ? Math.floor(houses.ascendant / 30) : 0,
+                house: 1,
+                nakshatra: houses.ascendantDetails.nakshatra || "Ashwini",
+                nakshatraName: houses.ascendantDetails.nakshatra || "Ashwini",
+                nakshatraIndex: houses.ascendantDetails.nakshatraIndex || 0,
+                nakshatraPada: houses.ascendantDetails.nakshatraPada || 1,
+                signLord: houses.ascendantDetails.signLord || "Mars",
+                starLord: houses.ascendantDetails.starLord || "Ketu",
+                subLord: houses.ascendantDetails.subLord || "Ketu",
+                subSubLord: houses.ascendantDetails.subSubLord || "",
+                subSubSubLord: houses.ascendantDetails.subSubSubLord || "",
+                isCombust: false,
+                degreeFormatted: houses.ascendantDetails.degreeFormatted || formatLongitude(houses.ascendant)
+            });
+        }
+
         // 11. Dasha Logic
         const moon = planets.find(p => p.name === 'Moon');
         // ... (rest of the logic remains similar but uses the parallel results)
@@ -120,7 +148,7 @@ router.post('/full', async (req, res) => {
                 signName: getNavamsaSign(p.longitude)
             };
         });
-        if (houses && houses.ascendant !== undefined) {
+        if (houses && houses.ascendant !== undefined && !navamsaPlanets.some(p => p.name === 'Ascendant')) {
             navamsaPlanets.push({
                 name: "Ascendant",
                 signName: getNavamsaSign(houses.ascendant)
