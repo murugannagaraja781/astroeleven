@@ -164,8 +164,65 @@ exports.getAllBookings = async (req, res) => {
             query.paymentStatus = paymentStatus.toUpperCase();
         }
 
-        // Fetch records
+        // Fetch records from PujaBooking
         let allRecords = await PujaBooking.find(query);
+
+        // Also merge any Puja orders placed via ShopOrder table
+        try {
+            const ShopOrder = require('../models/ShopOrder');
+            const shopOrders = await ShopOrder.find({ itemType: 'puja' });
+            if (shopOrders && shopOrders.length > 0) {
+                const existingIds = new Set(allRecords.map(r => String(r.bookingId || r.id)));
+                shopOrders.forEach(so => {
+                    const bId = so.orderId || `ORD${so.id}`;
+                    if (!existingIds.has(bId)) {
+                        const bStatus = (so.status || 'PENDING').toUpperCase() === 'COMPLETED' ? 'CONFIRMED' : (so.status || 'PENDING').toUpperCase();
+                        const pStatus = 'PAID';
+
+                        // Check status filter matching
+                        if (effectiveStatus && effectiveStatus.toUpperCase() !== 'ALL' && bStatus !== effectiveStatus.toUpperCase()) {
+                            return;
+                        }
+                        if (paymentStatus && paymentStatus.toUpperCase() !== 'ALL' && pStatus !== paymentStatus.toUpperCase()) {
+                            return;
+                        }
+
+                        allRecords.push({
+                            id: so.id,
+                            bookingId: bId,
+                            customerId: so.userId || '',
+                            customerName: so.userId || 'Shop Customer',
+                            mobile: so.userId || '',
+                            email: '',
+                            address: '',
+                            pujaId: so.itemId || '',
+                            pujaName: so.itemName || 'Puja Service',
+                            pujaCategory: 'Vedic Puja',
+                            bookingDate: so.bookingDate ? new Date(so.bookingDate).toISOString().split('T')[0] : '',
+                            preferredTime: 'Morning (09:00 AM - 12:00 PM)',
+                            location: 'Online Ritual',
+                            priestName: '',
+                            participants: 1,
+                            specialInstructions: '',
+                            rasi: '',
+                            nakshatra: '',
+                            amount: so.price || 0,
+                            discount: 0,
+                            tax: 0,
+                            finalAmount: so.price || 0,
+                            paymentMethod: 'ONLINE',
+                            paymentTransactionId: '',
+                            paymentStatus: pStatus,
+                            bookingStatus: bStatus,
+                            referralCode: so.astrologerReferralCode || '',
+                            notes: 'Ordered via Astro Shop'
+                        });
+                    }
+                });
+            }
+        } catch (e) {
+            // Ignore if ShopOrder model or table unavailable
+        }
 
         // In-memory search filtering for multi-field search (supported across both MySQL & Mongo)
         if (search && search.trim()) {
@@ -182,7 +239,7 @@ exports.getAllBookings = async (req, res) => {
         // Date range filtering
         if (startDate || endDate) {
             allRecords = allRecords.filter(b => {
-                const bDate = b.bookingDate || (b.createdAt ? b.createdAt.toISOString().split('T')[0] : '');
+                const bDate = b.bookingDate || (b.createdAt ? new Date(b.createdAt).toISOString().split('T')[0] : '');
                 if (startDate && bDate < startDate) return false;
                 if (endDate && bDate > endDate) return false;
                 return true;
@@ -197,8 +254,8 @@ exports.getAllBookings = async (req, res) => {
                 valA = parseFloat(valA || 0);
                 valB = parseFloat(valB || 0);
             } else if (sortBy === 'createdAt') {
-                valA = new Date(valA || 0).getTime();
-                valB = new Date(valB || 0).getTime();
+                valA = new Date(valA || a.bookingDate || 0).getTime();
+                valB = new Date(valB || b.bookingDate || 0).getTime();
             }
             if (sortOrder === 'asc') {
                 return valA > valB ? 1 : -1;
@@ -230,6 +287,30 @@ exports.getAllBookings = async (req, res) => {
 exports.getBookingSummary = async (req, res) => {
     try {
         const bookings = await PujaBooking.find({});
+        
+        // Also include ShopOrder puja items in summary
+        try {
+            const ShopOrder = require('../models/ShopOrder');
+            const shopOrders = await ShopOrder.find({ itemType: 'puja' });
+            if (shopOrders && shopOrders.length > 0) {
+                const existingIds = new Set(bookings.map(r => String(r.bookingId || r.id)));
+                shopOrders.forEach(so => {
+                    const bId = so.orderId || `ORD${so.id}`;
+                    if (!existingIds.has(bId)) {
+                        bookings.push({
+                            bookingId: bId,
+                            bookingStatus: (so.status || 'PENDING').toUpperCase() === 'COMPLETED' ? 'CONFIRMED' : (so.status || 'PENDING').toUpperCase(),
+                            paymentStatus: 'PAID',
+                            finalAmount: so.price || 0,
+                            amount: so.price || 0,
+                            createdAt: so.createdAt || so.bookingDate,
+                            bookingDate: so.bookingDate
+                        });
+                    }
+                });
+            }
+        } catch (e) {}
+
         const todayStr = new Date().toISOString().split('T')[0];
 
         let total = bookings.length;
@@ -243,7 +324,7 @@ exports.getBookingSummary = async (req, res) => {
         let totalRevenue = 0;
 
         bookings.forEach(b => {
-            const bDate = b.createdAt ? new Date(b.createdAt).toISOString().split('T')[0] : '';
+            const bDate = b.createdAt ? new Date(b.createdAt).toISOString().split('T')[0] : (b.bookingDate || '');
             if (bDate === todayStr) newToday++;
 
             const status = (b.bookingStatus || '').toUpperCase();
@@ -284,7 +365,36 @@ exports.getBookingSummary = async (req, res) => {
 exports.getBookingById = async (req, res) => {
     try {
         const { bookingId } = req.params;
-        const booking = await PujaBooking.findOne({ bookingId });
+        let booking = await PujaBooking.findOne({ bookingId });
+        if (!booking) {
+            booking = await PujaBooking.findOne({ id: bookingId });
+        }
+        if (!booking) {
+            try {
+                const ShopOrder = require('../models/ShopOrder');
+                const so = await ShopOrder.findOne({ orderId: bookingId }) || await ShopOrder.findOne({ id: bookingId });
+                if (so && so.itemType === 'puja') {
+                    booking = {
+                        id: so.id,
+                        bookingId: so.orderId,
+                        customerId: so.userId,
+                        customerName: so.userId,
+                        mobile: so.userId,
+                        pujaName: so.itemName,
+                        pujaCategory: 'Vedic Puja',
+                        amount: so.price,
+                        finalAmount: so.price,
+                        paymentMethod: 'ONLINE',
+                        paymentStatus: 'PAID',
+                        bookingStatus: (so.status || 'PENDING').toUpperCase() === 'COMPLETED' ? 'CONFIRMED' : (so.status || 'PENDING').toUpperCase(),
+                        bookingDate: so.bookingDate ? new Date(so.bookingDate).toISOString().split('T')[0] : '',
+                        createdAt: so.createdAt || so.bookingDate,
+                        referralCode: so.astrologerReferralCode,
+                        notes: 'Ordered via Shop Checkout'
+                    };
+                }
+            } catch(e) {}
+        }
         if (!booking) {
             return res.status(404).json({ success: false, message: 'Booking not found' });
         }

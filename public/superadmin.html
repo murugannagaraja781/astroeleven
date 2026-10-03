@@ -2344,14 +2344,48 @@ body {
                         </div>
                     </div>
 
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; padding:12px 16px; background:#F8FAF9; border-radius:10px; border:1px dashed var(--border-medium); flex-wrap:wrap; gap:10px;">
-                        <div style="font-size:0.82rem; color:var(--text-secondary); font-weight:600;">
-                            <i class="fas fa-info-circle" style="color:var(--primary); margin-right:6px;"></i>
-                            Access customer phone numbers, instant call buttons, rasi details, and complete rituals lifecycle in the dedicated screen.
+                    <!-- Recent Puja Bookings Section on Dashboard -->
+                    <div style="margin-top: 20px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+                            <div style="font-size:0.92rem; font-weight:800; color:var(--text-main); display:flex; align-items:center; gap:8px;">
+                                <i class="fas fa-list-alt" style="color:var(--primary);"></i>
+                                <span>Recent Puja Orders</span>
+                                <span id="pujaRecentBadge" class="status-badge status-confirmed" style="font-size:0.7rem; padding:2px 8px;">Active</span>
+                            </div>
+                            <button onclick="navAdmin('puja-bookings', event)" class="btn-admin btn-secondary-action" style="padding:5px 12px; font-size:0.78rem;">
+                                View All Bookings <i class="fas fa-arrow-right" style="margin-left:4px;"></i>
+                            </button>
                         </div>
-                        <button onclick="navAdmin('puja-bookings', event)" class="btn-admin btn-secondary-action" style="white-space:nowrap;">
-                            Open Table View <i class="fas fa-arrow-right" style="margin-left:4px;"></i>
-                        </button>
+
+                        <!-- Dashboard Desktop Table -->
+                        <div class="puja-table-wrap">
+                            <table class="puja-table">
+                                <thead>
+                                    <tr>
+                                        <th>Booking ID</th>
+                                        <th>Customer & Contact</th>
+                                        <th>Puja Service & Sankalpam</th>
+                                        <th>Scheduled Date</th>
+                                        <th>Amount</th>
+                                        <th>Payment</th>
+                                        <th>Status</th>
+                                        <th style="text-align:right;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="pujaRecentTableBody">
+                                    <tr>
+                                        <td colspan="8" style="text-align:center; padding:20px; color:var(--text-muted);">
+                                            <div class="loader" style="margin: 0 auto 8px auto;"></div> Loading Recent Bookings...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Dashboard Mobile Cards View -->
+                        <div id="pujaRecentCardsView" class="puja-cards-view">
+                            <!-- Injected mobile cards -->
+                        </div>
                     </div>
                 </div>
 
@@ -3961,11 +3995,13 @@ body {
 
             state.me = session;
 
+            // Load all dashboard sections immediately
+            loadData();
+
             console.log('Registering socket for Super Admin...');
             socket.emit('register', { name: session.name, phone: session.phone, userId: session.userId }, (ack) => {
                 if (ack && ack.ok) {
                     console.log('Super Admin Registered Successfully.');
-                    loadData();
                     setInterval(updateTime, 60000);
                     updateTime();
                 } else {
@@ -4116,11 +4152,20 @@ body {
             pujaCurrentPage = page;
             const tbody = document.getElementById('pujaBookingsTableBody');
             const cardsView = document.getElementById('pujaBookingsCardsView');
+            const recentTbody = document.getElementById('pujaRecentTableBody');
+            const recentCardsView = document.getElementById('pujaRecentCardsView');
+
             if (tbody) {
                 tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:30px; color:var(--text-muted);"><div class="loader" style="margin: 0 auto 10px auto;"></div>Loading Puja Bookings...</td></tr>`;
             }
             if (cardsView) {
                 cardsView.innerHTML = `<div style="text-align:center; padding:20px;"><div class="loader" style="margin: 0 auto 10px auto;"></div>Loading...</div>`;
+            }
+            if (recentTbody) {
+                recentTbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:20px; color:var(--text-muted);"><div class="loader" style="margin: 0 auto 8px auto;"></div>Loading Recent Bookings...</td></tr>`;
+            }
+            if (recentCardsView) {
+                recentCardsView.innerHTML = `<div style="text-align:center; padding:15px;"><div class="loader" style="margin: 0 auto 8px auto;"></div>Loading...</div>`;
             }
 
             try {
@@ -4155,6 +4200,8 @@ body {
         function renderPujaBookingsUI(bookings, page, totalPages, total) {
             const tbody = document.getElementById('pujaBookingsTableBody');
             const cardsView = document.getElementById('pujaBookingsCardsView');
+            const recentTbody = document.getElementById('pujaRecentTableBody');
+            const recentCardsView = document.getElementById('pujaRecentCardsView');
 
             // Pagination Controls
             const info = document.getElementById('pujaPaginationInfo');
@@ -4167,6 +4214,11 @@ body {
             if (prev) prev.disabled = page <= 1;
             if (next) next.disabled = page >= totalPages;
 
+            const recentBadge = document.getElementById('pujaRecentBadge');
+            if (recentBadge) {
+                recentBadge.innerText = (total || bookings.length) > 0 ? `${total || bookings.length} Bookings` : 'None';
+            }
+
             if (!bookings || bookings.length === 0) {
                 const emptyHtml = `
                     <div class="empty-state-box">
@@ -4177,10 +4229,12 @@ body {
                 `;
                 if (tbody) tbody.innerHTML = `<tr><td colspan="9">${emptyHtml}</td></tr>`;
                 if (cardsView) cardsView.innerHTML = emptyHtml;
+                if (recentTbody) recentTbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:25px; color:var(--text-muted);"><i class="fas fa-om" style="font-size:1.6rem; display:block; margin-bottom:8px; opacity:0.3;"></i>No recent puja bookings found</td></tr>`;
+                if (recentCardsView) recentCardsView.innerHTML = `<div style="text-align:center; padding:20px; color:var(--text-muted);"><i class="fas fa-om" style="font-size:1.6rem; display:block; margin-bottom:8px; opacity:0.3;"></i>No recent puja bookings found</div>`;
                 return;
             }
 
-            // Render Desktop Table Rows
+            // Render Dedicated Full Desktop Table Rows (9 Columns)
             if (tbody) {
                 tbody.innerHTML = bookings.map(b => {
                     const statusClass = getPujaStatusClass(b.bookingStatus);
@@ -4192,7 +4246,7 @@ body {
                     return `
                         <tr onclick="openPujaDetails('${b.bookingId}')" style="cursor:pointer;">
                             <td>
-                                <span style="font-weight:800; color:var(--primary); font-family:monospace; font-size:0.88rem;">#${b.bookingId}</span>
+                                <span style="font-weight:800; color:var(--primary); font-family:monospace; font-size:0.88rem;">#${escapeHtml(b.bookingId || '')}</span>
                             </td>
                             <td>
                                 <div style="font-weight:700; color:var(--text-main); font-size:0.9rem;">${escapeHtml(b.customerName || 'Anonymous')}</div>
@@ -4247,58 +4301,129 @@ body {
                 }).join('');
             }
 
-            // Render Mobile Cards View
+            // Render Dedicated Full Mobile Cards View
             if (cardsView) {
-                cardsView.innerHTML = bookings.map(b => {
+                cardsView.innerHTML = bookings.map(b => renderPujaSingleMobileCard(b)).join('');
+            }
+
+            // Render Dashboard Overview Recent Table Rows (8 Columns)
+            if (recentTbody) {
+                const recentList = bookings.slice(0, 10);
+                recentTbody.innerHTML = recentList.map(b => {
                     const statusClass = getPujaStatusClass(b.bookingStatus);
                     const payClass = getPaymentStatusClass(b.paymentStatus);
                     const rawPhone = (b.mobile || '').toString();
                     const cleanPhone = rawPhone.replace(/[^0-9]/g, '');
 
                     return `
-                        <div class="puja-mobile-card" onclick="openPujaDetails('${b.bookingId}')" style="cursor:pointer;">
-                            <div class="puja-mobile-header">
-                                <div>
-                                    <span style="font-weight:900; color:var(--primary); font-family:monospace; font-size:0.95rem;">#${b.bookingId}</span>
-                                    <div style="font-size:0.72rem; color:var(--text-muted);">${b.bookingDate || 'Scheduled date'}</div>
+                        <tr onclick="openPujaDetails('${b.bookingId}')" style="cursor:pointer;">
+                            <td>
+                                <span style="font-weight:800; color:var(--primary); font-family:monospace; font-size:0.88rem;">#${escapeHtml(b.bookingId || '')}</span>
+                            </td>
+                            <td>
+                                <div style="font-weight:700; color:var(--text-main); font-size:0.88rem;">${escapeHtml(b.customerName || 'Anonymous')}</div>
+                                <div style="display:flex; align-items:center; gap:6px; margin-top:4px; flex-wrap:wrap;">
+                                    <span style="font-size:0.78rem; color:var(--text-muted); font-family:monospace;">
+                                        <i class="fas fa-phone-alt" style="font-size:0.65rem; color:var(--text-dim);"></i> ${escapeHtml(b.mobile || '-')}
+                                    </span>
+                                    ${cleanPhone ? `
+                                        <a href="tel:${cleanPhone}" onclick="event.stopPropagation()" class="btn-puja-call" style="padding:2px 7px; font-size:0.7rem;" title="Direct Call">
+                                            <i class="fas fa-phone-alt"></i> Call
+                                        </a>
+                                        <a href="https://wa.me/91${cleanPhone}?text=${encodeURIComponent(`Namaskaram ${b.customerName || ''}, regarding your Astro Eleven Puja booking #${b.bookingId} (${b.pujaName || ''}).`)}" target="_blank" onclick="event.stopPropagation()" class="btn-admin btn-secondary-action" style="padding:2px 7px; font-size:0.7rem; color:#25D366; text-decoration:none;" title="WhatsApp Chat">
+                                            <i class="fab fa-whatsapp"></i>
+                                        </a>
+                                    ` : ''}
                                 </div>
-                                <div style="display:flex; gap:6px;">
-                                    <span class="status-badge ${payClass}">${b.paymentStatus || 'PENDING'}</span>
-                                    <span class="status-badge ${statusClass}">${b.bookingStatus || 'PENDING'}</span>
-                                </div>
-                            </div>
-                            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                                <div>
-                                    <div style="font-weight:800; font-size:0.92rem; color:var(--text-main);">${escapeHtml(b.customerName || 'Anonymous')}</div>
-                                    <div style="font-size:0.8rem; color:var(--text-muted); font-family:monospace; margin-top:2px;">
-                                        <i class="fas fa-phone-alt" style="font-size:0.7rem;"></i> ${escapeHtml(b.mobile || '-')}
-                                    </div>
-                                    <div style="font-size:0.82rem; color:var(--primary); font-weight:700; margin-top:3px;"><i class="fas fa-om"></i> ${escapeHtml(b.pujaName || 'Puja Service')}</div>
-                                    ${(b.rasi || b.nakshatra) ? `
-                                        <div style="font-size:0.73rem; margin-top:2px; color:var(--text-secondary);">
-                                            ${b.rasi ? `Rasi: <b>${escapeHtml(b.rasi)}</b> ` : ''}
-                                            ${b.nakshatra ? `Nakshatra: <b>${escapeHtml(b.nakshatra)}</b>` : ''}
-                                        </div>` : ''
-                                    }
-                                </div>
-                                <div style="text-align:right;">
-                                    <div style="font-size:1.1rem; font-weight:900; color:var(--text-main);">₹${(b.finalAmount || b.amount || 0).toLocaleString('en-IN')}</div>
-                                </div>
-                            </div>
-                            <div style="display:flex; gap:8px; margin-top:8px; padding-top:8px; border-top:1px solid var(--border-soft);">
-                                ${cleanPhone ? `
-                                    <a href="tel:${cleanPhone}" onclick="event.stopPropagation()" class="btn-puja-call" style="flex:1; justify-content:center; text-align:center; padding:8px 12px; font-size:0.8rem;">
-                                        <i class="fas fa-phone-alt"></i> Call Customer
-                                    </a>
-                                ` : ''}
-                                <button onclick="event.stopPropagation(); openPujaDetails('${b.bookingId}')" class="btn-admin btn-secondary-action" style="flex:1; padding:8px 12px; font-size:0.8rem;">
+                            </td>
+                            <td>
+                                <div style="font-weight:700; color:var(--text-main); font-size:0.85rem;">${escapeHtml(b.pujaName || 'Puja Service')}</div>
+                                <div style="font-size:0.72rem; color:var(--text-dim);">${escapeHtml(b.pujaCategory || 'Vedic Puja')}</div>
+                                ${(b.rasi || b.nakshatra) ? `
+                                    <div style="font-size:0.72rem; margin-top:3px; display:flex; gap:4px; flex-wrap:wrap;">
+                                        ${b.rasi ? `<span style="background:rgba(239,68,68,0.08); color:#DC2626; padding:1px 5px; border-radius:3px; font-weight:600;"><i class="fas fa-star" style="font-size:0.6rem;"></i> ${escapeHtml(b.rasi)}</span>` : ''}
+                                        ${b.nakshatra ? `<span style="background:rgba(79,70,229,0.08); color:#4F46E5; padding:1px 5px; border-radius:3px; font-weight:600;"><i class="fas fa-moon" style="font-size:0.6rem;"></i> ${escapeHtml(b.nakshatra)}</span>` : ''}
+                                    </div>` : ''
+                                }
+                            </td>
+                            <td>
+                                <div><i class="far fa-calendar-alt" style="color:var(--text-dim);"></i> ${escapeHtml(b.bookingDate || '-')}</div>
+                                <div style="font-size:0.7rem; color:var(--text-muted);"><i class="far fa-clock" style="color:var(--text-dim);"></i> ${escapeHtml(b.preferredTime || '-')}</div>
+                            </td>
+                            <td>
+                                <span style="font-weight:800; color:var(--text-main); font-size:0.88rem;">₹${(b.finalAmount || b.amount || 0).toLocaleString('en-IN')}</span>
+                            </td>
+                            <td>
+                                <span class="status-badge ${payClass}">${b.paymentStatus || 'PENDING'}</span>
+                            </td>
+                            <td>
+                                <span class="status-badge ${statusClass}">${b.bookingStatus || 'PENDING'}</span>
+                            </td>
+                            <td style="text-align:right;">
+                                <button onclick="event.stopPropagation(); openPujaDetails('${b.bookingId}')" class="btn-admin btn-secondary-action" style="padding:4px 8px; font-size:0.74rem;">
                                     <i class="fas fa-eye"></i> Details
                                 </button>
-                            </div>
-                        </div>
+                            </td>
+                        </tr>
                     `;
                 }).join('');
             }
+
+            // Render Dashboard Overview Recent Mobile Cards View
+            if (recentCardsView) {
+                const recentCardsList = bookings.slice(0, 5);
+                recentCardsView.innerHTML = recentCardsList.map(b => renderPujaSingleMobileCard(b)).join('');
+            }
+        }
+
+        function renderPujaSingleMobileCard(b) {
+            const statusClass = getPujaStatusClass(b.bookingStatus);
+            const payClass = getPaymentStatusClass(b.paymentStatus);
+            const rawPhone = (b.mobile || '').toString();
+            const cleanPhone = rawPhone.replace(/[^0-9]/g, '');
+
+            return `
+                <div class="puja-mobile-card" onclick="openPujaDetails('${b.bookingId}')" style="cursor:pointer;">
+                    <div class="puja-mobile-header">
+                        <div>
+                            <span style="font-weight:900; color:var(--primary); font-family:monospace; font-size:0.95rem;">#${escapeHtml(b.bookingId || '')}</span>
+                            <div style="font-size:0.72rem; color:var(--text-muted);">${escapeHtml(b.bookingDate || 'Scheduled date')}</div>
+                        </div>
+                        <div style="display:flex; gap:6px;">
+                            <span class="status-badge ${payClass}">${b.paymentStatus || 'PENDING'}</span>
+                            <span class="status-badge ${statusClass}">${b.bookingStatus || 'PENDING'}</span>
+                        </div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <div>
+                            <div style="font-weight:800; font-size:0.92rem; color:var(--text-main);">${escapeHtml(b.customerName || 'Anonymous')}</div>
+                            <div style="font-size:0.8rem; color:var(--text-muted); font-family:monospace; margin-top:2px;">
+                                <i class="fas fa-phone-alt" style="font-size:0.7rem;"></i> ${escapeHtml(b.mobile || '-')}
+                            </div>
+                            <div style="font-size:0.82rem; color:var(--primary); font-weight:700; margin-top:3px;"><i class="fas fa-om"></i> ${escapeHtml(b.pujaName || 'Puja Service')}</div>
+                            ${(b.rasi || b.nakshatra) ? `
+                                <div style="font-size:0.73rem; margin-top:2px; color:var(--text-secondary);">
+                                    ${b.rasi ? `Rasi: <b>${escapeHtml(b.rasi)}</b> ` : ''}
+                                    ${b.nakshatra ? `Nakshatra: <b>${escapeHtml(b.nakshatra)}</b>` : ''}
+                                </div>` : ''
+                            }
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="font-size:1.1rem; font-weight:900; color:var(--text-main);">₹${(b.finalAmount || b.amount || 0).toLocaleString('en-IN')}</div>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:8px; margin-top:8px; padding-top:8px; border-top:1px solid var(--border-soft);">
+                        ${cleanPhone ? `
+                            <a href="tel:${cleanPhone}" onclick="event.stopPropagation()" class="btn-puja-call" style="flex:1; justify-content:center; text-align:center; padding:8px 12px; font-size:0.8rem;">
+                                <i class="fas fa-phone-alt"></i> Call Customer
+                            </a>
+                        ` : ''}
+                        <button onclick="event.stopPropagation(); openPujaDetails('${b.bookingId}')" class="btn-admin btn-secondary-action" style="flex:1; padding:8px 12px; font-size:0.8rem;">
+                            <i class="fas fa-eye"></i> Details
+                        </button>
+                    </div>
+                </div>
+            `;
         }
 
         function getPujaStatusClass(status) {
@@ -4323,6 +4448,9 @@ body {
         function renderPujaErrorState(msg) {
             const tbody = document.getElementById('pujaBookingsTableBody');
             const cardsView = document.getElementById('pujaBookingsCardsView');
+            const recentTbody = document.getElementById('pujaRecentTableBody');
+            const recentCardsView = document.getElementById('pujaRecentCardsView');
+
             const errHtml = `
                 <div class="empty-state-box">
                     <i class="fas fa-exclamation-triangle empty-state-icon" style="color:#EF4444;"></i>
@@ -4335,6 +4463,8 @@ body {
             `;
             if (tbody) tbody.innerHTML = `<tr><td colspan="9">${errHtml}</td></tr>`;
             if (cardsView) cardsView.innerHTML = errHtml;
+            if (recentTbody) recentTbody.innerHTML = `<tr><td colspan="8">${errHtml}</td></tr>`;
+            if (recentCardsView) recentCardsView.innerHTML = errHtml;
         }
 
         function handlePujaFilterChange() {
