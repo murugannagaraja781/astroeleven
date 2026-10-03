@@ -66,6 +66,38 @@
     -webkit-tap-highlight-color: transparent;
 }
 
+.app-input,
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="tel"],
+input[type="password"],
+input[type="url"],
+input[type="date"],
+select,
+textarea {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 8px 12px;
+    border: 1px solid var(--border-soft);
+    border-radius: 10px;
+    font-size: 0.88rem;
+    color: var(--text-main);
+    background: #FFFFFF;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    font-family: var(--font-body);
+}
+
+.app-input:focus,
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.12);
+}
+
 body {
     margin: 0;
     font-family: var(--font-body);
@@ -1243,6 +1275,65 @@ body {
     }
     .puja-cards-view {
         display: flex;
+    }
+    .puja-filter-bar {
+        padding: 12px;
+    }
+    .puja-filter-inputs {
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+        gap: 8px;
+    }
+    .puja-filter-inputs > div,
+    .puja-select,
+    .puja-date-input,
+    #pujaSearchInput {
+        width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box;
+    }
+    .puja-stats-strip {
+        display: flex;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 8px;
+        gap: 8px;
+        flex-wrap: nowrap;
+    }
+    .puja-mini-stat {
+        min-width: 110px;
+        flex-shrink: 0;
+    }
+    .admin-drawer {
+        width: 100% !important;
+        max-width: 100vw !important;
+        height: 100% !important;
+        border-radius: 0;
+    }
+    .drawer-header {
+        padding: 14px 16px;
+    }
+    .drawer-body {
+        padding: 16px;
+    }
+    .drawer-info-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        padding: 12px;
+    }
+    .drawer-info-item[style*="span 2"] {
+        grid-column: span 1 !important;
+    }
+    .drawer-actions {
+        padding: 12px 16px;
+        gap: 8px;
+    }
+    .drawer-actions button {
+        flex: 1 1 calc(50% - 8px) !important;
+        min-width: 120px;
+        font-size: 0.78rem;
+        padding: 8px 10px;
     }
     .mobile-bottom-nav {
         display: flex;
@@ -4099,7 +4190,7 @@ body {
                     const cleanPhone = rawPhone.replace(/[^0-9]/g, '');
 
                     return `
-                        <tr>
+                        <tr onclick="openPujaDetails('${b.bookingId}')" style="cursor:pointer;">
                             <td>
                                 <span style="font-weight:800; color:var(--primary); font-family:monospace; font-size:0.88rem;">#${b.bookingId}</span>
                             </td>
@@ -4110,10 +4201,10 @@ body {
                                         <i class="fas fa-phone-alt" style="font-size:0.68rem; color:var(--text-dim);"></i> ${escapeHtml(b.mobile || '-')}
                                     </span>
                                     ${cleanPhone ? `
-                                        <a href="tel:${cleanPhone}" class="btn-puja-call" title="Direct Phone Call">
+                                        <a href="tel:${cleanPhone}" onclick="event.stopPropagation()" class="btn-puja-call" title="Direct Phone Call">
                                             <i class="fas fa-phone-alt"></i> Call
                                         </a>
-                                        <a href="https://wa.me/91${cleanPhone}?text=${encodeURIComponent(`Namaskaram ${b.customerName || ''}, regarding your Astro Eleven Puja booking #${b.bookingId} (${b.pujaName || ''}).`)}" target="_blank" class="btn-admin btn-secondary-action" style="padding:3px 7px; font-size:0.72rem; color:#25D366; text-decoration:none;" title="WhatsApp Chat">
+                                        <a href="https://wa.me/91${cleanPhone}?text=${encodeURIComponent(`Namaskaram ${b.customerName || ''}, regarding your Astro Eleven Puja booking #${b.bookingId} (${b.pujaName || ''}).`)}" target="_blank" onclick="event.stopPropagation()" class="btn-admin btn-secondary-action" style="padding:3px 7px; font-size:0.72rem; color:#25D366; text-decoration:none;" title="WhatsApp Chat">
                                             <i class="fab fa-whatsapp"></i>
                                         </a>
                                     ` : ''}
@@ -4147,7 +4238,7 @@ body {
                                 ${dateFormatted}
                             </td>
                             <td style="text-align:right;">
-                                <button onclick="openPujaDetails('${b.bookingId}')" class="btn-admin btn-secondary-action" style="padding:4px 10px; font-size:0.75rem;">
+                                <button onclick="event.stopPropagation(); openPujaDetails('${b.bookingId}')" class="btn-admin btn-secondary-action" style="padding:4px 10px; font-size:0.75rem;">
                                     <i class="fas fa-eye"></i> Details
                                 </button>
                             </td>
@@ -4165,7 +4256,7 @@ body {
                     const cleanPhone = rawPhone.replace(/[^0-9]/g, '');
 
                     return `
-                        <div class="puja-mobile-card">
+                        <div class="puja-mobile-card" onclick="openPujaDetails('${b.bookingId}')" style="cursor:pointer;">
                             <div class="puja-mobile-header">
                                 <div>
                                     <span style="font-weight:900; color:var(--primary); font-family:monospace; font-size:0.95rem;">#${b.bookingId}</span>
@@ -4196,11 +4287,11 @@ body {
                             </div>
                             <div style="display:flex; gap:8px; margin-top:8px; padding-top:8px; border-top:1px solid var(--border-soft);">
                                 ${cleanPhone ? `
-                                    <a href="tel:${cleanPhone}" class="btn-puja-call" style="flex:1; justify-content:center; text-align:center; padding:8px 12px; font-size:0.8rem;">
+                                    <a href="tel:${cleanPhone}" onclick="event.stopPropagation()" class="btn-puja-call" style="flex:1; justify-content:center; text-align:center; padding:8px 12px; font-size:0.8rem;">
                                         <i class="fas fa-phone-alt"></i> Call Customer
                                     </a>
                                 ` : ''}
-                                <button onclick="openPujaDetails('${b.bookingId}')" class="btn-admin btn-secondary-action" style="flex:1; padding:8px 12px; font-size:0.8rem;">
+                                <button onclick="event.stopPropagation(); openPujaDetails('${b.bookingId}')" class="btn-admin btn-secondary-action" style="flex:1; padding:8px 12px; font-size:0.8rem;">
                                     <i class="fas fa-eye"></i> Details
                                 </button>
                             </div>
@@ -4308,12 +4399,34 @@ body {
         }
 
         function openPujaDetails(bookingId) {
-            const booking = pujaBookingsData.find(b => b.bookingId === bookingId);
-            if (!booking) return;
+            let booking = null;
+            if (typeof bookingId === 'object' && bookingId !== null) {
+                booking = bookingId;
+            } else if (Array.isArray(pujaBookingsData)) {
+                booking = pujaBookingsData.find(b => String(b.bookingId) === String(bookingId) || String(b.id) === String(bookingId) || String(b._id) === String(bookingId));
+            }
+
+            if (!booking) {
+                console.warn('Booking not found in local memory, fetching by ID:', bookingId);
+                fetch(`/api/puja-bookings/${bookingId}`)
+                    .then(r => r.json())
+                    .then(res => {
+                        if (res.success && res.data) {
+                            openPujaDetails(res.data);
+                        } else {
+                            alert('Booking record not found for: ' + bookingId);
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Fetch booking error:', err);
+                        alert('Failed to load booking details: ' + err.message);
+                    });
+                return;
+            }
 
             currentSelectedBooking = booking;
 
-            setText('drawerBookingId', '#' + booking.bookingId);
+            setText('drawerBookingId', '#' + (booking.bookingId || booking.id || 'PB00000'));
             const statusEl = document.getElementById('drawerStatusBadge');
             if (statusEl) {
                 statusEl.className = `status-badge ${getPujaStatusClass(booking.bookingStatus)}`;
