@@ -216,6 +216,7 @@ object SocketManager {
         if (sessionId != null) {
             payload.put("sessionId", sessionId)
         }
+        emitReliable("end-session", payload)
         socket?.emit("end-session", payload)
     }
 

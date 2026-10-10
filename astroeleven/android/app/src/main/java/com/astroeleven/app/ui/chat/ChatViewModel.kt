@@ -67,6 +67,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 val type = content.optString("type", "text")
                 val sessionId = data.optString("sessionId")
                 val senderId = com.astroeleven.app.data.local.TokenManager(getApplication()).getUserSession()?.userId ?: ""
+                if (!data.has("fromUserId") && senderId.isNotEmpty()) {
+                    data.put("fromUserId", senderId)
+                }
 
                 if (type != "system-chart-viewing") {
                     val entity = ChatMessageEntity(
@@ -270,6 +273,16 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
             val msg = ChatMessage(msgId, text, isMe, "read", timestamp = System.currentTimeMillis(), type = type, fileUrl = fileUrl)
             _messages.postValue(msg)
+
+            val currentHist = _history.value?.toMutableList() ?: mutableListOf()
+            if (currentHist.none { it.id == msgId }) {
+                currentHist.add(msg)
+                _history.postValue(currentHist)
+            }
+
+            if (!isMe) {
+                com.astroeleven.app.utils.SoundManager.playReceiveSound()
+            }
             } catch (e: Exception) { e.printStackTrace() }
         }
 
@@ -279,6 +292,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             val msgId = data.optString("messageId")
             val status = data.optString("status")
             if (msgId.isNotEmpty() && status.isNotEmpty()) {
+                if (status == "read") {
+                    com.astroeleven.app.utils.SoundManager.playReadReceiptSound()
+                }
                 val currentHistory = _history.value?.toMutableList() ?: mutableListOf()
                 val index = currentHistory.indexOfFirst { it.id == msgId }
                 if (index >= 0) {

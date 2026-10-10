@@ -381,5 +381,20 @@ A clean build of Debug APK, Release APK, and Release App Bundle (AAB) was compil
 * **Release AAB File Path:** `astroeleven/android/app/build/outputs/bundle/release/app-release.aab` (copied to root `app-release.aab`)
 * **Status:** Clean Rebuild Successful
 
+---
+
+## [2026-10-05] - Debug Build (Planet Star Lord Column, Astrologer Profile Share & TURN Server Update)
+
+A clean build of Debug APK was compiled successfully after:
+1. Adding "ந. அதிபதி" (Nakshatra Lord / Sara Nathan) column to the "கிரக நிலைகள் (நவக்கிரகங்கள்)" table in `VipChartActivity.kt`.
+2. Fixing Astrologer Profile Share logic and direct web links in `AstrologerProfileActivity.kt`.
+3. Updating WebRTC TURN/STUN configuration to `turn.astroeleven.in` in `CallActivity.kt`.
+
+* **Date & Time:** October 05, 2026 - 05:24 PM (IST)
+* **Debug APK File Path:** `astroeleven/android/app/build/outputs/apk/debug/app-debug.apk` (copied to root `app-debug.apk`)
+* **Size:** ~114 MB
+* **Status:** Build Successful
+
+
 
 

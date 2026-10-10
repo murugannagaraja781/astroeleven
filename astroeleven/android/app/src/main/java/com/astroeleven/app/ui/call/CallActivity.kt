@@ -66,14 +66,14 @@ class CallActivity : ComponentActivity() {
         private const val PERMISSION_REQ_CODE = 101
 
         private var iceServers = mutableListOf(
+            PeerConnection.IceServer.builder("stun:turn.astroeleven.in:3478").createIceServer(),
             PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
             PeerConnection.IceServer.builder("stun:stun1.l.google.com:19302").createIceServer(),
-            PeerConnection.IceServer.builder("stun:stun2.l.google.com:19302").createIceServer(),
-            PeerConnection.IceServer.builder("stun:free.expressturn.com:3478").createIceServer(),
-            PeerConnection.IceServer.builder("turn:free.expressturn.com:3478?transport=udp")
-                .setUsername("000000002089544731").setPassword("HIzMMgt7G9eioH07AnygPJHRWGM=").createIceServer(),
-            PeerConnection.IceServer.builder("turn:free.expressturn.com:3478?transport=tcp")
-                .setUsername("000000002089544731").setPassword("HIzMMgt7G9eioH07AnygPJHRWGM=").createIceServer()
+            PeerConnection.IceServer.builder(listOf(
+                "turn:turn.astroeleven.in:3478?transport=udp",
+                "turn:turn.astroeleven.in:3478?transport=tcp",
+                "turns:turn.astroeleven.in:5349?transport=tcp"
+            )).setUsername("webrtc").setPassword("FGi60YRsQXYVqtbDCAAuzNx6E4Sxj4Srng1Yw8NrXPc=").createIceServer()
         )
     }
 
@@ -1496,8 +1496,58 @@ fun CallScreen(
         )
     }
 
+    var showCallExitDialog by remember { mutableStateOf(false) }
+
     BackHandler {
-        Toast.makeText(context, "Call irugum pothu back button vela seiyathu. Mudika 'End Call' azhuthavum", Toast.LENGTH_LONG).show()
+        showCallExitDialog = true
+    }
+
+    if (showCallExitDialog) {
+        AlertDialog(
+            onDismissRequest = { showCallExitDialog = false },
+            title = {
+                Text(
+                    text = "செயலில் உள்ள அழைப்பு (Active Call)",
+                    fontWeight = FontWeight.Bold,
+                    color = CosmicAppTheme.colors.accent,
+                    fontSize = 18.sp
+                )
+            },
+            text = {
+                Text(
+                    text = "அழைப்பு இன்னும் செயல்பாட்டில் உள்ளது. நீங்கள் என்ன செய்ய விரும்புகிறீர்கள்?\n\n• பின்னணியில் இயக்கு: அழைப்பு தொடர்ந்து நடக்கும், பயன்பாட்டைப் பின்புலத்தில் வைக்கலாம்.\n• அழைப்பை முடி: அழைப்பை நிறைவு செய்து கட்டண விவரத்தைப் பெறலாம்.",
+                    fontSize = 14.sp,
+                    color = CosmicAppTheme.colors.textPrimary
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showCallExitDialog = false
+                        onEndCall()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
+                ) {
+                    Text("அழைப்பை முடி (End Call)", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                Row {
+                    OutlinedButton(
+                        onClick = {
+                            showCallExitDialog = false
+                            (context as? android.app.Activity)?.moveTaskToBack(true)
+                        }
+                    ) {
+                        Text("பின்னணியில் இயக்கு (Minimize)", color = CosmicAppTheme.colors.accent, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    TextButton(onClick = { showCallExitDialog = false }) {
+                        Text("தொடரவும்", color = Color.Gray)
+                    }
+                }
+            }
+        )
     }
 
     Box(

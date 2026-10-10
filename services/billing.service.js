@@ -272,6 +272,9 @@ async function endSessionRecord(sessionId, broadcastAstroUpdate) {
     if (io) {
         if (s.clientId) io.to(s.clientId).emit('session-ended', payload);
         if (s.astrologerId) io.to(s.astrologerId).emit('session-ended', payload);
+        if (s.users && Array.isArray(s.users)) {
+            s.users.forEach(u => io.to(u).emit('session-ended', payload));
+        }
     }
 
     if (s.astrologerId) {

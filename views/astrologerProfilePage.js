@@ -563,9 +563,8 @@ function renderAstrologerProfileHtml(astro, serverUrl) {
   </footer>
 
   <script>
-    // Seamless Deep Link Attempt on Mobile
+    // App Deep Link handler when user explicitly clicks "Consult Now in App"
     (function() {
-      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
       const isAndroid = /Android/i.test(navigator.userAgent);
       const appDeepLink = "${deepLink}";
       const intentUrl = "${intentUrl}";
@@ -575,26 +574,19 @@ function renderAstrologerProfileHtml(astro, serverUrl) {
       if (btnOpenApp) {
         btnOpenApp.addEventListener('click', function(e) {
           if (isAndroid) {
-            // Prefer Android intent URI for highest compatibility
+            e.preventDefault();
             window.location.href = intentUrl;
             setTimeout(() => {
               window.location.href = appDeepLink;
-            }, 600);
-          } else {
-            window.location.href = appDeepLink;
+            }, 800);
           }
         });
       }
 
-      // Auto-attempt opening the app if opened on a mobile device
-      if (isMobile) {
-        try {
-          if (isAndroid) {
-            window.location.href = intentUrl;
-          } else {
-            window.location.href = appDeepLink;
-          }
-        } catch(err) {}
+      const btnInstallHeader = document.getElementById('btnInstallHeader');
+      if (btnInstallHeader && isAndroid) {
+        btnInstallHeader.innerHTML = '<i class="fas fa-bolt"></i> Open App';
+        btnInstallHeader.href = intentUrl;
       }
     })();
   </script>

@@ -71,21 +71,21 @@ billingService.setIo(io);
 
 // WebRTC ICE/TURN Config
 const DEFAULT_ICE_SERVERS = [
-  { urls: 'stun:stun.l.google.com:19302' },
-  { urls: 'stun:stun1.l.google.com:19302' },
-  { urls: 'stun:stun2.l.google.com:19302' },
-  { urls: 'stun:stun3.l.google.com:19302' },
-  { urls: 'stun:stun4.l.google.com:19302' },
-  { urls: 'stun:free.expressturn.com:3478' },
   {
-    urls: 'turn:free.expressturn.com:3478?transport=udp',
-    username: '000000002089544731',
-    credential: 'HIzMMgt7G9eioH07AnygPJHRWGM='
+    urls: [
+      'stun:turn.astroeleven.in:3478',
+      'stun:stun.l.google.com:19302',
+      'stun:stun1.l.google.com:19302'
+    ]
   },
   {
-    urls: 'turn:free.expressturn.com:3478?transport=tcp',
-    username: '000000002089544731',
-    credential: 'HIzMMgt7G9eioH07AnygPJHRWGM='
+    urls: [
+      'turn:turn.astroeleven.in:3478?transport=udp',
+      'turn:turn.astroeleven.in:3478?transport=tcp',
+      'turns:turn.astroeleven.in:5349?transport=tcp'
+    ],
+    username: 'webrtc',
+    credential: 'FGi60YRsQXYVqtbDCAAuzNx6E4Sxj4Srng1Yw8NrXPc='
   }
 ];
 
@@ -351,20 +351,37 @@ app.get('/wallet', (req, res) => {
 
 // Astrologer Web Profile Page & Deep Link Route
 const { renderAstrologerProfileHtml } = require('./views/astrologerProfilePage');
-app.get('/astrologer/:id', async (req, res) => {
+
+async function handleAstrologerProfileRequest(req, res) {
   try {
-    const astroId = req.params.id;
+    const rawId = (req.params.id || req.query.id || req.query.astro || '').trim();
+    const astroId = rawId ? decodeURIComponent(rawId).trim() : '';
     const currentServerUrl = req.app.get('SERVER_URL') || SERVER_URL || `${req.protocol}://${req.get('host')}` || 'https://astroeleven.com';
+
+    if (!astroId) {
+      return res.redirect('/');
+    }
+
+    const queryOr = [
+      { userId: astroId },
+      { phone: astroId }
+    ];
+    if (!isNaN(Number(astroId))) {
+      queryOr.push({ id: Number(astroId) });
+    }
+    // Also try matching by name if alphanumeric
+    if (astroId.length > 2) {
+      queryOr.push({ name: astroId });
+    }
+
     const astro = await User.findOne({
-      $or: [
-        { userId: astroId },
-        { id: !isNaN(Number(astroId)) ? Number(astroId) : -1 }
-      ],
+      $or: queryOr,
       role: 'astrologer'
     }).lean();
 
     if (!astro) {
-      return res.redirect('/astrologers.html');
+      // Graceful fallback: Redirect to homepage where astrologers are listed, instead of raw internal page
+      return res.redirect('/');
     }
 
     const { formatImageUrl } = require('./utils/formatImage');
@@ -394,6 +411,15 @@ app.get('/astrologer/:id', async (req, res) => {
     console.error('Error rendering astrologer profile page:', err);
     res.redirect('/');
   }
+}
+
+app.get('/astrologer/:id', handleAstrologerProfileRequest);
+app.get('/astrologer', handleAstrologerProfileRequest);
+
+// Android App Links Domain Verification Endpoint
+app.get('/.well-known/assetlinks.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.sendFile(path.join(__dirname, 'public', '.well-known', 'assetlinks.json'));
 });
 
 // Routes
@@ -711,29 +737,35 @@ app.get('/api/test-fcm', async (req, res) => {
 
 // WebRTC Configuration API - Provides TURN/STUN details to Mobile App/Web
 function getWebRTCConfig() {
+  const stunServer = process.env.STUN_SERVER || 'stun:turn.astroeleven.in:3478';
+  const turnServer = process.env.TURN_SERVER || 'turn.astroeleven.in';
+  const turnPort = process.env.TURN_PORT || '3478';
+  const turnUsername = process.env.TURN_USERNAME || 'webrtc';
+  const turnPassword = process.env.TURN_PASSWORD || 'FGi60YRsQXYVqtbDCAAuzNx6E4Sxj4Srng1Yw8NrXPc=';
+
   return {
     ok: true,
-    stunServer: process.env.STUN_SERVER || 'stun:free.expressturn.com:3478',
-    turnServer: process.env.TURN_SERVER || 'free.expressturn.com',
-    turnPort: process.env.TURN_PORT || '3478',
-    turnUsername: process.env.TURN_USERNAME || '000000002089544731',
-    turnPassword: process.env.TURN_PASSWORD || 'HIzMMgt7G9eioH07AnygPJHRWGM=',
+    stunServer,
+    turnServer,
+    turnPort,
+    turnUsername,
+    turnPassword,
     iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-      { urls: 'stun:stun2.l.google.com:19302' },
-      { urls: 'stun:stun3.l.google.com:19302' },
-      { urls: 'stun:stun4.l.google.com:19302' },
-      { urls: process.env.STUN_SERVER || 'stun:stun.l.google.com:19302' },
       {
-        urls: `turn:${process.env.TURN_SERVER || 'turn.astroeleven.com'}:${process.env.TURN_PORT || '3478'}?transport=udp`,
-        username: process.env.TURN_USERNAME || 'webrtcuser',
-        credential: process.env.TURN_PASSWORD || 'strongpassword123'
+        urls: [
+          stunServer,
+          'stun:stun.l.google.com:19302',
+          'stun:stun1.l.google.com:19302'
+        ]
       },
       {
-        urls: `turn:${process.env.TURN_SERVER || 'turn.astroeleven.com'}:${process.env.TURN_PORT || '3478'}?transport=tcp`,
-        username: process.env.TURN_USERNAME || 'webrtcuser',
-        credential: process.env.TURN_PASSWORD || 'strongpassword123'
+        urls: [
+          `turn:${turnServer}:${turnPort}?transport=udp`,
+          `turn:${turnServer}:${turnPort}?transport=tcp`,
+          `turns:${turnServer}:5349?transport=tcp`
+        ],
+        username: turnUsername,
+        credential: turnPassword
       }
     ]
   };
@@ -2378,8 +2410,19 @@ io.on('connection', (socket) => {
       const fileSize = data.fileSize || (content && content.fileSize) || 0;
       const textContent = (content && content.text) || '';
 
-      const fromUserId = socketToUser.get(socket.id);
-      if (!fromUserId || !toUserId || !content || !messageId) return;
+      let fromUserId = socketToUser.get(socket.id) || (data && (data.fromUserId || data.senderId));
+      if (!fromUserId || !toUserId || !content || !messageId) {
+        console.warn('[chat-message] Missing required fields:', { fromUserId, toUserId, hasContent: !!content, messageId });
+        return;
+      }
+
+      // Self-heal socket mapping if missing
+      if (fromUserId && !socketToUser.has(socket.id)) {
+        socketToUser.set(socket.id, fromUserId);
+        userSockets.set(fromUserId, socket.id);
+        socket.join(fromUserId);
+        console.log(`[chat-message] Self-healed socket registration for ${fromUserId}`);
+      }
 
       socket.emit('message-status', { messageId, status: 'sent' });
 

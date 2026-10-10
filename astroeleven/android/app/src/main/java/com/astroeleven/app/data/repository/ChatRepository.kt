@@ -29,7 +29,7 @@ class ChatRepository(private val context: Context) {
 
     // Remote Operations (Socket)
     fun sendMessage(data: JSONObject) {
-        SocketManager.getSocket()?.emit("chat-message", data)
+        SocketManager.emitReliable("chat-message", data)
     }
 
     fun sendTyping(toUserId: String) {

@@ -9,55 +9,57 @@ import android.os.Build
 
 object SoundManager {
 
-    private var toneGenerator: ToneGenerator? = null
+    private var toneGen: ToneGenerator? = null
 
-    // Simple system tones for lightweight feedback
+    private fun getTone(): ToneGenerator? {
+        if (toneGen == null) {
+            try {
+                toneGen = ToneGenerator(AudioManager.STREAM_MUSIC, 75)
+            } catch (e: Exception) {
+                try {
+                    toneGen = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 75)
+                } catch (e2: Exception) {}
+            }
+        }
+        return toneGen
+    }
+
+    // Outgoing Sent sound: crisp "tak / ting"
     fun playSentSound() {
         try {
-            if (toneGenerator == null) {
-                toneGenerator = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 50)
-            }
-            toneGenerator?.startTone(ToneGenerator.TONE_PROP_BEEP)
+            getTone()?.startTone(ToneGenerator.TONE_PROP_BEEP, 45)
         } catch (e: Exception) { e.printStackTrace() }
     }
 
+    // Incoming Received sound: pleasant alert "ting"
     fun playReceiveSound() {
         try {
-            if (toneGenerator == null) {
-                toneGenerator = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 70)
-            }
-            toneGenerator?.startTone(ToneGenerator.TONE_PROP_ACK)
+            getTone()?.startTone(ToneGenerator.TONE_PROP_ACK, 80)
+        } catch (e: Exception) { e.printStackTrace() }
+    }
+
+    // Read receipt sound: soft double click / read confirmation
+    fun playReadReceiptSound() {
+        try {
+            getTone()?.startTone(ToneGenerator.TONE_PROP_BEEP2, 35)
         } catch (e: Exception) { e.printStackTrace() }
     }
 
     fun playEndChatSound() {
-         try {
-            if (toneGenerator == null) {
-                toneGenerator = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 70)
-            }
-            toneGenerator?.startTone(ToneGenerator.TONE_PROP_NACK) // Distinct "End" tone
+        try {
+            getTone()?.startTone(ToneGenerator.TONE_PROP_NACK, 120)
         } catch (e: Exception) { e.printStackTrace() }
     }
 
-    /*
-       For richer sounds (Accept/Reject), normally we'd play MP3s from res/raw.
-       Since we don't have files, we'll use system sounds.
-    */
     fun playAcceptSound() {
-         try {
-            if (toneGenerator == null) {
-                toneGenerator = ToneGenerator(AudioManager.STREAM_RING, 80)
-            }
-            toneGenerator?.startTone(ToneGenerator.TONE_SUP_CONFIRM)
+        try {
+            ToneGenerator(AudioManager.STREAM_RING, 80).startTone(ToneGenerator.TONE_SUP_CONFIRM, 150)
         } catch (e: Exception) { e.printStackTrace() }
     }
 
-     fun playRejectSound() {
-         try {
-            if (toneGenerator == null) {
-                toneGenerator = ToneGenerator(AudioManager.STREAM_RING, 80)
-            }
-            toneGenerator?.startTone(ToneGenerator.TONE_SUP_ERROR)
+    fun playRejectSound() {
+        try {
+            ToneGenerator(AudioManager.STREAM_RING, 80).startTone(ToneGenerator.TONE_SUP_ERROR, 150)
         } catch (e: Exception) { e.printStackTrace() }
     }
 }

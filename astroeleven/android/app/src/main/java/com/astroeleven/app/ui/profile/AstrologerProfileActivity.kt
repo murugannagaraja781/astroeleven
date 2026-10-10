@@ -57,7 +57,10 @@ class AstrologerProfileActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        var astroId = intent.getStringExtra("astro_id") ?: ""
+        var astroId = (intent.getStringExtra("astro_id")
+            ?: intent.getStringExtra("id")
+            ?: intent.getStringExtra("userId")
+            ?: "").trim()
         val initialName = intent.getStringExtra("astro_name") ?: ""
         val initialExp = intent.getStringExtra("astro_exp") ?: ""
         val initialSkills = intent.getStringExtra("astro_skills") ?: ""
@@ -115,6 +118,10 @@ class AstrologerProfileActivity : ComponentActivity() {
                                         val obj = org.json.JSONObject(jsonStr)
                                         if (obj.optBoolean("ok") && obj.has("astrologer")) {
                                             val a = obj.getJSONObject("astrologer")
+                                            val fetchedId = a.optString("userId", "").ifEmpty { a.optString("id", "") }
+                                            if (fetchedId.isNotEmpty()) {
+                                                currentAstroId = fetchedId
+                                            }
                                             currentName = a.optString("name", currentName)
                                             currentExp = a.optInt("experience", 5).toString()
                                             val skillsArr = a.optJSONArray("skills")
@@ -188,6 +195,12 @@ class AstrologerProfileActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        recreate()
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -246,10 +259,12 @@ fun AstrologerProfileScreen(
                         )
                     }
                     IconButton(onClick = {
-                        val shareUrl = "https://astroeleven.com/astrologer/${id}"
-                        val shareText = "Consult with ${name} on Astro Eleven for accurate life predictions & guidance!\nProfile: ${shareUrl}"
+                        val cleanId = id.trim()
+                        val shareUrl = if (cleanId.isNotEmpty()) "https://astroeleven.com/astrologer/${cleanId}" else "https://astroeleven.com"
+                        val shareText = "🌟 Consult with ${name} on Astro Eleven for accurate life predictions & guidance!\n\n${shareUrl}"
                         val sendIntent = android.content.Intent().apply {
                             action = android.content.Intent.ACTION_SEND
+                            putExtra(android.content.Intent.EXTRA_SUBJECT, "Consult with $name on Astro Eleven")
                             putExtra(android.content.Intent.EXTRA_TEXT, shareText)
                             type = "text/plain"
                         }

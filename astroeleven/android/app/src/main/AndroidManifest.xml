@@ -231,13 +231,24 @@
             android:name=".ui.profile.AstrologerProfileActivity"
             android:screenOrientation="portrait"
             android:exported="true"
+            android:launchMode="singleTop"
             android:theme="@style/Theme.FCMCallApp">
+            <!-- 1. Universal App Links (Web URLs) -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="astroeleven.com" android:pathPrefix="/astrologer" />
+                <data android:scheme="https" android:host="www.astroeleven.com" android:pathPrefix="/astrologer" />
                 <data android:scheme="http" android:host="astroeleven.com" android:pathPrefix="/astrologer" />
+                <data android:scheme="http" android:host="www.astroeleven.com" android:pathPrefix="/astrologer" />
+            </intent-filter>
+
+            <!-- 2. Custom URI Scheme (astroeleven://astrologer/*) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="astroeleven" android:host="astrologer" />
             </intent-filter>
         </activity>

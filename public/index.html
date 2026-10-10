@@ -5998,19 +5998,20 @@
         try {
           const confRes = await fetch('/api/config/webrtc').then(r => r.json());
           if (confRes.ok) {
-            iceServers = [
-              { urls: confRes.stunServer },
-              {
-                urls: `turn:${confRes.turnServer}:${confRes.turnPort}?transport=udp`,
-                username: confRes.turnUsername,
-                credential: confRes.turnPassword
-              },
-              {
-                urls: `turn:${confRes.turnServer}:${confRes.turnPort}?transport=tcp`,
-                username: confRes.turnUsername,
-                credential: confRes.turnPassword
-              }
-            ];
+            iceServers = (Array.isArray(confRes.iceServers) && confRes.iceServers.length > 0)
+              ? confRes.iceServers
+              : [
+                { urls: confRes.stunServer },
+                {
+                  urls: [
+                    `turn:${confRes.turnServer}:${confRes.turnPort}?transport=udp`,
+                    `turn:${confRes.turnServer}:${confRes.turnPort}?transport=tcp`,
+                    `turns:${confRes.turnServer}:5349?transport=tcp`
+                  ],
+                  username: confRes.turnUsername,
+                  credential: confRes.turnPassword
+                }
+              ];
             console.log('[WebRTC] Custom TURN configured');
           }
         } catch (e) {

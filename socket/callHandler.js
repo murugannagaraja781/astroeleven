@@ -521,7 +521,8 @@ module.exports = (io, socket, SERVER_URL, broadcastAstroUpdate) => {
                 // Guard: Only terminate if session still exists (prevents duplicate termination)
                 const s = activeSessions.get(sessionId);
                 if (!s) {
-                    console.log(`[CallHandler][end-session] Session ${sessionId} already terminated, ignoring.`);
+                    console.log(`[CallHandler][end-session] Session ${sessionId} already terminated, acknowledging.`);
+                    socket.emit('session-ended', { sessionId, reason: 'ended', summary: { deducted: 0, earned: 0, duration: 0 } });
                     return;
                 }
                 console.log(`[CallHandler][end-session] terminating session ${sessionId}`);

@@ -75,6 +75,53 @@ val nakshatraTamil = mapOf(
     "Purva Bhadrapada" to "பூரட்டாதி", "Uttara Bhadrapada" to "உத்திரட்டாதி", "Revati" to "ரேவதி"
 )
 
+val nakshatraLordTamil = mapOf(
+    // Ketu stars
+    "Ashwini" to "கேது", "அஸ்வினி" to "கேது",
+    "Magha" to "கேது", "மகம்" to "கேது",
+    "Mula" to "கேது", "மூலம்" to "கேது",
+
+    // Venus stars
+    "Bharani" to "சுக்கிரன்", "பரணி" to "சுக்கிரன்",
+    "Purva Phalguni" to "சுக்கிரன்", "பூரம்" to "சுக்கிரன்",
+    "Purva Ashadha" to "சுக்கிரன்", "பூராடம்" to "சுக்கிரன்",
+
+    // Sun stars
+    "Krittika" to "சூரியன்", "கார்த்திகை" to "சூரியன்",
+    "Uttara Phalguni" to "சூரியன்", "உத்திரம்" to "சூரியன்",
+    "Uttara Ashadha" to "சூரியன்", "உத்திராடம்" to "சூரியன்",
+
+    // Moon stars
+    "Rohini" to "சந்திரன்", "ரோகிணி" to "சந்திரன்",
+    "Hasta" to "சந்திரன்", "அஸ்தம்" to "சந்திரன்",
+    "Shravana" to "சந்திரன்", "திருவோணம்" to "சந்திரன்",
+
+    // Mars stars
+    "Mrigashira" to "செவ்வாய்", "மிருகசீரிடம்" to "செவ்வாய்", "மிருகசீரிஷம்" to "செவ்வாய்",
+    "Chitra" to "செவ்வாய்", "சித்திரை" to "செவ்வாய்",
+    "Dhanishta" to "செவ்வாய்", "அவிட்டம்" to "செவ்வாய்",
+
+    // Rahu stars
+    "Ardra" to "ராகு", "திருவாதிரை" to "ராகு",
+    "Swati" to "ராகு", "சுவாதி" to "ராகு",
+    "Shatabhisha" to "ராகு", "சதயம்" to "ராகு",
+
+    // Jupiter stars
+    "Punarvasu" to "குரு", "புனர்பூசம்" to "குரு",
+    "Vishakha" to "குரு", "விசாகம்" to "குரு",
+    "Purva Bhadrapada" to "குரு", "பூரட்டாதி" to "குரு",
+
+    // Saturn stars
+    "Pushya" to "சனி", "பூசம்" to "சனி",
+    "Anuradha" to "சனி", "அனுஷம்" to "சனி",
+    "Uttara Bhadrapada" to "சனி", "உத்திரட்டாதி" to "சனி",
+
+    // Mercury stars
+    "Ashlesha" to "புதன்", "ஆயில்யம்" to "புதன்", "ஆயிலியம்" to "புதன்",
+    "Jyeshtha" to "புதன்", "கேட்டை" to "புதன்",
+    "Revati" to "புதன்", "ரேவதி" to "புதன்"
+)
+
 val planetAbbrTamil = mapOf(
     "Sun" to "சூரி", "Moon" to "சந்", "Mars" to "செவ்", "Mercury" to "புத",
     "Jupiter" to "குரு", "Venus" to "சுக்", "Saturn" to "சனி", "Rahu" to "ராகு",
@@ -731,16 +778,23 @@ fun PlanetsTab(data: ChartData) {
         Text("கிரக நிலைகள் (நவக்கிரகங்கள்)", fontWeight = FontWeight.Bold, color = ChocolateBrown, fontSize = 18.sp)
         Spacer(Modifier.height(12.dp))
 
-        // New Precise Table Grid
+        // New Precise Table Grid with Nakshatra Lord / Sara Nathan
         Column(modifier = Modifier.fillMaxWidth().border(1.dp, Color.Gray)) {
             // Header
-            Row(modifier = Modifier.fillMaxWidth().background(Color(0xFFE87A1E)).padding(8.dp)) {
-                listOf("கிரகம்", "நட்சத்திரம்", "பாதம்", "ராசி", "நிலை").forEach { head ->
+            Row(modifier = Modifier.fillMaxWidth().background(Color(0xFFE87A1E)).padding(vertical = 8.dp, horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                listOf(
+                    "கிரகம்" to 1.1f,
+                    "நட்சத்திரம்" to 1.2f,
+                    "பாதம்" to 0.6f,
+                    "ந. அதிபதி" to 1.1f,
+                    "ராசி" to 1.0f,
+                    "நிலை" to 0.9f
+                ).forEach { (head, weight) ->
                     Text(
                         text = head,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(weight),
                         color = Color.White,
-                        fontSize = 12.sp,
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center
                     )
@@ -750,24 +804,67 @@ fun PlanetsTab(data: ChartData) {
             // Rows
             data.planets.forEach { planet ->
                 HorizontalDivider(color = Color.Gray.copy(alpha = 0.5f))
-                Row(modifier = Modifier.fillMaxWidth().background(ParchmentBase).padding(vertical = 10.dp, horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(modifier = Modifier.fillMaxWidth().background(ParchmentBase).padding(vertical = 10.dp, horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                     // Planet Name (Red)
-                    Row(Modifier.weight(1f), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.weight(1.1f), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = planetTamil[planet.name] ?: planet.name,
                             color = Color.Red,
-                            fontSize = 13.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center
                         )
-                        // No indicators needed
                     }
 
-                    // Others in Blue
-                    Text(text = nakshatraTamil[planet.nakshatra] ?: planet.nakshatra, color = Color.Blue, fontSize = 12.sp, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
-                    Text(text = planet.nakshatraPada.toString(), color = Color.Blue, fontSize = 12.sp, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
-                    Text(text = signTamil[planet.signName] ?: planet.signName, color = Color.Blue, fontSize = 12.sp, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
-                    Text(text = getPlanetStatusTamil(planet.name, planet.signName), color = Color.Blue, fontSize = 11.sp, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                    // Nakshatra (Blue)
+                    Text(
+                        text = nakshatraTamil[planet.nakshatra] ?: planet.nakshatra,
+                        color = Color.Blue,
+                        fontSize = 11.sp,
+                        modifier = Modifier.weight(1.2f),
+                        textAlign = TextAlign.Center
+                    )
+
+                    // Pada (Blue)
+                    Text(
+                        text = planet.nakshatraPada.toString(),
+                        color = Color.Blue,
+                        fontSize = 12.sp,
+                        modifier = Modifier.weight(0.6f),
+                        textAlign = TextAlign.Center
+                    )
+
+                    // Nakshatra Lord / Sara Nathan (Blue)
+                    val starLordName = planet.starLord?.let { planetTamil[it] ?: it }
+                        ?: nakshatraLordTamil[planet.nakshatra]
+                        ?: nakshatraLordTamil[nakshatraTamil[planet.nakshatra] ?: ""]
+                        ?: "-"
+                    Text(
+                        text = starLordName,
+                        color = Color.Blue,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1.1f),
+                        textAlign = TextAlign.Center
+                    )
+
+                    // Rasi Sign (Blue)
+                    Text(
+                        text = signTamil[planet.signName] ?: planet.signName,
+                        color = Color.Blue,
+                        fontSize = 11.sp,
+                        modifier = Modifier.weight(1.0f),
+                        textAlign = TextAlign.Center
+                    )
+
+                    // Status (Blue)
+                    Text(
+                        text = getPlanetStatusTamil(planet.name, planet.signName),
+                        color = Color.Blue,
+                        fontSize = 11.sp,
+                        modifier = Modifier.weight(0.9f),
+                        textAlign = TextAlign.Center
+                    )
                 }
             }
         }

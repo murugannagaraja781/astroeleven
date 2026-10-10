@@ -16,8 +16,8 @@ android {
         applicationId = "com.astroeleven.app"
         minSdk = 24
         targetSdk = 36
-        versionCode = 40
-        versionName = "1.0.4"
+        versionCode = 42
+        versionName = "1.0.6"
 
 
         ndk {

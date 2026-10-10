@@ -67,8 +67,8 @@ data class ChatMessage(val id: String, val text: String?, val isSent: Boolean, v
 
 class ChatActivity : ComponentActivity() {
 
-    // Flag to ensure chart opening is performed only once per session
-    private var chartOpened = false
+    private var isSessionFinished = false
+    private var isEndingChat = false
 
     private val viewModel: ChatViewModel by viewModels()
     private lateinit var audioPlayer: ChatAudioPlayer
@@ -170,32 +170,25 @@ class ChatActivity : ComponentActivity() {
                         },
                          onViewChart = {
                              if (clientBirthData != null) {
-                                 // Prevent duplicate chart open events
-                                 if (!chartOpened) {
-                                     // Send system message if astrologer
-                                     if (role == "astrologer" && toUserId != null && sessionId != null) {
-                                         val payload = org.json.JSONObject().apply {
-                                             put("messageId", java.util.UUID.randomUUID().toString())
-                                             put("sessionId", sessionId)
-                                             put("toUserId", toUserId)
-                                             put("content", org.json.JSONObject().apply {
-                                                 put("type", "system-chart-viewing")
-                                                 put("text", "chart_opened")
-                                             })
-                                         }
-                                         android.util.Log.e("CHART_DEBUG", "Sending chart-open payload: $payload")
-                                         viewModel.sendMessage(payload)
+                                 // Send system message if astrologer
+                                 if (role == "astrologer" && toUserId != null && sessionId != null) {
+                                     val payload = org.json.JSONObject().apply {
+                                         put("messageId", java.util.UUID.randomUUID().toString())
+                                         put("sessionId", sessionId)
+                                         put("toUserId", toUserId)
+                                         put("content", org.json.JSONObject().apply {
+                                             put("type", "system-chart-viewing")
+                                             put("text", "chart_opened")
+                                         })
                                      }
-                                     // Launch chart activity
-                                     val intent = Intent(this, com.astroeleven.app.ui.chart.VipChartActivity::class.java).apply {
-                                         putExtra("birthData", clientBirthData.toString())
-                                     }
-                                     startActivity(intent)
-                                     chartOpened = true
-                                 } else {
-                                     // Chart already opened – bring to front if needed
-                                     Toast.makeText(this, "Chart already opened", Toast.LENGTH_SHORT).show()
+                                     android.util.Log.e("CHART_DEBUG", "Sending chart-open payload: $payload")
+                                     viewModel.sendMessage(payload)
                                  }
+                                 // Launch chart activity
+                                 val intent = Intent(this, com.astroeleven.app.ui.chart.VipChartActivity::class.java).apply {
+                                     putExtra("birthData", clientBirthData.toString())
+                                 }
+                                 startActivity(intent)
                              } else {
                                  Toast.makeText(this, "Waiting for Client Data...", Toast.LENGTH_SHORT).show()
                              }
@@ -212,6 +205,8 @@ class ChatActivity : ComponentActivity() {
             setupObservers()
             isTimerStarted = true
             timerHandler.post(timerRunnable)
+            val partnerTitle = intent?.getStringExtra("toUserName") ?: "Astrologer"
+            showActiveChatNotification(partnerTitle)
 
             val myUserId = TokenManager(this).getUserSession()?.userId
             if (role == "astrologer" && myUserId != null) {
@@ -341,9 +336,16 @@ class ChatActivity : ComponentActivity() {
     }
 
     private fun finishSessionAndNavigate() {
+        if (isSessionFinished) return
+        isSessionFinished = true
+
+        // Cancel all pending timers
+        timerHandler.removeCallbacksAndMessages(null)
+
         // Clear all notifications
         val notificationManager = getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
         notificationManager.cancelAll()
+        dismissActiveChatNotification()
 
         val userSession = TokenManager(this).getUserSession()
         val intent = if (userSession?.role == "astrologer") {
@@ -357,15 +359,29 @@ class ChatActivity : ComponentActivity() {
     }
 
     private fun endChat() {
+        if (isEndingChat || isSessionFinished) return
+        isEndingChat = true
+
         android.util.Log.d("ChatActivity", "endChat clicked. SessionId: $sessionId")
         if (sessionId != null) {
             Toast.makeText(this, "Ending Chat...", Toast.LENGTH_SHORT).show()
             viewModel.endSession(sessionId!!)
-            // We wait for the session-ended event from socket for both sides to finish gracefully
+            if (toUserId != null) {
+                SocketManager.cancelCall(sessionId, toUserId)
+            }
         } else {
-             Toast.makeText(this, "Error: Session ID is null", Toast.LENGTH_SHORT).show()
-             finish()
+            Toast.makeText(this, "Chat Ended", Toast.LENGTH_SHORT).show()
+            finishSessionAndNavigate()
+            return
         }
+
+        // Safety Fallback Timer: If server response or socket event is delayed, terminate cleanly within 1.5s
+        timerHandler.postDelayed({
+            if (!isFinishing && !isDestroyed && !isSessionFinished) {
+                android.util.Log.d("ChatActivity", "Safety fallback timeout reached in endChat. Finishing session.")
+                finishSessionAndNavigate()
+            }
+        }, 1500)
     }
 
     override fun onResume() {
@@ -413,12 +429,63 @@ class ChatActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        dismissActiveChatNotification()
         com.astroeleven.app.utils.CallState.isCallActive = false
         com.astroeleven.app.utils.CallState.currentSessionId = null
         super.onDestroy()
         timerHandler.removeCallbacks(timerRunnable)
         viewModel.stopListeners()
         audioPlayer.release()
+    }
+
+    private fun showActiveChatNotification(partnerName: String) {
+        try {
+            val nm = getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+            val channelId = "active_chat_channel"
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                val channel = android.app.NotificationChannel(
+                    channelId,
+                    "Active Chat Session",
+                    android.app.NotificationManager.IMPORTANCE_LOW
+                ).apply {
+                    description = "Keeps active chat accessible from notification tray"
+                }
+                nm.createNotificationChannel(channel)
+            }
+
+            val resumeIntent = Intent(this, ChatActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                putExtra("sessionId", sessionId)
+                putExtra("toUserId", toUserId)
+                putExtra("toUserName", partnerName)
+            }
+            val pendingIntent = android.app.PendingIntent.getActivity(
+                this,
+                8888,
+                resumeIntent,
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+            )
+
+            val notification = androidx.core.app.NotificationCompat.Builder(this, channelId)
+                .setSmallIcon(android.R.drawable.ic_dialog_email)
+                .setContentTitle("Astro Eleven: செயலில் உள்ள சாட்")
+                .setContentText("$partnerName உடன் சாட் தொடர்கிறது. மீண்டும் திறக்க தட்டவும்.")
+                .setContentIntent(pendingIntent)
+                .setOngoing(true)
+                .setPriority(androidx.core.app.NotificationCompat.PRIORITY_LOW)
+                .build()
+
+            nm.notify(8888, notification)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun dismissActiveChatNotification() {
+        try {
+            val nm = getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+            nm.cancel(8888)
+        } catch (e: Exception) {}
     }
 }
 
@@ -496,6 +563,61 @@ fun ChatScreen(
         if (displayedMessages.isNotEmpty()) listState.animateScrollToItem(displayedMessages.size - 1)
     }
 
+    var showExitDialog by remember { mutableStateOf(false) }
+
+    // Intercept hardware and gesture back to prevent accidental loss of chat session
+    androidx.activity.compose.BackHandler(enabled = true) {
+        showExitDialog = true
+    }
+
+    if (showExitDialog) {
+        AlertDialog(
+            onDismissRequest = { showExitDialog = false },
+            title = {
+                Text(
+                    text = "செயலில் உள்ள உரையாடல்",
+                    fontWeight = FontWeight.Bold,
+                    color = CosmicAppTheme.colors.accent,
+                    fontSize = 18.sp
+                )
+            },
+            text = {
+                Text(
+                    text = "உரையாடல் இன்னும் செயல்பாட்டில் உள்ளது. நீங்கள் என்ன செய்ய விரும்புகிறீர்கள்?\n\n• பின்னணியில் இயக்கு: சாட் தொடர்ந்து நடக்கும், நோட்டிபிகேஷன் வழியாக மீண்டும் வரலாம்.\n• சாட்டை முடி: சாட்டை நிறைவு செய்து கட்டண விவரத்தைப் பெறலாம்.",
+                    fontSize = 14.sp,
+                    color = CosmicAppTheme.colors.textPrimary
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showExitDialog = false
+                        onEndChat()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
+                ) {
+                    Text("சாட்டை முடி (End Chat)", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                Row {
+                    OutlinedButton(
+                        onClick = {
+                            showExitDialog = false
+                            (context as? android.app.Activity)?.moveTaskToBack(true)
+                        }
+                    ) {
+                        Text("பின்னணியில் இயக்கு (Minimize)", color = CosmicAppTheme.colors.accent, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    TextButton(onClick = { showExitDialog = false }) {
+                        Text("தொடரவும்", color = Color.Gray)
+                    }
+                }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -531,7 +653,7 @@ fun ChatScreen(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = { showExitDialog = true }) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Back",
@@ -586,7 +708,9 @@ fun ChatScreen(
                              finalText = "> Replying to: $snippet\n$inputText"
                          }
 
+                         val myUserId = com.astroeleven.app.data.local.TokenManager(context).getUserSession()?.userId ?: ""
                          val payload = org.json.JSONObject().apply {
+                            put("fromUserId", myUserId)
                             put("toUserId", toUserId)
                             put("sessionId", sessionId)
                             put("messageId", java.util.UUID.randomUUID().toString())
@@ -1178,8 +1302,12 @@ fun ChatInputBar(
                             onValueChange = onTextChange,
                             modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
                             shape = RoundedCornerShape(AstroDimens.RadiusLarge),
+                            textStyle = androidx.compose.ui.text.TextStyle(
+                                color = Color.White,
+                                fontSize = 15.sp
+                            ),
                             placeholder = { 
-                                Text("Type a message...", style = MaterialTheme.typography.bodyMedium, color = CosmicAppTheme.colors.textSecondary.copy(alpha = 0.5f)) 
+                                Text("Type a message...", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.6f)) 
                             },
                             maxLines = 4,
                             colors = TextFieldDefaults.colors(
@@ -1187,8 +1315,8 @@ fun ChatInputBar(
                                 unfocusedContainerColor = Color.Transparent,
                                 focusedIndicatorColor = Color.Transparent,
                                 unfocusedIndicatorColor = Color.Transparent,
-                                focusedTextColor = CosmicAppTheme.colors.textPrimary,
-                                unfocusedTextColor = CosmicAppTheme.colors.textPrimary,
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
                                 cursorColor = CosmicAppTheme.colors.accent
                             )
                         )

@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.astroeleven.app",
+      "sha256_cert_fingerprints": [
+        "2A:B5:56:82:D6:3A:7E:47:0B:F8:D6:F2:70:48:E7:84:84:A5:93:9B:B2:A0:B8:45:70:52:9A:7F:59:DE:23:46",
+        "05:7D:A9:79:09:C9:16:67:AD:AE:6A:AA:3C:ED:33:AC:1A:1A:4C:BC:8C:20:64:AB:E7:A3:47:68:64:C6:B5:8D"
+      ]
+    }
+  }
+]
