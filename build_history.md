@@ -393,8 +393,17 @@ A clean build of Debug APK was compiled successfully after:
 * **Date & Time:** October 05, 2026 - 05:24 PM (IST)
 * **Debug APK File Path:** `astroeleven/android/app/build/outputs/apk/debug/app-debug.apk` (copied to root `app-debug.apk`)
 * **Size:** ~114 MB
+---
+
+## [2026-10-16] - Debug Build (Chat & Call Multitasking, Ongoing Notifications, App Re-entry & Dashboard Return Banners)
+
+A clean build of Debug APK was compiled successfully after:
+1. Creating `ActiveChatSessionManager.kt` to manage both active chat and call sessions (audio & video) with persistent SharedPreferences state and ongoing high-priority system notifications.
+2. Updating `ChatActivity.kt` and `CallActivity.kt` so back button presses minimize the activity (`moveTaskToBack(true)`) rather than destroying active sessions.
+3. Hooking up `CallForegroundService.kt` with high-priority call notifications and direct action buttons ("அழைப்புக்கு திரும்பு") ensuring calls stay connected when switching apps.
+4. Adding automatic session resume logic to `MainActivity.kt` and sticky active-session return cards to `AstrologerDashboardActivity.kt` and `HomeScreen.kt`.
+
+* **Date & Time:** October 16, 2026 - 11:18 PM (IST)
+* **Debug APK File Path:** `astroeleven/android/app/build/outputs/apk/debug/app-debug.apk` (copied to root `app-debug.apk` & `public/astroeleven.apk`)
+* **Size:** ~120 MB (120,038,796 bytes)
 * **Status:** Build Successful
-
-
-
-

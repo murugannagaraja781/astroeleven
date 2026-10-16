@@ -203,6 +203,27 @@ class MainActivity : AppCompatActivity() {
         if (!hasNavigated.compareAndSet(false, true)) return
         if (isFinishing || isDestroyed) return
 
+        // Check if there is an active ongoing chat or call session to instantly resume
+        val activeChat = com.astroeleven.app.utils.ActiveChatSessionManager.getActiveSession(this)
+        if (activeChat != null) {
+            val isCall = (activeChat.sessionType == "audio" || activeChat.sessionType == "video")
+            val targetClass = if (isCall) com.astroeleven.app.ui.call.CallActivity::class.java else com.astroeleven.app.ui.chat.ChatActivity::class.java
+            Log.d(TAG, "Active session detected (${activeChat.sessionType}): ${activeChat.sessionId}. Resuming directly.")
+            val resumeIntent = Intent(this, targetClass).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                putExtra("sessionId", activeChat.sessionId)
+                putExtra("toUserId", activeChat.toUserId)
+                putExtra("partnerId", activeChat.toUserId)
+                putExtra("toUserName", activeChat.toUserName)
+                putExtra("partnerName", activeChat.toUserName)
+                putExtra("type", activeChat.sessionType)
+                putExtra("callType", activeChat.sessionType)
+            }
+            startActivity(resumeIntent)
+            finish()
+            return
+        }
+
         val session = tokenManager.getUserSession()
         val targetIntent = if (session != null) {
             Log.d(TAG, "User logged in: ${session.role}")

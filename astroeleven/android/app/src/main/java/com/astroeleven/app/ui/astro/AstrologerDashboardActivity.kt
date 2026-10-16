@@ -1199,6 +1199,75 @@ fun AstrologerDashboardScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            val activeSession = remember { mutableStateOf(com.astroeleven.app.utils.ActiveChatSessionManager.getActiveSession(context)) }
+            LaunchedEffect(Unit) {
+                while(true) {
+                    activeSession.value = com.astroeleven.app.utils.ActiveChatSessionManager.getActiveSession(context)
+                    kotlinx.coroutines.delay(2000)
+                }
+            }
+
+            activeSession.value?.let { currentActiveChat ->
+                val isCall = (currentActiveChat.sessionType == "audio" || currentActiveChat.sessionType == "video")
+                val targetClass = if (isCall) com.astroeleven.app.ui.call.CallActivity::class.java else com.astroeleven.app.ui.chat.ChatActivity::class.java
+                val openIntent = Intent(context, targetClass).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                    putExtra("sessionId", currentActiveChat.sessionId)
+                    putExtra("toUserId", currentActiveChat.toUserId)
+                    putExtra("partnerId", currentActiveChat.toUserId)
+                    putExtra("toUserName", currentActiveChat.toUserName)
+                    putExtra("partnerName", currentActiveChat.toUserName)
+                    putExtra("type", currentActiveChat.sessionType)
+                    putExtra("callType", currentActiveChat.sessionType)
+                }
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { context.startActivity(openIntent) },
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1B5E20)),
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.5.dp, Color(0xFF00E676))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(12.dp)
+                                .background(Color(0xFF00E676), CircleShape)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = if (isCall) "🔴 செயலில் உள்ள அழைப்பு (Active Call)" else "🔴 செயலில் உள்ள உரையாடல் (Active Chat)",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                            Text(
+                                text = if (isCall) "${currentActiveChat.toUserName} உடன் அழைப்பு தொடர்கிறது. மீண்டும் பேச தட்டவும்."
+                                       else "${currentActiveChat.toUserName} உடன் சாட் தொடர்கிறது. மீண்டும் செல்ல தட்டவும்.",
+                                color = Color.White.copy(alpha = 0.9f),
+                                fontSize = 12.sp
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Button(
+                            onClick = { context.startActivity(openIntent) },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676)),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text(if (isCall) "Call" else "Chat", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
+                    }
+                }
+            }
+
             var hasOverlay by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
             var hasAudio by remember { mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) }
             var hasCamera by remember { mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) }

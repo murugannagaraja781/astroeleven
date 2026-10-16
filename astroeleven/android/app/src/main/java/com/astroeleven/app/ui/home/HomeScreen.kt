@@ -943,21 +943,98 @@ fun HomeScreen(
             containerColor = appBackgroundColor,
             topBar = {
                 if (selectedTab != 2) {
-                    HomeTopBar(
-                        balance = walletBalance,
-                        superBalance = superWalletBalance,
-                        onWalletClick = onWalletClick,
-                        onMenuClick = { scope.launch { drawerState.open() } },
-                        isGuest = isGuest,
-                        isTamil = isTamil,
-                        onToggleLanguage = { isTamil = !isTamil },
-                        onReferClick = { showReferralDialog = true },
-                        userName = userSession?.name ?: if (isTamil) "அன்பர்" else "User",
-                        shareLink = shareLink,
-                        referralCode = referralCode,
-                        searchQuery = searchQuery,
-                        onSearchQueryChange = { searchQuery = it }
-                    )
+                    Column {
+                        HomeTopBar(
+                            balance = walletBalance,
+                            superBalance = superWalletBalance,
+                            onWalletClick = onWalletClick,
+                            onMenuClick = { scope.launch { drawerState.open() } },
+                            isGuest = isGuest,
+                            isTamil = isTamil,
+                            onToggleLanguage = { isTamil = !isTamil },
+                            onReferClick = { showReferralDialog = true },
+                            userName = userSession?.name ?: if (isTamil) "அன்பர்" else "User",
+                            shareLink = shareLink,
+                            referralCode = referralCode,
+                            searchQuery = searchQuery,
+                            onSearchQueryChange = { searchQuery = it }
+                        )
+
+                        val activeChat = remember { mutableStateOf(com.astroeleven.app.utils.ActiveChatSessionManager.getActiveSession(context)) }
+                        LaunchedEffect(Unit) {
+                            while(true) {
+                                activeChat.value = com.astroeleven.app.utils.ActiveChatSessionManager.getActiveSession(context)
+                                kotlinx.coroutines.delay(2000)
+                            }
+                        }
+
+                        activeChat.value?.let { currentActiveChat ->
+                            val isCall = (currentActiveChat.sessionType == "audio" || currentActiveChat.sessionType == "video")
+                            val targetClass = if (isCall) com.astroeleven.app.ui.call.CallActivity::class.java else com.astroeleven.app.ui.chat.ChatActivity::class.java
+                            val openIntent = Intent(context, targetClass).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                                putExtra("sessionId", currentActiveChat.sessionId)
+                                putExtra("toUserId", currentActiveChat.toUserId)
+                                putExtra("partnerId", currentActiveChat.toUserId)
+                                putExtra("toUserName", currentActiveChat.toUserName)
+                                putExtra("partnerName", currentActiveChat.toUserName)
+                                putExtra("type", currentActiveChat.sessionType)
+                                putExtra("callType", currentActiveChat.sessionType)
+                            }
+
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 4.dp)
+                                    .clickable { context.startActivity(openIntent) },
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFF1B5E20)),
+                                shape = RoundedCornerShape(10.dp),
+                                border = BorderStroke(1.dp, Color(0xFF00E676))
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(10.dp)
+                                            .background(Color(0xFF00E676), CircleShape)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = if (isCall) (if (isTamil) "🔴 செயலில் உள்ள அழைப்பு" else "🔴 Active Call in Progress")
+                                                   else (if (isTamil) "🔴 செயலில் உள்ள சாட்" else "🔴 Active Chat in Progress"),
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 13.sp
+                                        )
+                                        Text(
+                                            text = "${currentActiveChat.toUserName} - " + (if (isTamil) "மீண்டும் செல்ல தட்டவும்" else "Tap to return"),
+                                            color = Color.White.copy(alpha = 0.85f),
+                                            fontSize = 11.sp
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Button(
+                                        onClick = { context.startActivity(openIntent) },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676)),
+                                        shape = RoundedCornerShape(6.dp),
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                                    ) {
+                                        Text(
+                                            text = if (isCall) (if (isTamil) "பேசு" else "Call") else (if (isTamil) "திற" else "Open"),
+                                            color = Color.Black,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 11.sp
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             },
             floatingActionButton = {},

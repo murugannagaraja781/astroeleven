@@ -55,6 +55,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import com.astroeleven.app.utils.CallState
+import com.astroeleven.app.utils.ActiveChatSessionManager
 import org.json.JSONObject
 import org.webrtc.*
 import java.util.LinkedList
@@ -302,6 +303,25 @@ class CallActivity : ComponentActivity() {
             tokenManager = TokenManager(this)
             session = tokenManager.getUserSession()
             val role = session?.role
+
+            val isAstro = role == "astrologer"
+            ActiveChatSessionManager.setActiveSession(
+                this,
+                sessionId!!,
+                partnerId ?: "",
+                partnerName ?: "Partner",
+                isAstro,
+                sessionType = callType
+            )
+            startBackgroundService()
+
+            // Graceful back press: minimizes call to background without dropping it
+            onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    moveTaskToBack(true)
+                    Toast.makeText(this@CallActivity, "அழைப்பு பின்னணியில் இயங்குகிறது. அறிவிப்பைத் தட்டி மீண்டும் திறக்கலாம்.", Toast.LENGTH_SHORT).show()
+                }
+            })
 
             // Set Content
             setContent {
@@ -567,6 +587,8 @@ class CallActivity : ComponentActivity() {
         val serviceIntent = android.content.Intent(this, com.astroeleven.app.CallForegroundService::class.java).apply {
             action = "ACTION_START_CALL"
             putExtra("partnerName", partnerName)
+            putExtra("partnerId", partnerId)
+            putExtra("sessionId", sessionId)
             putExtra("callType", callType)
         }
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
@@ -1088,6 +1110,9 @@ class CallActivity : ComponentActivity() {
 
         SocketManager.onSessionEndedWithSummary { reason, deducted, earned, duration ->
             runOnUiThread {
+                isCallTerminated = true
+                ActiveChatSessionManager.clearActiveSession(this@CallActivity)
+                stopBackgroundService()
                 timerHandler.removeCallbacks(timerRunnable)
                 isBillingActive = false
                 val amount = if (tokenManager.getUserSession()?.role == "astrologer") earned else deducted
@@ -1242,7 +1267,18 @@ class CallActivity : ComponentActivity() {
         SocketManager.emitSignal(payload)
     }
 
+    private var isCallTerminated = false
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        Log.d(TAG, "CallActivity brought to foreground via onNewIntent")
+    }
+
     private fun endCall() {
+        if (isCallTerminated) return
+        isCallTerminated = true
+        ActiveChatSessionManager.clearActiveSession(this)
         stopBackgroundService()
         // Send BOTH signals to ensure termination regardless of call state (ringing vs ongoing)
         SocketManager.endSession(sessionId)
@@ -1279,16 +1315,22 @@ class CallActivity : ComponentActivity() {
     }
 
     override fun finish() {
-        // Ensure state is cleared even if finished via system back or other means
-        CallState.isCallActive = false
-        CallState.currentSessionId = null
-        stopBackgroundService()
+        if (isCallTerminated) {
+            CallState.isCallActive = false
+            CallState.currentSessionId = null
+            ActiveChatSessionManager.clearActiveSession(this)
+            stopBackgroundService()
+        }
         super.finish()
     }
 
     override fun onDestroy() {
-        CallState.isCallActive = false
-        CallState.currentSessionId = null
+        if (isCallTerminated) {
+            CallState.isCallActive = false
+            CallState.currentSessionId = null
+            ActiveChatSessionManager.clearActiveSession(this)
+            stopBackgroundService()
+        }
         if (isRecordingState) {
             try { stopRecording() } catch (e: Exception) { e.printStackTrace() }
         }
@@ -1305,32 +1347,36 @@ class CallActivity : ComponentActivity() {
         } catch (e: Exception) {}
 
         try {
-            // Camera release (MANDATORY) to prevent memory leak and OS killing process
-            if (videoCapturer != null) {
-                videoCapturer?.stopCapture()
-                videoCapturer?.dispose()
-                videoCapturer = null
+            if (isCallTerminated) {
+                // Camera release (MANDATORY) to prevent memory leak and OS killing process
+                if (videoCapturer != null) {
+                    videoCapturer?.stopCapture()
+                    videoCapturer?.dispose()
+                    videoCapturer = null
+                }
+                
+                if (::peerConnection.isInitialized) {
+                    peerConnection.dispose() 
+                }
+                
+                if (::localView.isInitialized) {
+                    localView.clearImage()
+                    localView.release()
+                }
+                if (::remoteView.isInitialized) {
+                    remoteView.clearImage()
+                    remoteView.release()
+                }
+                
+                if (::peerConnectionFactory.isInitialized) peerConnectionFactory.dispose()
+                if (::eglBase.isInitialized) eglBase.release()
             }
-            
-            if (::peerConnection.isInitialized) {
-                peerConnection.dispose() 
-            }
-            
-            if (::localView.isInitialized) {
-                localView.clearImage()
-                localView.release()
-            }
-            if (::remoteView.isInitialized) {
-                remoteView.clearImage()
-                remoteView.release()
-            }
-            
-            if (::peerConnectionFactory.isInitialized) peerConnectionFactory.dispose()
-            if (::eglBase.isInitialized) eglBase.release()
         } catch (e: Throwable) {
             Log.e(TAG, "Error destroying WebRTC resources", e)
         }
-        stopBackgroundService()
+        if (isCallTerminated) {
+            stopBackgroundService()
+        }
     }
 
     private fun createCameraCapturer(enumerator: CameraEnumerator): VideoCapturer? {
@@ -1537,6 +1583,7 @@ fun CallScreen(
                         onClick = {
                             showCallExitDialog = false
                             (context as? android.app.Activity)?.moveTaskToBack(true)
+                            android.widget.Toast.makeText(context, "அழைப்பு பின்னணியில் இயங்குகிறது. அறிவிப்பைத் தட்டி மீண்டும் திறக்கலாம்.", android.widget.Toast.LENGTH_SHORT).show()
                         }
                     ) {
                         Text("பின்னணியில் இயக்கு (Minimize)", color = CosmicAppTheme.colors.accent, fontWeight = FontWeight.Bold)

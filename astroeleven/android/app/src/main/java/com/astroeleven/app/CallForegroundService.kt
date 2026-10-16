@@ -80,9 +80,11 @@ class CallForegroundService : Service() {
 
         if (action == "ACTION_START_CALL") {
             val partnerName = intent?.getStringExtra("partnerName") ?: "Client"
+            val partnerId = intent?.getStringExtra("partnerId") ?: ""
+            val sessionId = intent?.getStringExtra("sessionId") ?: ""
             val callType = intent?.getStringExtra("callType") ?: "audio"
             acquireWakeLocks() // Keep CPU and WiFi active during call
-            startActiveCallForeground(partnerName, callType)
+            startActiveCallForeground(partnerName, callType, sessionId, partnerId)
             return START_STICKY // Keep alive
         }
 
@@ -187,9 +189,16 @@ class CallForegroundService : Service() {
         }
     }
 
-    private fun startActiveCallForeground(partnerName: String, callType: String) {
+    private fun startActiveCallForeground(partnerName: String, callType: String, sessionId: String = "", partnerId: String = "") {
         val notificationIntent = Intent(this, com.astroeleven.app.ui.call.CallActivity::class.java).apply {
-             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+             putExtra("sessionId", sessionId)
+             putExtra("partnerId", partnerId)
+             putExtra("toUserId", partnerId)
+             putExtra("partnerName", partnerName)
+             putExtra("toUserName", partnerName)
+             putExtra("type", callType)
+             putExtra("callType", callType)
         }
 
         val pendingIntentFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -199,18 +208,25 @@ class CallForegroundService : Service() {
         }
 
         val pendingIntent = PendingIntent.getActivity(
-            this, 0, notificationIntent, pendingIntentFlags
+            this, 1001, notificationIntent, pendingIntentFlags
         )
 
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("📞 Call in Progress")
-            .setContentText("Speaking with $partnerName")
-            .setSmallIcon(android.R.drawable.ic_menu_call)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setContentTitle("📞 Astro Eleven: $partnerName உடன் அழைப்பு நடக்கிறது")
+            .setContentText("அழைப்பு திரைக்கு மீண்டும் செல்ல தட்டவும் (Tap to return to call)")
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
+            .setAutoCancel(false)
             .setCategory(NotificationCompat.CATEGORY_CALL)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
+            .addAction(
+                android.R.drawable.ic_menu_call,
+                "அழைப்புக்கு திரும்பு (Return to Call)",
+                pendingIntent
+            )
             .build()
 
         val isVideo = (callType == "video")

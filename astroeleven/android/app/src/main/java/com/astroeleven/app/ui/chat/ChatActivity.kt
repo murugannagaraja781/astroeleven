@@ -59,6 +59,7 @@ import com.astroeleven.app.data.remote.SocketManager
 import com.astroeleven.app.ui.theme.CosmicAppTheme
 import com.astroeleven.app.ui.theme.AstroDimens
 import com.astroeleven.app.ui.common.ModernSummaryDialog
+import com.astroeleven.app.utils.ActiveChatSessionManager
 import com.astroeleven.app.utils.SoundManager
 import org.json.JSONObject
 import java.util.UUID
@@ -135,12 +136,20 @@ class ChatActivity : ComponentActivity() {
             try {
                 val nm = getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
                 nm.cancel(9999)
+                nm.cancel(200) // cancel incoming call heads-up notification
                 toUserId?.let { nm.cancel(it.hashCode()) }
                 sessionId?.let { nm.cancel(it.hashCode()) }
-                nm.cancelAll()
                 // Stop CallForegroundService to stop ringtone and vibrate loops
                 stopService(Intent(this, com.astroeleven.app.CallForegroundService::class.java))
             } catch (e: Exception) { e.printStackTrace() }
+
+            // Intercept hardware and gesture back to minimize instead of destroying session
+            onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    moveTaskToBack(true)
+                    Toast.makeText(this@ChatActivity, "சாட் பின்னணியில் இயங்குகிறது. அறிவிப்பைத் தட்டி மீண்டும் திறக்கலாம்.", Toast.LENGTH_SHORT).show()
+                }
+            })
 
             val role = TokenManager(this).getUserSession()?.role
 
@@ -157,7 +166,10 @@ class ChatActivity : ComponentActivity() {
                         audioPlayer = audioPlayer,
                         sessionDuration = sessionDuration,
                         title = intent?.getStringExtra("toUserName") ?: "Chat",
-                        onBack = { finish() },
+                        onBack = {
+                            moveTaskToBack(true)
+                            Toast.makeText(this@ChatActivity, "சாட் பின்னணியில் இயங்குகிறது. அறிவிப்பைத் தட்டி மீண்டும் திறக்கலாம்.", Toast.LENGTH_SHORT).show()
+                        },
                         onEndChat = { endChat() },
                         onEditIntake = {
                             val intent = Intent(this, com.astroeleven.app.ui.intake.IntakeActivity::class.java)
@@ -270,6 +282,7 @@ class ChatActivity : ComponentActivity() {
     private fun handleIntent(intent: Intent?) {
         toUserId = intent?.getStringExtra("toUserId")
         sessionId = intent?.getStringExtra("sessionId")
+        val partnerTitle = intent?.getStringExtra("toUserName") ?: "Chat Partner"
         val birthDataStr = intent?.getStringExtra("birthData")
         if (!birthDataStr.isNullOrEmpty()) {
              try {
@@ -286,10 +299,30 @@ class ChatActivity : ComponentActivity() {
                 }
             } catch (e: Exception) { e.printStackTrace() }
         }
+
+        // Fallback: If sessionId or toUserId is null, check ActiveChatSessionManager
+        if (sessionId == null || toUserId == null) {
+            val active = ActiveChatSessionManager.getActiveSession(this)
+            if (active != null) {
+                sessionId = active.sessionId
+                toUserId = active.toUserId
+                if (intent?.getStringExtra("toUserName") == null) {
+                    intent?.putExtra("toUserName", active.toUserName)
+                }
+            }
+        }
+
         if (sessionId == null) {
             finish()
             return
         }
+
+        // Persist session to ActiveChatSessionManager so it survives app switching
+        if (toUserId != null) {
+            val isAstro = TokenManager(this).getUserSession()?.role == "astrologer"
+            ActiveChatSessionManager.setActiveSession(this, sessionId!!, toUserId!!, partnerTitle, isAstro)
+        }
+
         val isNewRequest = intent?.getBooleanExtra("isNewRequest", false) == true
         if (isNewRequest && sessionId != null && toUserId != null) {
             SoundManager.playAcceptSound()
@@ -342,10 +375,8 @@ class ChatActivity : ComponentActivity() {
         // Cancel all pending timers
         timerHandler.removeCallbacksAndMessages(null)
 
-        // Clear all notifications
-        val notificationManager = getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
-        notificationManager.cancelAll()
-        dismissActiveChatNotification()
+        // Clear active session and dismiss notification
+        ActiveChatSessionManager.clearActiveSession(this)
 
         val userSession = TokenManager(this).getUserSession()
         val intent = if (userSession?.role == "astrologer") {
@@ -418,20 +449,24 @@ class ChatActivity : ComponentActivity() {
 
     override fun onPause() {
         super.onPause()
-        // We no longer stop listeners here to allow background reception while multi-tasking
+        // Listeners remain active in background to avoid dropping incoming messages during multitasking
     }
 
     override fun finish() {
-        // Reset CallState
-        com.astroeleven.app.utils.CallState.isCallActive = false
-        com.astroeleven.app.utils.CallState.currentSessionId = null
+        if (isSessionFinished || isEndingChat) {
+            ActiveChatSessionManager.clearActiveSession(this)
+            com.astroeleven.app.utils.CallState.isCallActive = false
+            com.astroeleven.app.utils.CallState.currentSessionId = null
+        }
         super.finish()
     }
 
     override fun onDestroy() {
-        dismissActiveChatNotification()
-        com.astroeleven.app.utils.CallState.isCallActive = false
-        com.astroeleven.app.utils.CallState.currentSessionId = null
+        if (isSessionFinished || isEndingChat) {
+            ActiveChatSessionManager.clearActiveSession(this)
+            com.astroeleven.app.utils.CallState.isCallActive = false
+            com.astroeleven.app.utils.CallState.currentSessionId = null
+        }
         super.onDestroy()
         timerHandler.removeCallbacks(timerRunnable)
         viewModel.stopListeners()
@@ -439,53 +474,13 @@ class ChatActivity : ComponentActivity() {
     }
 
     private fun showActiveChatNotification(partnerName: String) {
-        try {
-            val nm = getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
-            val channelId = "active_chat_channel"
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                val channel = android.app.NotificationChannel(
-                    channelId,
-                    "Active Chat Session",
-                    android.app.NotificationManager.IMPORTANCE_LOW
-                ).apply {
-                    description = "Keeps active chat accessible from notification tray"
-                }
-                nm.createNotificationChannel(channel)
-            }
-
-            val resumeIntent = Intent(this, ChatActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
-                putExtra("sessionId", sessionId)
-                putExtra("toUserId", toUserId)
-                putExtra("toUserName", partnerName)
-            }
-            val pendingIntent = android.app.PendingIntent.getActivity(
-                this,
-                8888,
-                resumeIntent,
-                android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
-            )
-
-            val notification = androidx.core.app.NotificationCompat.Builder(this, channelId)
-                .setSmallIcon(android.R.drawable.ic_dialog_email)
-                .setContentTitle("Astro Eleven: செயலில் உள்ள சாட்")
-                .setContentText("$partnerName உடன் சாட் தொடர்கிறது. மீண்டும் திறக்க தட்டவும்.")
-                .setContentIntent(pendingIntent)
-                .setOngoing(true)
-                .setPriority(androidx.core.app.NotificationCompat.PRIORITY_LOW)
-                .build()
-
-            nm.notify(8888, notification)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        val sId = sessionId ?: return
+        val uId = toUserId ?: return
+        ActiveChatSessionManager.showOngoingChatNotification(this, sId, uId, partnerName)
     }
 
     private fun dismissActiveChatNotification() {
-        try {
-            val nm = getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
-            nm.cancel(8888)
-        } catch (e: Exception) {}
+        ActiveChatSessionManager.dismissNotification(this)
     }
 }
 
@@ -605,6 +600,7 @@ fun ChatScreen(
                         onClick = {
                             showExitDialog = false
                             (context as? android.app.Activity)?.moveTaskToBack(true)
+                            android.widget.Toast.makeText(context, "சாட் பின்னணியில் இயங்குகிறது. அறிவிப்பைத் தட்டி மீண்டும் திறக்கலாம்.", android.widget.Toast.LENGTH_SHORT).show()
                         }
                     ) {
                         Text("பின்னணியில் இயக்கு (Minimize)", color = CosmicAppTheme.colors.accent, fontWeight = FontWeight.Bold)
