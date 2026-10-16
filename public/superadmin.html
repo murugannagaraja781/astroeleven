@@ -1515,6 +1515,152 @@ body {
     color: var(--text-muted);
     margin-top: 4px;
 }
+
+/* Spinner Loader */
+.loader {
+    width: 44px;
+    height: 44px;
+    border: 4px solid rgba(212, 175, 55, 0.2);
+    border-top: 4px solid #D4AF37;
+    border-radius: 50%;
+    animation: spinLoader 0.85s linear infinite;
+    margin: 40px auto;
+}
+@keyframes spinLoader {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* User & Astrologer Card Styling (Mobile App Look) */
+.admin-user-card {
+    background: #FFFFFF;
+    border: 1px solid var(--border-soft);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 14px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+.admin-user-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(212, 175, 55, 0.12);
+    border-color: rgba(212, 175, 55, 0.4);
+}
+.admin-user-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.admin-user-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #D4AF37;
+    background: #f3f4f6;
+    flex-shrink: 0;
+}
+.admin-user-info {
+    flex: 1;
+    min-width: 0;
+}
+.admin-user-name {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.admin-user-meta {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-top: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.admin-user-badge-wrap {
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    flex-shrink: 0;
+}
+.admin-user-balance {
+    font-weight: 800;
+    font-size: 0.95rem;
+    color: #059669;
+    background: rgba(5, 150, 105, 0.08);
+    padding: 2px 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(5, 150, 105, 0.2);
+}
+.admin-role-select {
+    background: #F3F4F6;
+    color: #1F2937;
+    border: 1px solid var(--border-soft);
+    border-radius: 8px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 4px 6px;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.admin-role-select:focus {
+    border-color: #D4AF37;
+}
+.admin-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+.admin-actions .btn-admin {
+    flex: 1 1 auto;
+    margin: 0 !important;
+    padding: 7px 10px !important;
+    font-size: 0.76rem !important;
+    font-weight: 600 !important;
+    border-radius: 8px !important;
+    min-width: 60px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.15s;
+}
+.admin-actions .btn-admin:hover {
+    opacity: 0.9;
+    transform: scale(1.02);
+}
+@media (max-width: 768px) {
+    #adminAstroList, #adminClientList {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+    .admin-user-card {
+        padding: 14px;
+    }
+    .admin-actions .btn-admin {
+        flex: 1 1 calc(33.33% - 6px);
+        font-size: 0.72rem !important;
+        padding: 8px 4px !important;
+    }
+}
     </style>
 </head>
 
@@ -3995,22 +4141,41 @@ body {
 
             state.me = session;
 
-            // Load all dashboard sections immediately
+            const registerAdmin = () => {
+                if (!state.me) return;
+                console.log('Registering socket for Super Admin...', state.me.userId);
+                socket.emit('register', { 
+                    name: state.me.name, 
+                    phone: state.me.phone, 
+                    userId: state.me.userId,
+                    adminUserId: state.me.userId 
+                }, (ack) => {
+                    console.log('Super Admin Registered ack:', ack);
+                    loadData();
+                });
+            };
+
+            // Register immediately and load data
+            registerAdmin();
             loadData();
 
-            console.log('Registering socket for Super Admin...');
-            socket.emit('register', { name: session.name, phone: session.phone, userId: session.userId }, (ack) => {
-                if (ack && ack.ok) {
-                    console.log('Super Admin Registered Successfully.');
-                    setInterval(updateTime, 60000);
-                    updateTime();
-                } else {
-                    console.error('Registration failed:', ack);
-                    localStorage.removeItem('astro_session');
-                    showAdminAuthModal('Session expired or invalid. Please authenticate again.');
-                }
-            });
+            setInterval(updateTime, 60000);
+            updateTime();
         }
+
+        socket.on('connect', () => {
+            console.log('Socket connected/reconnected for Admin.');
+            if (state.me && (state.me.role === 'superadmin' || state.me.role === 'admin')) {
+                socket.emit('register', { 
+                    name: state.me.name, 
+                    phone: state.me.phone, 
+                    userId: state.me.userId,
+                    adminUserId: state.me.userId 
+                }, () => {
+                    loadData();
+                });
+            }
+        });
 
         window.showAdminAuthModal = function(msg) {
             let modal = document.getElementById('admin-permit-modal');
@@ -4068,8 +4233,12 @@ body {
                     const modal = document.getElementById('admin-permit-modal');
                     if (modal) modal.remove();
                     init();
+                } else if (res.ok) {
+                    alert('Access Denied: This mobile number does not have Super Admin privileges. Current role: ' + (res.role || 'client'));
+                    btn.disabled = false;
+                    btn.innerText = 'Authorize & Enter';
                 } else {
-                    alert(res.error || 'Access Denied: Not authorized as Super Admin.');
+                    alert(res.error || 'Access Denied: Invalid Mobile Number or Passkey.');
                     btn.disabled = false;
                     btn.innerText = 'Authorize & Enter';
                 }
@@ -4896,16 +5065,49 @@ body {
         let clientDob = '';
 
         function fetchAllUsers() {
-            // Fetch Clients with City and DOB filters (Item 17)
+            const adminUid = state.me?.userId;
+            const astroList = document.getElementById('adminAstroList');
+            const clientList = document.getElementById('adminClientList');
+
+            if (astroList && (!astroList.children.length || astroList.querySelector('.loader'))) {
+                astroList.innerHTML = '<div class="loader"></div>';
+            }
+            if (clientList && (!clientList.children.length || clientList.querySelector('.loader'))) {
+                clientList.innerHTML = '<div class="loader"></div>';
+            }
+
+            let astroDone = false;
+            let clientDone = false;
+
+            // 1. Socket Fetch: Astrologers
+            socket.emit('admin-get-users', { 
+                role: 'astrologer', 
+                page: astroPage, 
+                limit: astroLimit, 
+                search: astroSearch,
+                adminUserId: adminUid 
+            }, (res) => {
+                if (res && res.ok) {
+                    astroDone = true;
+                    astroTotal = res.total || 0;
+                    renderAstrosList(res.users || []);
+                    updatePaginationUI('astro', res.page || 1, res.pages || 1, res.total || 0);
+                    updateUsersCache(res.users || []);
+                }
+            });
+
+            // 2. Socket Fetch: Clients
             socket.emit('admin-get-users', { 
                 role: 'client', 
                 page: clientPage, 
                 limit: clientLimit, 
                 search: clientSearch,
                 city: clientCity,
-                dob: clientDob
+                dob: clientDob,
+                adminUserId: adminUid
             }, (res) => {
-                if (res.ok) {
+                if (res && res.ok) {
+                    clientDone = true;
                     clientTotal = res.total || 0;
                     renderClientsList(res.users || []);
                     updatePaginationUI('client', res.page || 1, res.pages || 1, res.total || 0);
@@ -4913,15 +5115,50 @@ body {
                 }
             });
 
-            // Fetch Astrologers
-            socket.emit('admin-get-users', { role: 'astrologer', page: astroPage, limit: astroLimit, search: astroSearch }, (res) => {
-                if (res.ok) {
-                    astroTotal = res.total || 0;
-                    renderAstrosList(res.users || []);
-                    updatePaginationUI('astro', res.page || 1, res.pages || 1, res.total || 0);
-                    updateUsersCache(res.users || []);
+            // 3. Robust REST API Fallback
+            setTimeout(async () => {
+                if (!astroDone) {
+                    try {
+                        const params = new URLSearchParams({
+                            role: 'astrologer',
+                            page: astroPage,
+                            limit: astroLimit,
+                            search: astroSearch
+                        });
+                        const res = await fetch(`/api/admin/users?${params}`).then(r => r.json());
+                        if (res && res.ok) {
+                            astroTotal = res.total || 0;
+                            renderAstrosList(res.users || []);
+                            updatePaginationUI('astro', res.page || 1, res.pages || 1, res.total || 0);
+                            updateUsersCache(res.users || []);
+                        }
+                    } catch (err) {
+                        console.error('REST fetch astrologers error:', err);
+                    }
                 }
-            });
+
+                if (!clientDone) {
+                    try {
+                        const params = new URLSearchParams({
+                            role: 'client',
+                            page: clientPage,
+                            limit: clientLimit,
+                            search: clientSearch,
+                            city: clientCity,
+                            dob: clientDob
+                        });
+                        const res = await fetch(`/api/admin/users?${params}`).then(r => r.json());
+                        if (res && res.ok) {
+                            clientTotal = res.total || 0;
+                            renderClientsList(res.users || []);
+                            updatePaginationUI('client', res.page || 1, res.pages || 1, res.total || 0);
+                            updateUsersCache(res.users || []);
+                        }
+                    } catch (err) {
+                        console.error('REST fetch clients error:', err);
+                    }
+                }
+            }, 350);
         }
 
         function updateUsersCache(users) {
@@ -4991,8 +5228,14 @@ body {
 
         function renderClientsList(users) {
             const clientList = document.getElementById('adminClientList');
-            if (users.length === 0) {
-                clientList.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding:50px; color:var(--text-dim);">No clients found.</div>';
+            if (!clientList) return;
+            if (!users || users.length === 0) {
+                clientList.innerHTML = `
+                    <div style="grid-column: 1/-1; text-align:center; padding:50px 20px; background:#fff; border-radius:16px; border:1px dashed var(--border-soft); box-shadow:0 4px 16px rgba(0,0,0,0.02);">
+                        <i class="fas fa-users" style="font-size:2.8rem; color:#D1D5DB; margin-bottom:12px; display:block;"></i>
+                        <div style="font-weight:700; color:var(--text-main); font-size:1.1rem;">No clients found</div>
+                        <div style="font-size:0.85rem; color:var(--text-muted); margin-top:4px;">No client records match the current search or filters.</div>
+                    </div>`;
                 return;
             }
             clientList.innerHTML = users.map(u => renderUserCard(u)).join('');
@@ -5000,8 +5243,14 @@ body {
 
         function renderAstrosList(users) {
             const astroList = document.getElementById('adminAstroList');
-            if (users.length === 0) {
-                astroList.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding:50px; color:var(--text-dim);">No astrologers found.</div>';
+            if (!astroList) return;
+            if (!users || users.length === 0) {
+                astroList.innerHTML = `
+                    <div style="grid-column: 1/-1; text-align:center; padding:50px 20px; background:#fff; border-radius:16px; border:1px dashed var(--border-soft); box-shadow:0 4px 16px rgba(0,0,0,0.02);">
+                        <i class="fas fa-user-astronaut" style="font-size:2.8rem; color:#D1D5DB; margin-bottom:12px; display:block;"></i>
+                        <div style="font-weight:700; color:var(--text-main); font-size:1.1rem;">No astrologers found</div>
+                        <div style="font-size:0.85rem; color:var(--text-muted); margin-top:4px;">No astrologers have been registered or match your search.</div>
+                    </div>`;
                 return;
             }
             astroList.innerHTML = users.map(u => renderUserCard(u)).join('');
@@ -5018,21 +5267,32 @@ body {
             const name = u.name || 'Unnamed';
             const phone = u.phone || 'No Phone';
             const userId = u.userId || '';
-            const shortId = userId ? userId.slice(0, 6) : 'N/A';
-            const image = u.image || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(name) + '&background=random';
-            
+            const shortId = userId ? userId.slice(0, 8) : 'N/A';
+            const avatarSrc = u.image ? getImageUrl(u.image) : ('https://ui-avatars.com/api/?name=' + encodeURIComponent(name) + '&background=D4AF37&color=fff');
+            const statusBadge = isAstro ? (u.isOnline ? '<span style="display:inline-block; width:8px; height:8px; background:#10B981; border-radius:50%; margin-right:4px;"></span> Online' : '<span style="display:inline-block; width:8px; height:8px; background:#9CA3AF; border-radius:50%; margin-right:4px;"></span> Offline') : '';
+
             return `
-        <div class="admin-user-card">
-          <div class="admin-user-header" style="align-items: center; gap: 12px; display: flex;">
-            <img src="${image}"
-                 style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid #eee;">
-            <div style="flex: 1;">
-              <div class="admin-user-name">${name} ${u.isVerified ? '<i class="fas fa-check-circle" style="color:#3B82F6;"></i>' : ''}</div>
-              <div style="font-size:0.8rem; color:#6B7280;">${phone} | ID: ${shortId}</div>
+        <div class="admin-user-card" id="user-card-${userId}">
+          <div class="admin-user-header">
+            <img class="admin-user-avatar" src="${avatarSrc}" onerror="this.src='images/default-astro.png'" alt="${name}">
+            <div class="admin-user-info">
+              <div class="admin-user-name">
+                ${name} 
+                ${u.isVerified ? '<i class="fas fa-check-circle" style="color:#3B82F6;" title="Verified"></i>' : ''}
+              </div>
+              <div class="admin-user-meta">
+                <i class="fas fa-phone-alt" style="font-size:0.7rem; color:#9CA3AF;"></i> ${phone} &bull; ID: ${shortId}
+              </div>
+              ${isAstro ? `
+                <div style="font-size:0.75rem; color:#6B7280; margin-top:3px; display:flex; align-items:center; gap:8px;">
+                  <span>${statusBadge}</span>
+                  ${u.ratePerMinute || u.price ? `<span>&bull; ₹${u.ratePerMinute || u.price}/min</span>` : ''}
+                  ${u.approvalStatus ? `<span style="text-transform:capitalize; color:${u.approvalStatus === 'approved' ? '#059669' : '#D97706'}; font-weight:600;">&bull; ${u.approvalStatus}</span>` : ''}
+                </div>` : ''}
             </div>
-            <div style="text-align:right;">
-              <div style="font-weight:700; color:#059669;">₹${u.walletBalance || 0}</div>
-              <select onchange="changeUserRole('${userId}', this.value)" style="background: rgba(0,0,0,0.03); color: var(--text-main); border: 1px solid var(--border-soft); border-radius: 4px; font-size: 0.75rem; padding: 2px 4px; margin-top: 5px; outline: none; cursor: pointer;">
+            <div class="admin-user-badge-wrap">
+              <div class="admin-user-balance" title="Wallet / Earnings Balance">₹${(u.walletBalance || 0).toLocaleString('en-IN')}</div>
+              <select class="admin-role-select" onchange="changeUserRole('${userId}', this.value)" title="Change Role">
                   <option value="client" ${u.role === 'client' ? 'selected' : ''}>CLIENT</option>
                   <option value="astrologer" ${u.role === 'astrologer' ? 'selected' : ''}>ASTROLOGER</option>
                   <option value="superadmin" ${u.role === 'superadmin' ? 'selected' : ''}>SUPER ADMIN</option>
@@ -5041,12 +5301,12 @@ body {
           </div>
           <div class="admin-actions">
             ${isAstro ? `<button class="btn-admin" style="background: #4F46E5; color: white;" onclick="showPerformance('${userId}')"><i class="fas fa-chart-line"></i> Stats</button>` : ''}
-            <button class="btn-admin btn-edit" style="background: var(--primary); color: #000;" onclick="editUser('${userId}')"><i class="fas fa-edit"></i> Edit</button>
-            <button class="btn-admin btn-wallet" onclick="adminWallet('${userId}')"><i class="fas fa-plus"></i> Wallet</button>
-            <button class="btn-admin btn-block" onclick="toggleBan('${userId}', ${!u.isBanned})" style="background:${u.isBanned ? '#EF4444' : '#eee'}; color:${u.isBanned ? 'white' : '#666'};">
+            <button class="btn-admin btn-edit" style="background: #D4AF37; color: #000;" onclick="editUser('${userId}')"><i class="fas fa-edit"></i> Edit</button>
+            <button class="btn-admin btn-wallet" style="background: #10B981; color: white;" onclick="adminWallet('${userId}')"><i class="fas fa-plus"></i> Wallet</button>
+            <button class="btn-admin btn-block" onclick="toggleBan('${userId}', ${!u.isBanned})" style="background:${u.isBanned ? '#EF4444' : '#F3F4F6'}; color:${u.isBanned ? 'white' : '#4B5563'};">
               <i class="fas fa-ban"></i> ${u.isBanned ? 'Unblock' : 'Block'}
             </button>
-            <button class="btn-admin" style="background:#dc2626; color:white;" onclick="deleteUser('${userId}')"><i class="fas fa-trash"></i> Delete</button>
+            <button class="btn-admin" style="background:#DC2626; color:white;" onclick="deleteUser('${userId}')"><i class="fas fa-trash"></i> Delete</button>
           </div>
         </div>
       `;
@@ -5114,6 +5374,23 @@ body {
                 if (typeof loadPujaBookings === 'function') loadPujaBookings(1);
                 if (typeof fetchPujaSummary === 'function') fetchPujaSummary();
                 if (typeof fetchAdminStats === 'function') fetchAdminStats();
+                fetchAllUsers();
+            }
+            if (id === 'payouts') {
+                fetchAllUsers();
+                if (typeof fetchAdminStats === 'function') fetchAdminStats();
+            }
+            if (id === 'users') {
+                fetchAllUsers();
+            }
+            if (id === 'earnings') {
+                if (typeof fetchAdminStats === 'function') fetchAdminStats();
+            }
+            if (id === 'academy') {
+                if (typeof fetchAcademyVideos === 'function') fetchAcademyVideos();
+            }
+            if (id === 'slider') {
+                if (typeof fetchBanners === 'function') fetchBanners();
             }
             if (id === 'withdrawals') loadAllWithdrawals();
             if (id === 'slab') loadSlabRates();

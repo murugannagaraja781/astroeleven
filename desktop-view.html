@@ -6294,20 +6294,42 @@
     }
 
     // Chat Logic
-    const appendMsg = (txt, isMe, messageId, timestamp = Date.now()) => {
+    const appendMsg = (txt, isMe, messageId, timestamp = Date.now(), msgType = 'text', fileUrl = '') => {
       const t = new Date(timestamp);
       const timeStr = t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       const mid = messageId || Date.now();
 
+      const isVoice = msgType === 'audio' || msgType === 'voice' || (txt && (txt.startsWith('Voice Message|') || txt.startsWith('[VOICE]:')));
+      let audioHtml = '';
+      if (isVoice) {
+        let src = fileUrl || '';
+        if (!src && txt && txt.startsWith('[VOICE]:')) {
+          src = txt.substring(8).split('|')[0] || '';
+        }
+        if (src) {
+          const fullSrc = src.startsWith('http') ? src : (window.location.origin + (src.startsWith('/') ? src : '/' + src));
+          audioHtml = `
+            <div style="margin: 6px 0;">
+              <audio controls style="max-width: 250px; height: 36px; border-radius: 18px;" preload="none">
+                <source src="${fullSrc}" type="audio/mp4">
+                <source src="${fullSrc}" type="audio/aac">
+                Your browser does not support audio.
+              </audio>
+            </div>
+          `;
+        }
+      }
+
       const div = document.createElement('div');
       div.id = 'msg-' + mid;
-      div.style.cssText = 'max-width: 80%; padding: 8px 12px; border-radius: 12px; margin-bottom: 8px; font-size: 0.9rem; align-self: ' + (isMe ? 'flex-end' : 'flex-start') + '; background: ' + (isMe ? '#FFD700' : 'white') + '; border: ' + (isMe ? 'none' : '1px solid #eee') + '; color: #DDCBB4; margin-left: ' + (isMe ? 'auto' : '0') + '; display:flex; flex-direction:column; min-width:100px; font-weight: bold;';
+      div.style.cssText = 'max-width: 80%; padding: 8px 12px; border-radius: 12px; margin-bottom: 8px; font-size: 0.9rem; align-self: ' + (isMe ? 'flex-end' : 'flex-start') + '; background: ' + (isMe ? '#FFD700' : 'white') + '; border: ' + (isMe ? 'none' : '1px solid #eee') + '; color: #222; margin-left: ' + (isMe ? 'auto' : '0') + '; display:flex; flex-direction:column; min-width:100px; font-weight: normal;';
 
       // Ticks for ME
       const tickHtml = isMe ? `<span class="msg-tick" id="tick-${mid}" style="margin-left:5px; font-size:0.7rem; color:#777;">✓</span>` : '';
 
       div.innerHTML = `
-    <div style="word-wrap:break-word;">${txt}</div>
+    <div style="word-wrap:break-word; font-weight: 500;">${txt}</div>
+    ${audioHtml}
     <div style="display:flex; justify-content:flex-end; align-items:center; margin-top:2px;">
        <span style="font-size:0.65rem; color:#666; margin-right:2px;">${timeStr}</span>
        ${tickHtml}
@@ -6360,7 +6382,9 @@
           }, 1000);
         }
 
-        appendMsg(d.content.text || 'Message', false, d.messageId, d.timestamp);
+        const mType = (d.content && d.content.type) || d.type || 'text';
+        const mUrl = (d.content && d.content.fileUrl) || d.fileUrl || '';
+        appendMsg((d.content && d.content.text) || d.text || 'Message', false, d.messageId, d.timestamp, mType, mUrl);
       }
     });
 

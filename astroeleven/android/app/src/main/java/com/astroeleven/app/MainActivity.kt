@@ -31,7 +31,8 @@ import com.astroeleven.app.utils.FcmTokenHelper
 import com.android.installreferrer.api.InstallReferrerClient
 import com.android.installreferrer.api.InstallReferrerStateListener
 import com.android.installreferrer.api.ReferrerDetails
-import kotlinx.coroutines.CoroutineScope
+import androidx.lifecycle.lifecycleScope
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -47,15 +48,24 @@ class MainActivity : AppCompatActivity() {
     }
 
     private lateinit var tokenManager: TokenManager
+    private val hasNavigated = AtomicBoolean(false)
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
-        if (isGranted) Log.d(TAG, "Notification permission granted")
+        Log.d(TAG, "Notification permission result: $isGranted")
         proceedToNextScreen()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Prevent duplicate instances when app is reopened from launcher icon
+        if (!isTaskRoot && intent.hasCategory(Intent.CATEGORY_LAUNCHER) && intent.action != null && intent.action == Intent.ACTION_MAIN) {
+            Log.d(TAG, "MainActivity is not task root. Finishing duplicate instance.")
+            super.onCreate(savedInstanceState)
+            finish()
+            return
+        }
+
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         tokenManager = TokenManager(this)
@@ -75,7 +85,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Add a small delay for splash effect or to ensure permissions logic runs
-        CoroutineScope(Dispatchers.Main).launch {
+        lifecycleScope.launch {
             delay(1000)
             
             // Check if app was updated and log out if necessary
@@ -103,14 +113,39 @@ class MainActivity : AppCompatActivity() {
 
             checkPermissionsAndProceed()
         }
+
+        // HARD SAFETY TIMEOUT: Under NO circumstances allow the user to be stuck on the splash screen!
+        lifecycleScope.launch {
+            delay(2500)
+            if (!hasNavigated.get()) {
+                Log.w(TAG, "Splash safety timeout reached (2500ms) - forcing navigation to next screen")
+                proceedToNextScreen()
+            }
+        }
     }
 
     private fun checkPermissionsAndProceed() {
+        if (hasNavigated.get()) return
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
                 proceedToNextScreen()
             } else {
-                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                // If permission is not granted, launch request, but set a fallback so that
+                // if the dialog is suppressed by Android or already denied, navigation will proceed!
+                lifecycleScope.launch {
+                    delay(1200)
+                    if (!hasNavigated.get()) {
+                        Log.d(TAG, "Notification permission fallback triggered - proceeding")
+                        proceedToNextScreen()
+                    }
+                }
+                try {
+                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to launch notification permission launcher", e)
+                    proceedToNextScreen()
+                }
             }
         } else {
             proceedToNextScreen()
@@ -165,25 +200,30 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun proceedToNextScreen() {
+        if (!hasNavigated.compareAndSet(false, true)) return
+        if (isFinishing || isDestroyed) return
+
         val session = tokenManager.getUserSession()
-        if (session != null) {
+        val targetIntent = if (session != null) {
             Log.d(TAG, "User logged in: ${session.role}")
             when (session.role) {
                 "astrologer" -> {
-                    startActivity(Intent(this, com.astroeleven.app.ui.astro.AstrologerDashboardActivity::class.java))
+                    Intent(this, com.astroeleven.app.ui.astro.AstrologerDashboardActivity::class.java)
                 }
                 "admin" -> {
-                    // Placeholder for now, typically native or webview
-                    startActivity(Intent(this, com.astroeleven.app.ui.guest.GuestDashboardActivity::class.java))
+                    Intent(this, com.astroeleven.app.ui.guest.GuestDashboardActivity::class.java)
                 }
                 else -> { // "user" or default
-                    startActivity(Intent(this, HomeActivity::class.java))
+                    Intent(this, HomeActivity::class.java)
                 }
             }
         } else {
             Log.d(TAG, "User not logged in, going to Guest Dashboard")
-            startActivity(Intent(this, com.astroeleven.app.ui.guest.GuestDashboardActivity::class.java))
+            Intent(this, com.astroeleven.app.ui.guest.GuestDashboardActivity::class.java)
         }
+
+        targetIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        startActivity(targetIntent)
         finish()
     }
 }

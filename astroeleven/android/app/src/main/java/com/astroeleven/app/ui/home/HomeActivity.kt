@@ -215,6 +215,24 @@ class HomeActivity : AppCompatActivity() {
 
         // Setup Socket for real-time updates
         setupSocket()
+
+        // Graceful Back Press: Moves app to background safely instead of abruptly killing the process
+        setupBackPressHandler()
+    }
+
+    private fun setupBackPressHandler() {
+        onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
+            private var lastBackPressTime = 0L
+            override fun handleOnBackPressed() {
+                val currentTime = System.currentTimeMillis()
+                if (currentTime - lastBackPressTime < 2000) {
+                    moveTaskToBack(true)
+                } else {
+                    lastBackPressTime = currentTime
+                    Toast.makeText(this@HomeActivity, "Press back again to exit", Toast.LENGTH_SHORT).show()
+                }
+            }
+        })
     }
 
     // Composable State (Must be hoisted or handled via callback to Compose)

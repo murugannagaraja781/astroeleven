@@ -33,7 +33,7 @@ class MuhurthamActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        val isTamil = getSharedPreferences("app_prefs", MODE_PRIVATE).getBoolean("is_tamil", false)
+        val isTamil = getSharedPreferences("app_prefs", MODE_PRIVATE).getBoolean("is_tamil", true)
 
         setContent {
             MaterialTheme {

@@ -21,27 +21,39 @@ class VoiceRecorder(private val context: Context) {
         val fileName = "voice_${System.currentTimeMillis()}.mp4"
         outputFile = "${context.cacheDir.absolutePath}/$fileName"
 
-        recorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            MediaRecorder(context)
-        } else {
-            MediaRecorder()
-        }.apply {
-            setAudioSource(MediaRecorder.AudioSource.MIC)
-            setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-            setOutputFile(outputFile)
-            try {
+        try {
+            val rec = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                MediaRecorder(context)
+            } else {
+                MediaRecorder()
+            }
+            rec.apply {
+                setAudioSource(MediaRecorder.AudioSource.MIC)
+                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                setAudioEncodingBitRate(128000)
+                setAudioSamplingRate(44100)
+                setOutputFile(outputFile)
                 prepare()
                 start()
-                isRecording = true
-                startTime = System.currentTimeMillis()
-                return outputFile
-            } catch (e: IOException) {
-                Log.e("VoiceRecorder", "prepare() failed", e)
-                return null
             }
+            recorder = rec
+            isRecording = true
+            startTime = System.currentTimeMillis()
+            return outputFile
+        } catch (e: Exception) {
+            Log.e("VoiceRecorder", "startRecording() failed", e)
+            try {
+                recorder?.release()
+            } catch (ignored: Exception) {}
+            recorder = null
+            isRecording = false
+            val file = File(outputFile)
+            if (file.exists()) {
+                file.delete()
+            }
+            return null
         }
-        return outputFile
     }
 
     fun stopRecording(): Long {
@@ -54,9 +66,11 @@ class VoiceRecorder(private val context: Context) {
             }
         } catch (e: Exception) {
             Log.e("VoiceRecorder", "stop() failed", e)
+            try { recorder?.release() } catch (ignored: Exception) {}
+        } finally {
+            recorder = null
+            isRecording = false
         }
-        recorder = null
-        isRecording = false
         return duration
     }
 
@@ -68,10 +82,12 @@ class VoiceRecorder(private val context: Context) {
                 release()
             }
         } catch (e: Exception) {
-            Log.e("VoiceRecorder", "stop() failed", e)
+            Log.e("VoiceRecorder", "cancel() failed", e)
+            try { recorder?.release() } catch (ignored: Exception) {}
+        } finally {
+            recorder = null
+            isRecording = false
         }
-        recorder = null
-        isRecording = false
         val file = File(outputFile)
         if (file.exists()) {
             file.delete()

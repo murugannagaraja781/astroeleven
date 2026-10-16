@@ -96,6 +96,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTop"
             android:theme="@style/Theme.FCMCallApp">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -111,11 +112,11 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".ui.guest.GuestDashboardActivity" />
+        <activity android:name=".ui.guest.GuestDashboardActivity" android:launchMode="singleTask" />
         <activity android:name=".ui.shop.ShopActivity" />
         <activity android:name=".ui.academy.AcademyActivity" />
         <activity android:name=".ui.horoscope.FreeHoroscopeActivity" />
-        <activity android:name=".ui.astro.AstrologerDashboardActivity" />
+        <activity android:name=".ui.astro.AstrologerDashboardActivity" android:launchMode="singleTask" />
         <activity android:name=".ui.astro.AstrologerHistoryActivity" />
         <activity android:name=".ui.astro.PermissionActivity"
             android:theme="@style/Theme.FCMCallApp" />
@@ -143,7 +144,7 @@
         <activity android:name=".ui.auth.AstrologerRegistrationActivity" />
         <activity android:name=".ui.support.FeedbackSupportActivity" />
         <activity android:name=".ui.rituals.RemediesActivity" />
-        <activity android:name=".ui.home.HomeActivity" />
+        <activity android:name=".ui.home.HomeActivity" android:launchMode="singleTask" />
         <activity android:name=".ui.wallet.WalletActivity" />
         <activity android:name=".ui.wallet.SuperWalletActivity" />
         <activity android:name=".ui.chat.ChatActivity" android:windowSoftInputMode="adjustResize" android:launchMode="singleTop" android:showWhenLocked="true" android:turnScreenOn="true"/>

@@ -360,3 +360,77 @@ exports.updateSmtpConfig = async (req, res) => {
     }
 };
 
+exports.getUsers = async (req, res) => {
+    try {
+        const { role, page = 1, limit = 10, search = '', city = '', dob = '', exportAll = false } = req.query;
+        const parsedPage = Math.max(1, parseInt(page) || 1);
+        const parsedLimit = Math.max(1, parseInt(limit) || 10);
+
+        const query = {};
+        if (role) {
+            query.role = role;
+        }
+
+        const andConditions = [];
+
+        if (search) {
+            const searchRegex = new RegExp(search.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'i');
+            andConditions.push({
+                $or: [
+                    { name: searchRegex },
+                    { phone: searchRegex },
+                    { userId: searchRegex },
+                    { email: searchRegex }
+                ]
+            });
+        }
+
+        if (city) {
+            const cityRegex = new RegExp(city.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'i');
+            andConditions.push({
+                $or: [
+                    { pob: cityRegex },
+                    { address: cityRegex },
+                    { 'birthDetails.pob': cityRegex }
+                ]
+            });
+        }
+
+        if (dob) {
+            const dobRegex = new RegExp(dob.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'i');
+            andConditions.push({
+                $or: [
+                    { dob: dobRegex },
+                    { 'birthDetails.dob': dobRegex }
+                ]
+            });
+        }
+
+        if (andConditions.length > 0) {
+            query.$and = andConditions;
+        }
+
+        const total = await User.countDocuments(query);
+        let users;
+        if (exportAll === 'true' || exportAll === true) {
+            users = await User.find(query).sort({ _id: -1 }).limit(5000);
+        } else {
+            users = await User.find(query)
+                .sort({ _id: -1 })
+                .skip((parsedPage - 1) * parsedLimit)
+                .limit(parsedLimit);
+        }
+
+        res.json({
+            ok: true,
+            users,
+            total,
+            page: parsedPage,
+            pages: Math.ceil(total / parsedLimit)
+        });
+    } catch (e) {
+        console.error('[AdminController] Error in getUsers:', e);
+        res.status(500).json({ ok: false, error: 'Failed to fetch users' });
+    }
+};
+

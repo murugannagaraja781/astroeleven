@@ -126,6 +126,24 @@ class AstrologerDashboardActivity : ComponentActivity() {
                 }
             }
         }
+
+        // Graceful Back Press: Moves astrologer dashboard to background safely
+        setupBackPressHandler()
+    }
+
+    private fun setupBackPressHandler() {
+        onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
+            private var lastBackPressTime = 0L
+            override fun handleOnBackPressed() {
+                val currentTime = System.currentTimeMillis()
+                if (currentTime - lastBackPressTime < 2000) {
+                    moveTaskToBack(true)
+                } else {
+                    lastBackPressTime = currentTime
+                    Toast.makeText(this@AstrologerDashboardActivity, "Press back again to exit", Toast.LENGTH_SHORT).show()
+                }
+            }
+        })
     }
 
     private fun performLogout() {
@@ -400,6 +418,23 @@ fun AstrologerDashboardScreen(
     val tokenManager = remember { TokenManager(context) }
     var todayProgress by remember { mutableIntStateOf(tokenManager.getDailyProgress()) }
 
+        val colors = remember {
+        object {
+            val accent = Color(0xFFE1353C) // Brand Red
+            val goldAccent = Color(0xFFFDBA16) // Brand Gold
+            val cardBg = Color(0xFFFFFFFF) // White Card
+            val cardStroke = Color(0xFFE1353C).copy(alpha = 0.15f) // Soft Red Border
+            val textPrimary = Color(0xFF1A1A1A) // Near Black
+            val textSecondary = Color(0xFF616161) // Slate Gray
+            val headerGradient = Brush.verticalGradient(
+                colors = listOf(Color(0xFFE1353C), Color(0xFFB71C1C)) // Red Gradient
+            )
+            val bgGradient = Brush.verticalGradient(
+                colors = listOf(Color(0xFFFCFCFC), Color(0xFFFFFFFF)) // Light background gradient
+            )
+        }
+    }
+
     val scrollState = rememberScrollState()
     val scope = rememberCoroutineScope()
 
@@ -412,6 +447,15 @@ fun AstrologerDashboardScreen(
     var reviewsCount by remember { mutableIntStateOf(42) }
     var starsRating by remember { mutableFloatStateOf(4.9f) }
 
+    // Earnings & Profile Edit states
+    var totalEarnings by remember { mutableDoubleStateOf(0.0) }
+    var experienceYears by remember { mutableStateOf("5") }
+    var professionBio by remember { mutableStateOf("Vedic Astrologer") }
+    var upiIdState by remember { mutableStateOf("") }
+    var currentDisplayName by remember { mutableStateOf(sessionName) }
+    var showEarningsReportDialog by remember { mutableStateOf(false) }
+    var showEditProfileDialog by remember { mutableStateOf(false) }
+
     fun refreshBalanceAndHistory() {
         scope.launch(kotlinx.coroutines.Dispatchers.IO) {
             try {
@@ -423,6 +467,18 @@ fun AstrologerDashboardScreen(
                 if (response.isSuccessful) {
                     val json = JSONObject(response.body?.string() ?: "{}")
                     walletBalance = json.optDouble("walletBalance", walletBalance)
+                    totalEarnings = json.optDouble("totalEarnings", totalEarnings)
+                    currentDisplayName = json.optString("name", currentDisplayName)
+                    professionBio = json.optString("profession", "Vedic Astrologer")
+                    val expFromDb = json.optString("astrologyExperience", "")
+                    if (expFromDb.isNotEmpty()) {
+                        experienceYears = expFromDb
+                    } else {
+                        val numExp = json.optInt("experience", 5)
+                        experienceYears = numExp.toString()
+                    }
+                    upiIdState = json.optString("upiId", "")
+
                     val chatPriceFromDb = json.optDouble("chatPrice", 15.0)
                     val callPriceFromDb = json.optDouble("callPrice", 15.0)
                     val videoPriceFromDb = json.optDouble("videoPrice", 20.0)
@@ -434,7 +490,7 @@ fun AstrologerDashboardScreen(
                     val audioFromDb = json.optBoolean("isAudioOnline", false)
                     val videoFromDb = json.optBoolean("isVideoOnline", false)
 
-                    android.util.Log.d("AstroDashboard", "Sync from DB: Chat=$chatFromDb, Audio=$audioFromDb, Video=$videoFromDb")
+                    android.util.Log.d("AstroDashboard", "Sync from DB: Chat=$chatFromDb, Audio=$audioFromDb, Video=$videoFromDb, Earnings=$totalEarnings")
 
                     isChatOnline = chatFromDb
                     isAudioOnline = audioFromDb
@@ -639,6 +695,218 @@ fun AstrologerDashboardScreen(
         )
     }
 
+    if (showEditProfileDialog) {
+        var nameInput by remember { mutableStateOf(currentDisplayName) }
+        var bioInput by remember { mutableStateOf(professionBio) }
+        var expInput by remember { mutableStateOf(experienceYears) }
+        var upiInput by remember { mutableStateOf(upiIdState) }
+        var isSavingProfile by remember { mutableStateOf(false) }
+
+        AlertDialog(
+            onDismissRequest = { showEditProfileDialog = false },
+            title = {
+                Text(
+                    "Edit Astrologer Profile / சுயவிவரம்",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = Color(0xFFE1353C)
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedTextField(
+                        value = nameInput,
+                        onValueChange = { nameInput = it },
+                        label = { Text("Display Name / பெயர்") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = bioInput,
+                        onValueChange = { bioInput = it },
+                        label = { Text("About Bio / தொழில் விவரம்") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = expInput,
+                        onValueChange = { expInput = it },
+                        label = { Text("Experience in Years / அனுபவம்") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = upiInput,
+                        onValueChange = { upiInput = it },
+                        label = { Text("UPI ID (for Payouts / பணம் பெற)") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        isSavingProfile = true
+                        scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                            try {
+                                val updates = JSONObject().apply {
+                                    put("name", nameInput)
+                                    put("profession", bioInput)
+                                    put("astrologyExperience", expInput)
+                                    put("experience", expInput.toIntOrNull() ?: 5)
+                                    put("upiId", upiInput)
+                                }
+                                SocketManager.updateProfile(updates) { res ->
+                                    scope.launch(kotlinx.coroutines.Dispatchers.Main) {
+                                        isSavingProfile = false
+                                        if (res?.optBoolean("ok") == true) {
+                                            currentDisplayName = nameInput
+                                            professionBio = bioInput
+                                            experienceYears = expInput
+                                            upiIdState = upiInput
+                                            showEditProfileDialog = false
+                                            Toast.makeText(context, "Profile Updated Successfully!", Toast.LENGTH_SHORT).show()
+                                            refreshBalanceAndHistory()
+                                        } else {
+                                            Toast.makeText(context, "Failed to update profile", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                    isSavingProfile = false
+                                    Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE1353C)),
+                    enabled = !isSavingProfile
+                ) {
+                    if (isSavingProfile) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White)
+                    } else {
+                        Text("Save Changes", fontWeight = FontWeight.Bold)
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditProfileDialog = false }) {
+                    Text("Cancel", color = Color.Gray)
+                }
+            }
+        )
+    }
+
+    if (showEarningsReportDialog) {
+        AlertDialog(
+            onDismissRequest = { showEarningsReportDialog = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.MonetizationOn, null, tint = Color(0xFFE1353C))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "Earnings & Revenue Report",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        color = colors.textPrimary
+                    )
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Available Balance Card
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF7ED)),
+                        shape = RoundedCornerShape(14.dp),
+                        border = BorderStroke(1.dp, Color(0xFFFF8F00).copy(alpha = 0.3f))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(14.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text("WITHDRAWABLE BALANCE", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC2410C))
+                                Text("₹${String.format("%.2f", walletBalance)}", fontSize = 24.sp, fontWeight = FontWeight.Black, color = Color(0xFF9A3412))
+                            }
+                            Button(
+                                onClick = {
+                                    showEarningsReportDialog = false
+                                    showWithdrawDialog = true
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE1353C)),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Text("Withdraw", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+
+                    // Total Lifetime Earnings Card
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF0FDF4)),
+                        shape = RoundedCornerShape(14.dp),
+                        border = BorderStroke(1.dp, Color(0xFF22C55E).copy(alpha = 0.3f))
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth().padding(14.dp)) {
+                            Text("TOTAL LIFETIME EARNED / மொத்த வருமானம்", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF15803D))
+                            Text("₹${String.format("%.2f", if (totalEarnings > 0) totalEarnings else walletBalance)}", fontSize = 24.sp, fontWeight = FontWeight.Black, color = Color(0xFF166534))
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("Accumulated from all chats, audio calls & video consultations", fontSize = 10.sp, color = Color(0xFF15803D).copy(alpha = 0.8f))
+                        }
+                    }
+
+                    // Service Rate Breakdown
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        shape = RoundedCornerShape(14.dp),
+                        border = BorderStroke(1.dp, colors.cardStroke)
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Current Service Rates / கட்டண விபரம்", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
+                            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(colors.cardStroke))
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Chat Consultation:", fontSize = 12.sp, color = colors.textSecondary)
+                                Text("₹$chatRate / min", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
+                            }
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Audio Call Consultation:", fontSize = 12.sp, color = colors.textSecondary)
+                                Text("₹$callRate / min", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
+                            }
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Video Consultation:", fontSize = 12.sp, color = colors.textSecondary)
+                                Text("₹$videoRate / min", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showEarningsReportDialog = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = colors.accent)
+                ) {
+                    Text("Close", fontWeight = FontWeight.Bold)
+                }
+            }
+        )
+    }
+
 
     val actions = listOf(
         "Call" to Icons.Default.Call,
@@ -649,22 +917,7 @@ fun AstrologerDashboardScreen(
         "Add Rate" to Icons.Default.MonetizationOn
     )
 
-    val colors = remember {
-        object {
-            val accent = Color(0xFFE1353C) // Brand Red
-            val goldAccent = Color(0xFFFDBA16) // Brand Gold
-            val cardBg = Color(0xFFFFFFFF) // White Card
-            val cardStroke = Color(0xFFE1353C).copy(alpha = 0.15f) // Soft Red Border
-            val textPrimary = Color(0xFF1A1A1A) // Near Black
-            val textSecondary = Color(0xFF616161) // Slate Gray
-            val headerGradient = Brush.verticalGradient(
-                colors = listOf(Color(0xFFE1353C), Color(0xFFB71C1C)) // Red Gradient
-            )
-            val bgGradient = Brush.verticalGradient(
-                colors = listOf(Color(0xFFFCFCFC), Color(0xFFFFFFFF)) // Light background gradient
-            )
-        }
-    }
+
 
 // Deprecated local function removed
 
@@ -1066,7 +1319,7 @@ fun AstrologerDashboardScreen(
                 ) {
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("CREDIT BALANCE", color = Color.White.copy(alpha = 0.9f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text("WITHDRAWABLE BALANCE", color = Color.White.copy(alpha = 0.9f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             Spacer(modifier = Modifier.weight(1f))
                             Box(
                                 modifier = Modifier
@@ -1076,11 +1329,11 @@ fun AstrologerDashboardScreen(
                                 Text("Min. ₹500", color = Color(0xFFFFF7ED), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                             }
                         }
-                        Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = "₹${String.format("%.2f", walletBalance)}",
-                                fontSize = 34.sp,
+                                fontSize = 32.sp,
                                 fontWeight = FontWeight.Black,
                                 color = Color.White
                             )
@@ -1090,9 +1343,36 @@ fun AstrologerDashboardScreen(
                                 colors = ButtonDefaults.buttonColors(containerColor = Color.White),
                                 border = BorderStroke(1.dp, Color.White),
                                 shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier.height(40.dp)
+                                modifier = Modifier.height(38.dp)
                             ) {
-                                Text("Withdraw", color = colors.accent, fontWeight = FontWeight.ExtraBold)
+                                Text("Withdraw", color = colors.accent, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp)
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(14.dp))
+                        // Total Lifetime Earnings Row
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color.Black.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
+                                .clickable { showEarningsReportDialog = true }
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.MonetizationOn, null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("மொத்த வருமானம் (Lifetime):", color = Color.White.copy(alpha = 0.95f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "₹${String.format("%.2f", if (totalEarnings > 0) totalEarnings else walletBalance)}",
+                                    color = Color.White,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.ExtraBold
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(Icons.Default.Star, null, tint = Color(0xFFFFD700), modifier = Modifier.size(12.dp))
                             }
                         }
                     }
@@ -1279,25 +1559,9 @@ fun AstrologerDashboardScreen(
                                      .clickable {
                                          when (label) {
                                              "Call" -> showRecordingsDialog(context)
-                                             "Profile" -> {
-                                                 val intent = Intent(context, com.astroeleven.app.ui.profile.AstrologerProfileActivity::class.java).apply {
-                                                     putExtra("astro_id", sessionId)
-                                                     putExtra("astro_name", sessionName)
-                                                     putExtra("astro_image", profileImage ?: "")
-                                                     putExtra("astro_exp", "5")
-                                                     putExtra("astro_skills", "Vedic, Tarot")
-                                                     putExtra("astro_price", 15)
-                                                      putExtra("chat_price", chatRate.toIntOrNull() ?: 15)
-                                                      putExtra("call_price", callRate.toIntOrNull() ?: 15)
-                                                      putExtra("video_price", videoRate.toIntOrNull() ?: 20)
-                                                     putExtra("is_chat_online", isChatOnline)
-                                                     putExtra("is_audio_online", isAudioOnline)
-                                                     putExtra("is_video_online", isVideoOnline)
-                                                 }
-                                                 context.startActivity(intent)
-                                             }
+                                             "Profile" -> { showEditProfileDialog = true }
                                              "History" -> context.startActivity(Intent(context, com.astroeleven.app.ui.astro.AstrologerHistoryActivity::class.java))
-                                             "Earnings" -> Toast.makeText(context, "Redirecting to detailed reports...", Toast.LENGTH_SHORT).show()
+                                             "Earnings" -> { showEarningsReportDialog = true }
                                              "Add Rate" -> { showAddRateDialog = true }
                                              "Edit Tags" -> { showEditSkillsDialog = true }
                                              "Star" -> Toast.makeText(context, "Feedback metrics panel", Toast.LENGTH_SHORT).show()

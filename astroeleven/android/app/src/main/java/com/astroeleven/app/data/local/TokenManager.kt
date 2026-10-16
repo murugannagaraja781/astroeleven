@@ -6,45 +6,80 @@ import androidx.security.crypto.MasterKey
 import com.astroeleven.app.data.model.AuthResponse
 import com.google.gson.Gson
 
-class TokenManager(context: Context) {
+class TokenManager(private val context: Context) {
 
-    private val masterKey = MasterKey.Builder(context)
-        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-        .build()
+    companion object {
+        private const val TAG = "TokenManager"
+        private const val PREFS_NAME = "secure_prefs"
+        private const val BACKUP_PREFS_NAME = "astro_prefs_backup"
+    }
 
-    private val sharedPreferences = try {
-        EncryptedSharedPreferences.create(
-            context,
-            "secure_prefs",
-            masterKey,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
-    } catch (e: Exception) {
-        // Fix for "Keystore was tampered with or new install" crash
-        context.getSharedPreferences("secure_prefs", Context.MODE_PRIVATE).edit().clear().apply()
-        // Try deleting file as well for safety
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-            context.deleteSharedPreferences("secure_prefs")
+    private val backupPreferences: android.content.SharedPreferences by lazy {
+        context.getSharedPreferences(BACKUP_PREFS_NAME, Context.MODE_PRIVATE)
+    }
+
+    private val sharedPreferences: android.content.SharedPreferences = initPreferences(context)
+
+    private fun initPreferences(ctx: Context): android.content.SharedPreferences {
+        return try {
+            val masterKey = MasterKey.Builder(ctx)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build()
+
+            EncryptedSharedPreferences.create(
+                ctx,
+                PREFS_NAME,
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            )
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "EncryptedSharedPreferences failed, attempting safe recovery", e)
+            try {
+                // Try recovery with a recreated MasterKey
+                val masterKey = MasterKey.Builder(ctx)
+                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                    .build()
+
+                EncryptedSharedPreferences.create(
+                    ctx,
+                    PREFS_NAME,
+                    masterKey,
+                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+                )
+            } catch (e2: Exception) {
+                android.util.Log.e(TAG, "EncryptedSharedPreferences recovery failed, using safe backup SharedPreferences", e2)
+                ctx.getSharedPreferences(BACKUP_PREFS_NAME, Context.MODE_PRIVATE)
+            }
         }
-
-        // Retry creating
-        EncryptedSharedPreferences.create(
-            context,
-            "secure_prefs",
-            masterKey,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
     }
 
     fun saveUserSession(auth: AuthResponse) {
         val json = Gson().toJson(auth)
-        sharedPreferences.edit().putString("user_session", json).apply()
+        try {
+            sharedPreferences.edit().putString("user_session", json).apply()
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "Failed writing to sharedPreferences", e)
+        }
+        try {
+            backupPreferences.edit().putString("user_session", json).apply()
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "Failed writing to backupPreferences", e)
+        }
     }
 
     fun getUserSession(): AuthResponse? {
-        val json = sharedPreferences.getString("user_session", null) ?: return null
+        val json = try {
+            sharedPreferences.getString("user_session", null)
+        } catch (e: Exception) {
+            null
+        } ?: try {
+            backupPreferences.getString("user_session", null)
+        } catch (e: Exception) {
+            null
+        } ?: return null
+
         return try {
             Gson().fromJson(json, AuthResponse::class.java)
         } catch (e: Exception) {
@@ -53,7 +88,16 @@ class TokenManager(context: Context) {
     }
 
     fun clearSession() {
-        sharedPreferences.edit().clear().apply()
+        try {
+            sharedPreferences.edit().clear().apply()
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "Failed clearing sharedPreferences", e)
+        }
+        try {
+            backupPreferences.edit().clear().apply()
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "Failed clearing backupPreferences", e)
+        }
     }
 
     fun isLoggedIn(): Boolean {

@@ -37,12 +37,12 @@ class CalendarActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        val isTamil = getSharedPreferences("app_prefs", MODE_PRIVATE).getBoolean("is_tamil", false)
+        val isTamil = getSharedPreferences("app_prefs", MODE_PRIVATE).getBoolean("is_tamil", true)
         val initialTab = intent.getIntExtra("selectedTab", 1)
 
         setContent {
             MaterialTheme {
-                CalendarScreen(isTamil = isTamil, initialTab = initialTab, onBack = { finish() })
+                CalendarScreen(initialIsTamil = isTamil, initialTab = initialTab, onBack = { finish() })
             }
         }
     }
@@ -88,7 +88,9 @@ data class CalendarGridCell(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CalendarScreen(isTamil: Boolean, initialTab: Int = 1, onBack: () -> Unit) {
+fun CalendarScreen(initialIsTamil: Boolean = true, initialTab: Int = 1, onBack: () -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var isTamil by remember { mutableStateOf(initialIsTamil) }
     var selectedTab by remember { mutableStateOf(initialTab) } // 0 = Daily View, 1 = Monthly View
     
     // --- Daily Calendar States ---
@@ -299,6 +301,42 @@ fun CalendarScreen(isTamil: Boolean, initialTab: Int = 1, onBack: () -> Unit) {
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Rounded.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    }
+                },
+                actions = {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color.White.copy(alpha = 0.2f),
+                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.4f)),
+                        modifier = Modifier
+                            .padding(end = 12.dp)
+                            .clickable {
+                                val newLang = !isTamil
+                                isTamil = newLang
+                                context.getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE)
+                                    .edit()
+                                    .putBoolean("is_tamil", newLang)
+                                    .apply()
+                            }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (isTamil) "தமிழ்" else "ENG",
+                                color = Color(0xFFFFF9C4),
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 12.sp
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = if (isTamil) "⇄ ENG" else "⇄ தமிழ்",
+                                color = Color.White.copy(alpha = 0.85f),
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 10.sp
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFFB3262A))

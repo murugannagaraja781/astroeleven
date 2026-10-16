@@ -93,6 +93,39 @@ function buildWhereClause(query) {
             continue;
         }
 
+        // Support for $and operator
+        if (key === '$and' && Array.isArray(val)) {
+            const andClauses = [];
+            for (const subQuery of val) {
+                const { clause: subClause, values: subValues } = buildWhereClause(subQuery);
+                andClauses.push(`(${subClause})`);
+                values.push(...subValues);
+            }
+            if (andClauses.length > 0) {
+                clauses.push(`(${andClauses.join(' AND ')})`);
+            }
+            continue;
+        }
+
+        // Handle nested dot notation safely (e.g., birthDetails.pob)
+        if (dbKey.includes('.')) {
+            const [rootCol] = dbKey.split('.');
+            if (val instanceof RegExp) {
+                let pattern = val.source.replace(/^\^|\$$/g, '');
+                clauses.push(`\`${rootCol}\` LIKE ?`);
+                values.push(`%${pattern}%`);
+            } else if (val && typeof val === 'object' && val.$regex) {
+                let pattern = (val.$regex instanceof RegExp) ? val.$regex.source : String(val.$regex);
+                pattern = pattern.replace(/^\^|\$$/g, '');
+                clauses.push(`\`${rootCol}\` LIKE ?`);
+                values.push(`%${pattern}%`);
+            } else if (typeof val === 'string' || typeof val === 'number') {
+                clauses.push(`\`${rootCol}\` LIKE ?`);
+                values.push(`%${val}%`);
+            }
+            continue;
+        }
+
         if (val instanceof RegExp) {
             clauses.push(`\`${dbKey}\` LIKE ?`);
             let pattern = val.source.replace(/^\^|\$$/g, '');

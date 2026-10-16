@@ -2151,7 +2151,13 @@ io.on('connection', (socket) => {
 
   // --- Register user ---
   socket.on('register', async (data, cb) => {
-    const { userId, fcmToken } = data || {};
+    let { userId, phone, fcmToken } = data || {};
+    if (!userId && phone) {
+      try {
+        const u = await User.findOne({ phone });
+        if (u) userId = u.userId;
+      } catch (err) { }
+    }
     if (!userId) {
       if (typeof cb === 'function') cb({ ok: false, error: 'UserId missing' });
       return;
@@ -2161,6 +2167,12 @@ io.on('connection', (socket) => {
     if (!ok) {
       if (typeof cb === 'function') cb({ ok: false, error });
       return;
+    }
+
+    if (user && (user.role === 'superadmin' || user.role === 'admin')) {
+      socket.join('superadmin');
+      socketToUser.set(socket.id, user.userId);
+      userSockets.set(user.userId, socket.id);
     }
 
     // Save FCM Token if provided
@@ -2375,11 +2387,24 @@ io.on('connection', (socket) => {
     try {
       const user = await User.findOne({ userId });
       if (user) {
-        if (data.price) user.price = parseInt(data.price);
-        if (data.experience) user.experience = parseInt(data.experience);
-        if (data.image) user.image = data.image; // URL
-        if (data.email) user.email = data.email;
-        if (data.name) user.name = data.name;
+        if (data.price !== undefined) user.price = parseInt(data.price);
+        if (data.chatPrice !== undefined) user.chatPrice = parseInt(data.chatPrice);
+        if (data.callPrice !== undefined) user.callPrice = parseInt(data.callPrice);
+        if (data.videoPrice !== undefined) user.videoPrice = parseInt(data.videoPrice);
+        if (data.experience !== undefined) user.experience = parseInt(data.experience);
+        if (data.astrologyExperience !== undefined) user.astrologyExperience = String(data.astrologyExperience);
+        if (data.image !== undefined) user.image = data.image;
+        if (data.email !== undefined) user.email = data.email;
+        if (data.name !== undefined) user.name = data.name;
+        if (data.profession !== undefined) user.profession = data.profession;
+        if (data.upiId !== undefined) user.upiId = data.upiId;
+        if (data.skills !== undefined) {
+          if (Array.isArray(data.skills)) {
+            user.skills = data.skills;
+          } else if (typeof data.skills === 'string') {
+            user.skills = data.skills.split(',').map(s => s.trim()).filter(Boolean);
+          }
+        }
         if (data.birthDetails) {
           user.birthDetails = { ...user.birthDetails, ...data.birthDetails };
         }
@@ -2747,11 +2772,17 @@ io.on('connection', (socket) => {
   });
 
   // --- ADMIN API ---
-  const checkAdmin = async (sid) => {
-    const uid = socketToUser.get(sid);
+  const checkAdmin = async (sid, fallbackUserId) => {
+    let uid = socketToUser.get(sid) || fallbackUserId;
     if (!uid) return false;
     const u = await User.findOne({ userId: uid });
-    return u && (u.role === 'superadmin' || u.role === 'admin');
+    const isAdmin = u && (u.role === 'superadmin' || u.role === 'admin');
+    if (isAdmin && !socketToUser.has(sid)) {
+      socketToUser.set(sid, uid);
+      userSockets.set(uid, sid);
+      socket.join('superadmin');
+    }
+    return !!isAdmin;
   };
 
   // --- Admin: Get All Users ---
@@ -2765,7 +2796,7 @@ io.on('connection', (socket) => {
 
   // --- Admin: Get Paginated Users with City, DOB, and CSV Export ---
   socket.on('admin-get-users', async (data, cb) => {
-    if (!await checkAdmin(socket.id)) return cb({ ok: false, error: 'Unauthorized' });
+    if (!await checkAdmin(socket.id, data?.adminUserId)) return cb({ ok: false, error: 'Unauthorized' });
     try {
       const { role, page = 1, limit = 10, search = '', city = '', dob = '', exportAll = false } = data || {};
       const parsedPage = Math.max(1, parseInt(page) || 1);
@@ -3006,7 +3037,7 @@ io.on('connection', (socket) => {
       queryParams = {};
     }
     
-    if (!await checkAdmin(socket.id)) return callback({ ok: false, error: 'Unauthorized' });
+    if (!await checkAdmin(socket.id, queryParams?.adminUserId)) return callback({ ok: false, error: 'Unauthorized' });
     try {
       const { page = 1, limit = 10, search = '' } = queryParams || {};
       const parsedPage = Math.max(1, parseInt(page) || 1);
@@ -3140,7 +3171,7 @@ io.on('connection', (socket) => {
 
   // Phase 10: Ledger Stats with Day / Custom Date Range Filter
   socket.on('admin-get-ledger-stats', async (data, cb) => {
-    if (!await checkAdmin(socket.id)) return cb({ ok: false });
+    if (!await checkAdmin(socket.id, data?.adminUserId)) return cb({ ok: false });
     let fullLedger = []; 
     try {
       // Build Date Match Filter

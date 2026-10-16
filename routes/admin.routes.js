@@ -22,4 +22,6 @@ router.post('/config', adminController.updateConfig);
 router.get('/smtp-config', adminController.getSmtpConfig);
 router.post('/smtp-config', adminController.updateSmtpConfig);
 
+router.get('/users', adminController.getUsers);
+
 module.exports = router;

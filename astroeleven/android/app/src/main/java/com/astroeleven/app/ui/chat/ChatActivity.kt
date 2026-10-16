@@ -734,16 +734,20 @@ fun ChatScreen(
                 recordingDuration = recordingDuration,
                 onStartRecording = {
                     if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                        voiceRecorder.startRecording()
-                        isRecording = true
-                        recordingDuration = "00:00"
-                        recordingTimerJob = coroutineScope.launch {
-                            var seconds = 0
-                            while (isRecording) {
-                                delay(1000)
-                                seconds++
-                                recordingDuration = String.format("%02d:%02d", seconds / 60, seconds % 60)
+                        val outputPath = voiceRecorder.startRecording()
+                        if (outputPath != null) {
+                            isRecording = true
+                            recordingDuration = "00:00"
+                            recordingTimerJob = coroutineScope.launch {
+                                var seconds = 0
+                                while (isRecording) {
+                                    delay(1000)
+                                    seconds++
+                                    recordingDuration = String.format("%02d:%02d", seconds / 60, seconds % 60)
+                                }
                             }
+                        } else {
+                            android.widget.Toast.makeText(context, "Microphone is unavailable. Try again.", android.widget.Toast.LENGTH_SHORT).show()
                         }
                     } else {
                         recordPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
@@ -762,20 +766,20 @@ fun ChatScreen(
                             if (file.exists() && toUserId != null && sessionId != null) {
                                 coroutineScope.launch {
                                     try {
-                                            if (file.length() == 0L) {
-                                                withContext(Dispatchers.Main) {
-                                                    android.widget.Toast.makeText(context, "Error: Audio file is empty. Try recording again.", android.widget.Toast.LENGTH_LONG).show()
-                                                }
-                                                return@launch
-                                            }
-                                            
+                                        if (file.length() == 0L) {
                                             withContext(Dispatchers.Main) {
-                                                android.widget.Toast.makeText(context, "Sending voice message...", android.widget.Toast.LENGTH_SHORT).show()
+                                                android.widget.Toast.makeText(context, "Audio file is empty. Hold to record voice message.", android.widget.Toast.LENGTH_LONG).show()
                                             }
-                                            delay(1000) // Increase delay to ensure file is completely written and unlocked by OS
-                                            
-                                            val durStr = String.format("%02d:%02d", durationSec / 60, durationSec % 60)
-                                            viewModel.uploadFileAndSend(file, "audio", sessionId, toUserId, durStr)
+                                            return@launch
+                                        }
+                                        
+                                        withContext(Dispatchers.Main) {
+                                            android.widget.Toast.makeText(context, "Sending voice message...", android.widget.Toast.LENGTH_SHORT).show()
+                                        }
+                                        delay(500)
+                                        
+                                        val durStr = String.format("%02d:%02d", durationSec / 60, durationSec % 60)
+                                        viewModel.uploadFileAndSend(file, "audio", sessionId, toUserId, durStr)
                                     } catch (e: Exception) {
                                         withContext(Dispatchers.Main) {
                                             android.widget.Toast.makeText(context, "Failed to send: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
@@ -785,9 +789,12 @@ fun ChatScreen(
                                 }
                             }
                         } else {
-                            // Too short, delete
+                            // Too short, delete and inform user to keep pressed
                             val audioPath = voiceRecorder.currentOutputFile
-                            File(audioPath).delete()
+                            if (audioPath.isNotEmpty()) {
+                                File(audioPath).delete()
+                            }
+                            android.widget.Toast.makeText(context, "Hold and keep pressed to record voice message", android.widget.Toast.LENGTH_SHORT).show()
                         }
                     }
                 }

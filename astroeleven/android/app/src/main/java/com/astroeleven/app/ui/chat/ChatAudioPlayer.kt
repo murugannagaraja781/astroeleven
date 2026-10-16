@@ -68,7 +68,7 @@ class ChatAudioPlayer(private val context: Context) {
                     .build()
 
                 val httpDataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
-                    .setUserAgent("AstroElevenVoicePlayer/1.0")
+                    .setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
 
                 val cacheDataSourceFactory = CacheDataSource.Factory()
                     .setCache(cache)
@@ -192,22 +192,15 @@ class ChatAudioPlayer(private val context: Context) {
     }
 
     private fun sanitizeUrl(url: String): String {
+        if (url.isBlank()) return ""
         // Remove duplicate slashes except after protocol (http:// or https://)
-        var cleaned = url.replace("(?<!https?:)/{2,}".toRegex(), "/")
-        
-        // Safely URL encode spaces and special characters
-        try {
-            val uri = java.net.URI(
-                cleaned.substringBefore("://"),
-                cleaned.substringAfter("://"),
-                null
-            )
-            cleaned = uri.toASCIIString()
+        val cleaned = url.replace("(?<!https?:)/{2,}".toRegex(), "/")
+        return try {
+            val parsed = android.net.Uri.parse(cleaned)
+            parsed.toString().replace(" ", "%20")
         } catch (e: Exception) {
-            // Fallback space replace if URI parsing fails
-            cleaned = cleaned.replace(" ", "%20")
+            cleaned.replace(" ", "%20")
         }
-        return cleaned
     }
 
     private fun startProgressUpdates() {

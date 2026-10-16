@@ -12,6 +12,8 @@ import com.astroeleven.app.data.remote.SocketManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import android.widget.Toast
 import org.json.JSONObject
 
 // Data class for session summary
@@ -122,8 +124,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 val requestFile = okhttp3.RequestBody.create(mediaType, file)
                 val body = okhttp3.MultipartBody.Part.createFormData("file", file.name, requestFile)
                 val response = com.astroeleven.app.data.api.ApiClient.api.uploadFile(body)
-                if (response.isSuccessful) {
-                    val urlElement = response.body()?.get("url")
+                if (response.isSuccessful && response.body() != null) {
+                    val bodyObj = response.body()!!
+                    val urlElement = bodyObj.get("fileUrl") ?: bodyObj.get("url")
                     val url = if (urlElement != null && !urlElement.isJsonNull) urlElement.asString else ""
                     if (url.isNotEmpty()) {
                         val payload = JSONObject().apply {
@@ -137,10 +140,21 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                             })
                         }
                         sendMessage(payload)
+                    } else {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(getApplication(), "Failed to upload: Empty URL", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(getApplication(), "Upload failed: ${response.code()}", Toast.LENGTH_SHORT).show()
                     }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(getApplication(), "Upload error: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
