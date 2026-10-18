@@ -2265,11 +2265,13 @@ io.on('connection', (socket) => {
   });
 
   socket.on('admin-get-feedback', async (data, cb) => {
+    if (typeof data === 'function') { cb = data; data = {}; }
+    if (!await checkAdmin(socket.id, data?.adminUserId)) return cb ? cb({ ok: false, error: 'Unauthorized' }) : null;
     try {
-      const feedback = await Feedback.find().sort({ createdAt: -1 }).limit(100);
-      cb({ ok: true, feedback });
+      const feedback = await Feedback.find().sort({ _id: -1 }).limit(100);
+      if (typeof cb === 'function') cb({ ok: true, feedback });
     } catch (e) {
-      cb({ ok: false, error: 'Failed to fetch feedback' });
+      if (typeof cb === 'function') cb({ ok: false, error: 'Failed to fetch feedback' });
     }
   });
 
@@ -2786,12 +2788,13 @@ io.on('connection', (socket) => {
   };
 
   // --- Admin: Get All Users ---
-  socket.on('get-all-users', async (cb) => {
-    if (!await checkAdmin(socket.id)) return cb({ ok: false });
+  socket.on('get-all-users', async (data, cb) => {
+    if (typeof data === 'function') { cb = data; data = {}; }
+    if (!await checkAdmin(socket.id, data?.adminUserId)) return cb ? cb({ ok: false }) : null;
     try {
       const users = await User.find({}).sort({ role: 1, name: 1 }); // Sort by role then name
-      cb({ ok: true, users });
-    } catch (e) { cb({ ok: false }); }
+      if (typeof cb === 'function') cb({ ok: true, users });
+    } catch (e) { if (typeof cb === 'function') cb({ ok: false }); }
   });
 
   // --- Admin: Get Paginated Users with City, DOB, and CSV Export ---
@@ -2810,15 +2813,26 @@ io.on('connection', (socket) => {
       const andConditions = [];
 
       if (search) {
-        const searchRegex = new RegExp(search.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'i');
-        andConditions.push({
-          $or: [
-            { name: searchRegex },
-            { phone: searchRegex },
-            { userId: searchRegex },
-            { email: searchRegex }
-          ]
-        });
+        const lowerSearch = search.trim().toLowerCase();
+        if (lowerSearch === 'online') {
+          query.isOnline = true;
+        } else if (lowerSearch === 'offline') {
+          query.isOnline = false;
+        } else if (lowerSearch === 'approved') {
+          query.approvalStatus = 'approved';
+        } else if (lowerSearch === 'pending') {
+          query.approvalStatus = 'pending';
+        } else {
+          const searchRegex = new RegExp(search.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'i');
+          andConditions.push({
+            $or: [
+              { name: searchRegex },
+              { phone: searchRegex },
+              { userId: searchRegex },
+              { email: searchRegex }
+            ]
+          });
+        }
       }
 
       if (city) {
@@ -2873,7 +2887,7 @@ io.on('connection', (socket) => {
 
   // --- Admin: Edit User (Name Only) ---
   socket.on('admin-edit-user', async (data, cb) => {
-    if (!await checkAdmin(socket.id)) return cb({ ok: false, error: 'Unauthorized' });
+    if (!await checkAdmin(socket.id, data?.adminUserId)) return cb({ ok: false, error: 'Unauthorized' });
     try {
       const { targetUserId, updates } = data || {};
       if (!targetUserId || !updates || !updates.name) return cb({ ok: false, error: 'Invalid Data' });
@@ -2897,7 +2911,7 @@ io.on('connection', (socket) => {
 
   // --- Admin: Update User Details (Unified) ---
   socket.on('admin-update-user-details', async (data, cb) => {
-    if (!await checkAdmin(socket.id)) return cb({ ok: false, error: 'Unauthorized' });
+    if (!await checkAdmin(socket.id, data?.adminUserId)) return cb({ ok: false, error: 'Unauthorized' });
     try {
       const { userId, updates } = data;
       const user = await User.findOne({ userId });
@@ -2949,7 +2963,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('admin-update-role', async (data, cb) => {
-    if (!await checkAdmin(socket.id)) return cb({ ok: false, error: 'Unauthorized' });
+    if (!await checkAdmin(socket.id, data?.adminUserId)) return cb({ ok: false, error: 'Unauthorized' });
     try {
       const updates = { role: data.role };
       if (data.role === 'astrologer') {
@@ -2989,7 +3003,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('admin-delete-user', async (data, cb) => {
-    if (!await checkAdmin(socket.id)) return cb({ ok: false, error: 'Unauthorized' });
+    if (!await checkAdmin(socket.id, data?.adminUserId)) return cb({ ok: false, error: 'Unauthorized' });
     try {
       const { userId } = data;
       await User.deleteOne({ userId });
@@ -3001,7 +3015,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('admin-add-wallet', async (data, cb) => {
-    if (!await checkAdmin(socket.id)) return cb({ ok: false });
+    if (!await checkAdmin(socket.id, data?.adminUserId)) return cb({ ok: false });
     try {
       const u = await User.findOne({ userId: data.userId });
       u.walletBalance += parseInt(data.amount);
@@ -3016,7 +3030,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('admin-toggle-ban', async (data, cb) => {
-    if (!await checkAdmin(socket.id)) return cb({ ok: false });
+    if (!await checkAdmin(socket.id, data?.adminUserId)) return cb({ ok: false });
     try {
       await User.updateOne({ userId: data.userId }, { isBanned: data.isBanned });
       cb({ ok: true });
@@ -3073,7 +3087,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('admin-approve-astrologer', async (data, cb) => {
-    if (!await checkAdmin(socket.id)) return cb({ ok: false });
+    if (!await checkAdmin(socket.id, data?.adminUserId)) return cb({ ok: false });
     try {
       const { userId, action } = data; // action: 'approve' | 'reject'
       const user = await User.findOne({ userId });
@@ -3106,7 +3120,7 @@ io.on('connection', (socket) => {
 
   // --- Admin: Create New Astrologer ---
   socket.on('admin-create-astrologer', async (data, cb) => {
-    if (!await checkAdmin(socket.id)) return cb({ ok: false, error: 'Unauthorized' });
+    if (!await checkAdmin(socket.id, data?.adminUserId)) return cb({ ok: false, error: 'Unauthorized' });
     try {
       const { name, phone, email, image, price, experience, skills, profession, aadharNumber, panNumber, bankDetails, upiId } = data;
       
@@ -3264,17 +3278,25 @@ io.on('connection', (socket) => {
         onlineClients: onlineClients
       };
 
-      // Live Video Astrologers Data
+      // Live Video & Online Astrologers Data
       let liveAstrologersData = [];
+      const onlineUserIds = Array.from(userSockets.keys());
+      let liveAstroIds = [];
       if (activeSessions && activeSessions.size > 0) {
-        let liveAstroIds = [];
         for (let session of activeSessions.values()) {
-          liveAstroIds = liveAstroIds.concat(session.users);
+          liveAstroIds = liveAstroIds.concat(session.users || []);
         }
-        liveAstrologersData = await User.find(
-          { userId: { $in: liveAstroIds }, role: 'astrologer' },
-          { name: 1, image: 1, userId: 1, isBusy: 1 }
+      }
+      const activeOrOnlineAstroIds = Array.from(new Set([...liveAstroIds, ...onlineUserIds]));
+      if (activeOrOnlineAstroIds.length > 0) {
+        const foundAstros = await User.find(
+          { userId: { $in: activeOrOnlineAstroIds }, role: 'astrologer' },
+          { name: 1, image: 1, userId: 1, isBusy: 1, isOnline: 1, phone: 1 }
         ).lean();
+        liveAstrologersData = foundAstros.map(a => ({
+          ...a,
+          inCall: liveAstroIds.includes(a.userId) || a.isBusy
+        }));
       }
 
       if (typeof cb === 'function') {
@@ -3298,7 +3320,14 @@ io.on('connection', (socket) => {
       queryParams = {};
     }
 
-    if (!await checkAdmin(socket.id)) return callback({ ok: false, error: 'Unauthorized' });
+    // Support callback as first argument for legacy calls (if any)
+    let callback = cb;
+    let queryParams = data;
+    if (typeof data === 'function') {
+      callback = data;
+      queryParams = {};
+    }
+    if (!await checkAdmin(socket.id, queryParams?.adminUserId)) return callback ? callback({ ok: false, error: 'Unauthorized' }) : null;
     try {
       const { page = 1, limit = 10, search = '', type = '' } = queryParams || {};
       const parsedPage = Math.max(1, parseInt(page) || 1);
@@ -3325,7 +3354,7 @@ io.on('connection', (socket) => {
       
       const total = await Session.countDocuments(query);
       const sessions = await Session.find(query)
-        .sort({ startTime: -1, sessionEndAt: -1 })
+        .sort({ id: -1 })
         .skip((parsedPage - 1) * parsedLimit)
         .limit(parsedLimit)
         .lean();
@@ -3393,7 +3422,7 @@ io.on('connection', (socket) => {
 
   // --- Admin: Delete Session History Record ---
   socket.on('admin-delete-session', async (data, cb) => {
-    if (!await checkAdmin(socket.id)) return cb({ ok: false, error: 'Unauthorized' });
+    if (!await checkAdmin(socket.id, data?.adminUserId)) return cb({ ok: false, error: 'Unauthorized' });
     try {
       const { sessionId } = data;
       if (!sessionId) return cb({ ok: false, error: 'SessionId missing' });
@@ -3488,7 +3517,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('approve-withdrawal', async (data, cb) => {
-    if (!await checkAdmin(socket.id)) return cb({ ok: false });
+    if (!await checkAdmin(socket.id, data?.adminUserId)) return cb ? cb({ ok: false }) : null;
     try {
       const { withdrawalId } = data;
       const w = await Withdrawal.findById(withdrawalId);
@@ -3532,7 +3561,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('reject-withdrawal', async (data, cb) => {
-    if (!await checkAdmin(socket.id)) return cb({ ok: false });
+    if (!await checkAdmin(socket.id, data?.adminUserId)) return cb ? cb({ ok: false }) : null;
     try {
       const { withdrawalId } = data;
       const w = await Withdrawal.findById(withdrawalId);
@@ -3562,7 +3591,9 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('get-withdrawals', async (cb) => {
+  socket.on('get-withdrawals', async (data, cb) => {
+    if (typeof data === 'function') { cb = data; data = {}; }
+    if (!await checkAdmin(socket.id, data?.adminUserId)) return cb ? cb({ ok: false, list: [] }) : null;
     try {
       const list = await Withdrawal.find().sort({ requestedAt: -1 }).limit(50);
       const enriched = [];
@@ -3613,25 +3644,28 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('get-slab-rates', async (cb) => {
-    if (!await checkAdmin(socket.id)) return;
-    cb({ ok: true, rates: SLAB_RATES });
+  socket.on('get-slab-rates', async (data, cb) => {
+    if (typeof data === 'function') { cb = data; data = {}; }
+    if (!await checkAdmin(socket.id, data?.adminUserId)) return cb ? cb({ ok: false, rates: SLAB_RATES }) : null;
+    if (typeof cb === 'function') cb({ ok: true, rates: SLAB_RATES });
   });
 
-  socket.on('update-slab-rates', async (rates, cb) => {
-    if (!await checkAdmin(socket.id)) return;
+  socket.on('update-slab-rates', async (data, cb) => {
+    let rates = data;
+    if (data && data.rates) rates = data.rates;
+    if (!await checkAdmin(socket.id, data?.adminUserId)) return cb ? cb({ ok: false, error: 'Unauthorized' }) : null;
     try {
       await GlobalSettings.updateOne({ key: 'slab_rates' }, { value: rates }, { upsert: true });
       SLAB_RATES = rates;
       console.log('[Admin] Slab Rates updated:', SLAB_RATES);
-      cb({ ok: true });
+      if (typeof cb === 'function') cb({ ok: true });
     } catch (e) {
-      cb({ ok: false, error: e.message });
+      if (typeof cb === 'function') cb({ ok: false, error: e.message });
     }
   });
 
   socket.on('send-bulk-fcm', async (data, cb) => {
-    if (!await checkAdmin(socket.id)) {
+    if (!await checkAdmin(socket.id, data?.adminUserId)) {
       if (typeof cb === 'function') cb({ ok: false, error: 'Unauthorized: Admin access required' });
       return;
     }

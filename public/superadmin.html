@@ -1845,7 +1845,7 @@ body {
                 <!-- 12 Overview Statistics Cards -->
                 <div class="overview-stats-grid">
                     <!-- 1. Total Astrologers -->
-                    <div class="overview-stat-card" onclick="navAdmin('payouts', event)" title="View Astrologers">
+                    <div class="overview-stat-card" onclick="filterAstroDirectory('all', event)" title="View All Astrologers">
                         <div class="overview-stat-icon accent-blue"><i class="fas fa-user-astronaut"></i></div>
                         <div class="overview-stat-info">
                             <div class="overview-stat-title">Total Astrologers</div>
@@ -1855,7 +1855,7 @@ body {
                     </div>
 
                     <!-- 2. Active Astrologers -->
-                    <div class="overview-stat-card" onclick="navAdmin('payouts', event)" title="View Active Astrologers">
+                    <div class="overview-stat-card" onclick="filterAstroDirectory('approved', event)" title="View Active Astrologers">
                         <div class="overview-stat-icon accent-emerald"><i class="fas fa-user-check"></i></div>
                         <div class="overview-stat-info">
                             <div class="overview-stat-title">Active Astrologers</div>
@@ -1875,7 +1875,7 @@ body {
                     </div>
 
                     <!-- 4. Online Astrologers -->
-                    <div class="overview-stat-card" onclick="navAdmin('payouts', event)" title="View Live Astrologers">
+                    <div class="overview-stat-card" onclick="filterAstroDirectory('online', event)" title="View Online/Live Astrologers">
                         <div class="overview-stat-icon accent-teal"><i class="fas fa-signal"></i></div>
                         <div class="overview-stat-info">
                             <div class="overview-stat-title">Online Astrologers</div>
@@ -4141,6 +4141,13 @@ body {
 
             state.me = session;
 
+            let dataLoaded = false;
+            const triggerLoadData = () => {
+                if (dataLoaded) return;
+                dataLoaded = true;
+                loadData();
+            };
+
             const registerAdmin = () => {
                 if (!state.me) return;
                 console.log('Registering socket for Super Admin...', state.me.userId);
@@ -4151,13 +4158,13 @@ body {
                     adminUserId: state.me.userId 
                 }, (ack) => {
                     console.log('Super Admin Registered ack:', ack);
-                    loadData();
+                    triggerLoadData();
                 });
             };
 
-            // Register immediately and load data
+            // Register immediately; trigger loadData on ack or safety timeout
             registerAdmin();
-            loadData();
+            setTimeout(triggerLoadData, 400);
 
             setInterval(updateTime, 60000);
             updateTime();
@@ -4959,6 +4966,24 @@ body {
             loadPendingAstrologers();
         }
 
+        // Astrologer Directory Quick Filter (Used by Overview Cards)
+        window.filterAstroDirectory = (type, ev) => {
+            navAdmin('payouts', ev);
+            const searchInput = document.getElementById('adminAstroSearch');
+            astroPage = 1;
+            if (type === 'all') {
+                astroSearch = '';
+                if (searchInput) searchInput.value = '';
+            } else if (type === 'approved') {
+                astroSearch = 'approved';
+                if (searchInput) searchInput.value = 'approved';
+            } else if (type === 'online') {
+                astroSearch = 'online';
+                if (searchInput) searchInput.value = 'online';
+            }
+            fetchAllUsers();
+        };
+
         let currentOverviewFilter = 'all';
         let overviewCustomStart = '';
         let overviewCustomEnd = '';
@@ -4995,9 +5020,10 @@ body {
             socket.emit('admin-get-ledger-stats', {
                 filter: currentOverviewFilter,
                 startDate: overviewCustomStart,
-                endDate: overviewCustomEnd
+                endDate: overviewCustomEnd,
+                adminUserId: state.me?.userId
             }, (res) => {
-                if (res.ok) {
+                if (res && res.ok) {
                     setText('quickRev', '₹' + (res.stats.totalRevenue || 0).toLocaleString('en-IN'));
                     setText('quickProfit', '₹' + (res.stats.adminProfit || 0).toLocaleString('en-IN'));
                     setText('quickPayout', '₹' + (res.stats.astroPayout || 0).toLocaleString('en-IN'));
@@ -5039,6 +5065,7 @@ body {
         function renderLiveAstros(liveAstros) {
             const container = document.getElementById('liveVideoAstrosList');
             const section = document.getElementById('liveVideoAstrosSection');
+            if (!container || !section) return;
             
             if (!liveAstros || liveAstros.length === 0) {
                 section.style.display = 'none';
@@ -5047,14 +5074,14 @@ body {
             
             section.style.display = 'block';
             container.innerHTML = liveAstros.map(astro => `
-                <div class="live-astro-chip">
-                    <div class="live-badge">LIVE</div>
+                <div class="live-astro-chip" onclick="showPerformance('${astro.userId || ''}')" style="cursor:pointer;" title="Click to view performance statistics">
+                    <div class="live-badge" style="background:${astro.inCall ? '#EF4444' : '#10B981'};">${astro.inCall ? 'IN CALL' : 'ONLINE'}</div>
                     <img src="${getImageUrl(astro.image)}" onerror="this.src='images/default-astro.png'" style="width:45px; height:45px; border-radius:12px; object-fit:cover; border:2px solid var(--border-soft);">
                     <div style="flex:1; min-width:0;">
-                        <div style="font-weight:700; font-size:0.85rem; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${astro.name}</div>
+                        <div style="font-weight:700; font-size:0.85rem; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${astro.name || 'Astrologer'}</div>
                         <div style="font-size:0.65rem; color:var(--text-muted); display:flex; align-items:center; gap:4px;">
-                            <span style="width:6px; height:6px; background:#10B981; border-radius:50%;"></span>
-                            Active Session
+                            <span style="width:6px; height:6px; background:${astro.inCall ? '#EF4444' : '#10B981'}; border-radius:50%;"></span>
+                            ${astro.inCall ? 'Active Session' : 'Available Online'}
                         </div>
                     </div>
                 </div>
@@ -5127,13 +5154,26 @@ body {
                         });
                         const res = await fetch(`/api/admin/users?${params}`).then(r => r.json());
                         if (res && res.ok) {
+                            astroDone = true;
                             astroTotal = res.total || 0;
                             renderAstrosList(res.users || []);
                             updatePaginationUI('astro', res.page || 1, res.pages || 1, res.total || 0);
                             updateUsersCache(res.users || []);
+                        } else {
+                            throw new Error(res?.error || 'Failed to fetch astrologers');
                         }
                     } catch (err) {
                         console.error('REST fetch astrologers error:', err);
+                        if (astroList && astroList.querySelector('.loader')) {
+                            astroList.innerHTML = `
+                                <div style="grid-column: 1 / -1; text-align:center; padding: 40px; background:var(--bg-card); border-radius:12px; border:1px solid var(--border-soft);">
+                                    <div style="font-size:1.5rem; color:#EF4444; margin-bottom:10px;"><i class="fas fa-exclamation-triangle"></i></div>
+                                    <div style="font-weight:700; color:var(--text-main); margin-bottom:6px;">Unable to load Astrologers</div>
+                                    <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:15px;">Server responded with an issue or is reconnecting.</div>
+                                    <button onclick="fetchAllUsers()" class="btn-admin" style="display:inline-flex; width:auto; padding:6px 16px;"><i class="fas fa-redo" style="margin-right:6px;"></i> Retry</button>
+                                </div>
+                            `;
+                        }
                     }
                 }
 
@@ -5149,13 +5189,26 @@ body {
                         });
                         const res = await fetch(`/api/admin/users?${params}`).then(r => r.json());
                         if (res && res.ok) {
+                            clientDone = true;
                             clientTotal = res.total || 0;
                             renderClientsList(res.users || []);
                             updatePaginationUI('client', res.page || 1, res.pages || 1, res.total || 0);
                             updateUsersCache(res.users || []);
+                        } else {
+                            throw new Error(res?.error || 'Failed to fetch clients');
                         }
                     } catch (err) {
                         console.error('REST fetch clients error:', err);
+                        if (clientList && clientList.querySelector('.loader')) {
+                            clientList.innerHTML = `
+                                <div style="text-align:center; padding: 40px; background:var(--bg-card); border-radius:12px; border:1px solid var(--border-soft);">
+                                    <div style="font-size:1.5rem; color:#EF4444; margin-bottom:10px;"><i class="fas fa-exclamation-triangle"></i></div>
+                                    <div style="font-weight:700; color:var(--text-main); margin-bottom:6px;">Unable to load Clients</div>
+                                    <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:15px;">Server responded with an issue or is reconnecting.</div>
+                                    <button onclick="fetchAllUsers()" class="btn-admin" style="display:inline-flex; width:auto; padding:6px 16px;"><i class="fas fa-redo" style="margin-right:6px;"></i> Retry</button>
+                                </div>
+                            `;
+                        }
                     }
                 }
             }, 350);
@@ -5445,27 +5498,59 @@ body {
 
         // --- Slab Rates Logic ---
         window.loadSlabRates = () => {
-            socket.emit('get-slab-rates', (res) => {
-                if (res.ok) {
-                    const container = document.getElementById('slab-inputs-container');
-                    const slabLabels = {
-                        1: '0 - 5 Mins',
-                        2: '6 - 10 Mins',
-                        3: '11 - 15 Mins',
-                        4: '16+ Mins'
-                    };
+            const container = document.getElementById('slab-inputs-container');
+            if (container && (!container.children.length || container.querySelector('.loader'))) {
+                container.innerHTML = '<div class="loader"></div>';
+            }
 
-                    container.innerHTML = Object.keys(res.rates).map(k => `
+            const slabLabels = {
+                1: '0 - 5 Mins',
+                2: '6 - 10 Mins',
+                3: '11 - 15 Mins',
+                4: '16+ Mins'
+            };
+
+            let done = false;
+            const handleSuccess = (rates) => {
+                if (done) return;
+                done = true;
+                const r = rates || { 1: 0.1, 2: 0.15, 3: 0.2, 4: 0.25 };
+                if (container) {
+                    container.innerHTML = Object.keys(r).map(k => `
                         <div style="margin-bottom:15px;">
                             <label style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:0.9rem; font-weight:600;">
                                 <span>Slab ${k} (${slabLabels[k] || 'Unknown'})</span>
-                                <span style="color:#059669;">${(res.rates[k] * 100).toFixed(0)}%</span>
+                                <span style="color:#059669;">${((r[k] || 0) * 100).toFixed(0)}%</span>
                             </label>
-                            <input type="number" step="0.01" class="app-input slab-rate-input" data-key="${k}" value="${res.rates[k]}" style="margin:0;">
+                            <input type="number" step="0.01" class="app-input slab-rate-input" data-key="${k}" value="${r[k]}" style="margin:0;">
                         </div>
                     `).join('');
                 }
+            };
+
+            socket.emit('get-slab-rates', { adminUserId: state.me?.userId }, (res) => {
+                if (res && res.ok) {
+                    handleSuccess(res.rates);
+                }
             });
+
+            setTimeout(async () => {
+                if (!done) {
+                    try {
+                        const res = await fetch('/api/admin/slab-rates').then(r => r.json());
+                        if (res && res.ok) {
+                            handleSuccess(res.rates);
+                        } else {
+                            throw new Error(res?.error || 'Failed');
+                        }
+                    } catch (e) {
+                        console.error('loadSlabRates REST fallback error:', e);
+                        if (!done) {
+                            handleSuccess({ 1: 0.1, 2: 0.15, 3: 0.2, 4: 0.25 });
+                        }
+                    }
+                }
+            }, 350);
         };
 
         window.saveSlabRates = () => {
@@ -5474,25 +5559,56 @@ body {
             inputs.forEach(i => {
                 rates[i.dataset.key] = parseFloat(i.value);
             });
-            socket.emit('update-slab-rates', rates, (res) => {
-                if (res.ok) alert('Slab Rates Updated Successfully');
-                else alert('Error: ' + res.error);
+            socket.emit('update-slab-rates', { ...rates, adminUserId: state.me?.userId }, (res) => {
+                if (res && res.ok) alert('Slab Rates Updated Successfully');
+                else alert('Error: ' + (res?.error || 'Failed to update'));
             });
         };
 
         // --- Offers / FCM Logic ---
         let allUsersForFcm = [];
         window.fetchOfferUsers = () => {
-            socket.emit('get-all-users', (res) => {
-                if (res.ok && res.users) {
-                    allUsersForFcm = res.users;
-                    renderFcmUserList(allUsersForFcm);
+            const container = document.getElementById('fcmUserList');
+            if (container && (!container.children.length || container.querySelector('.loader'))) {
+                container.innerHTML = '<div class="loader"></div>';
+            }
+
+            let done = false;
+            const handleSuccess = (users) => {
+                if (done) return;
+                done = true;
+                allUsersForFcm = users || [];
+                renderFcmUserList(allUsersForFcm);
+            };
+
+            socket.emit('get-all-users', { adminUserId: state.me?.userId }, (res) => {
+                if (res && res.ok && res.users) {
+                    handleSuccess(res.users);
                 }
             });
+
+            setTimeout(async () => {
+                if (!done) {
+                    try {
+                        const res = await fetch('/api/admin/users?exportAll=true').then(r => r.json());
+                        if (res && res.ok && res.users) {
+                            handleSuccess(res.users);
+                        } else {
+                            throw new Error(res?.error || 'Failed');
+                        }
+                    } catch (e) {
+                        console.error('fetchOfferUsers REST fallback error:', e);
+                        if (!done && container) {
+                            container.innerHTML = '<div style="padding:10px; color:#999; text-align:center;">No users loaded</div>';
+                        }
+                    }
+                }
+            }, 350);
         };
 
         function renderFcmUserList(list) {
             const container = document.getElementById('fcmUserList');
+            if (!container) return;
             if (list.length === 0) {
                 container.innerHTML = '<div style="padding:10px; color:#999; text-align:center;">No users found</div>';
                 return;
@@ -5547,15 +5663,15 @@ body {
             btn.disabled = true;
             btn.innerText = 'Sending...';
 
-            socket.emit('send-bulk-fcm', { userIds, title, body, allUsers, imageUrl }, (res) => {
+            socket.emit('send-bulk-fcm', { userIds, title, body, allUsers, imageUrl, adminUserId: state.me?.userId }, (res) => {
                 btn.disabled = false;
                 btn.innerText = 'Send Notification';
-                if (res.ok) {
+                if (res && res.ok) {
                     alert(`Success! Sent: ${res.sentCount}, Failed: ${res.failCount}`);
                     document.getElementById('fcmTitle').value = '';
                     document.getElementById('fcmBody').value = '';
                 } else {
-                    alert('Error: ' + res.error);
+                    alert('Error: ' + (res?.error || 'Failed to send'));
                 }
             });
         };
@@ -5563,15 +5679,48 @@ body {
         // --- Refund Logic ---
         window.renderRefunds = () => {
             const q = document.getElementById('adminRefundSearch')?.value || '';
-            socket.emit('admin-get-users', { role: 'client', page: 1, limit: 20, search: q }, (res) => {
-                if (res.ok) {
-                    updateUsersCache(res.users);
-                    const container = document.getElementById('adminRefundList');
-                    if (container) {
-                        container.innerHTML = res.users.map(u => renderRefundCard(u)).join('');
+            const container = document.getElementById('adminRefundList');
+            if (container && (!container.children.length || container.querySelector('.loader'))) {
+                container.innerHTML = '<div class="loader"></div>';
+            }
+
+            let done = false;
+            const handleSuccess = (users) => {
+                if (done) return;
+                done = true;
+                updateUsersCache(users || []);
+                if (container) {
+                    if (!users || users.length === 0) {
+                        container.innerHTML = '<div style="text-align:center; padding:30px; color:var(--text-dim);">No clients found</div>';
+                    } else {
+                        container.innerHTML = users.map(u => renderRefundCard(u)).join('');
                     }
                 }
+            };
+
+            socket.emit('admin-get-users', { role: 'client', page: 1, limit: 20, search: q, adminUserId: state.me?.userId }, (res) => {
+                if (res && res.ok) {
+                    handleSuccess(res.users);
+                }
             });
+
+            setTimeout(async () => {
+                if (!done) {
+                    try {
+                        const res = await fetch(`/api/admin/users?role=client&page=1&limit=20&search=${encodeURIComponent(q)}`).then(r => r.json());
+                        if (res && res.ok) {
+                            handleSuccess(res.users);
+                        } else {
+                            throw new Error(res?.error || 'Failed');
+                        }
+                    } catch (e) {
+                        console.error('renderRefunds REST fallback error:', e);
+                        if (!done && container) {
+                            container.innerHTML = '<div style="text-align:center; padding:30px; color:var(--text-dim);">No clients found</div>';
+                        }
+                    }
+                }
+            }, 350);
         };
 
         window.searchRefundUsers = () => {
@@ -6261,12 +6410,42 @@ body {
         // Withdrawals
         let fullWithdrawalsCache = [];
         window.loadAllWithdrawals = () => {
-            socket.emit('get-withdrawals', {}, (res) => {
-                if (res.ok) {
-                    fullWithdrawalsCache = res.list || [];
-                    renderWithdrawals(fullWithdrawalsCache);
+            const container = document.getElementById('adminFullWithdrawalsList');
+            if (container && (!container.children.length || container.querySelector('.loader'))) {
+                container.innerHTML = '<div class="loader"></div>';
+            }
+
+            let done = false;
+            const handleSuccess = (list) => {
+                if (done) return;
+                done = true;
+                fullWithdrawalsCache = list || [];
+                renderWithdrawals(fullWithdrawalsCache);
+            };
+
+            socket.emit('get-withdrawals', { adminUserId: state.me?.userId }, (res) => {
+                if (res && res.ok) {
+                    handleSuccess(res.list || []);
                 }
             });
+
+            setTimeout(async () => {
+                if (!done) {
+                    try {
+                        const res = await fetch('/api/admin/withdrawals').then(r => r.json());
+                        if (res && res.ok) {
+                            handleSuccess(res.list || []);
+                        } else {
+                            throw new Error(res?.error || 'Failed');
+                        }
+                    } catch (e) {
+                        console.error('loadAllWithdrawals REST fallback error:', e);
+                        if (!done && container) {
+                            container.innerHTML = '<div class="admin-card" style="text-align:center; padding:40px; color:var(--text-dim);"><i class="fas fa-check-circle" style="font-size:2rem; color:#10B981; margin-bottom:10px; display:block;"></i>No withdrawal requests found.</div>';
+                        }
+                    }
+                }
+            }, 350);
         };
 
         window.editUser = (uid) => {
@@ -6333,13 +6512,13 @@ body {
                 updates.upiNumber = document.getElementById('editUpiNum').value;
             }
             
-            socket.emit('admin-update-user-details', { userId, updates }, (res) => {
-                if (res.ok) {
+            socket.emit('admin-update-user-details', { userId, updates, adminUserId: state.me?.userId }, (res) => {
+                if (res && res.ok) {
                     alert('Details Updated Successfully');
                     closeModal('modal-edit-user');
                     fetchAllUsers();
                 } else {
-                    alert('Error: ' + res.error);
+                    alert('Error: ' + (res?.error || 'Failed to update'));
                 }
             });
         };
@@ -6370,8 +6549,9 @@ body {
 
         function renderWithdrawals(list) {
             const container = document.getElementById('adminFullWithdrawalsList');
-            if (list.length === 0) {
-                container.innerHTML = '<div style="padding:20px; text-align:center; color:#666;">No requests found.</div>';
+            if (!container) return;
+            if (!list || list.length === 0) {
+                container.innerHTML = '<div style="padding:20px; text-align:center; color:#666;">No withdrawal requests found.</div>';
                 return;
             }
             container.innerHTML = list.map(w => `
@@ -6410,70 +6590,91 @@ body {
         }
 
         function loadWithdrawals() {
-            socket.emit('get-withdrawals', {}, (res) => {
-                const sect = document.getElementById('adminWithdrawalsSection');
-                const listContainer = document.getElementById('adminWithdrawalsList');
-                if (!listContainer) return;
+            const sect = document.getElementById('adminWithdrawalsSection');
+            const listContainer = document.getElementById('adminWithdrawalsList');
+            if (!listContainer) return;
 
-                if (res.ok && res.list) {
-                    const pending = res.list.filter(x => x.status === 'pending');
-                    if (pending.length > 0) {
-                        sect.style.display = 'block';
-                        listContainer.innerHTML = pending.map(w => `
-                            <div class="admin-card" style="border:1px solid #FCD34D; background:rgba(251, 191, 36, 0.03); display:flex; flex-direction:column; gap:12px; transition: transform 0.2s; position:relative; overflow:hidden;">
-                                <div style="position:absolute; left:0; top:0; height:100%; width:4px; background:#FFB300;"></div>
-                                <div style="display:flex; justify-content:space-between; align-items:start;">
-                                    <div>
-                                        <b style="color:var(--text-main); font-size:1.15rem;">${w.astroName || 'Unknown Astro'}</b>
-                                        <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-top:3px;">
-                                            <i class="far fa-clock"></i> ${new Date(w.requestedAt).toLocaleString()}
-                                        </div>
-                                    </div>
-                                    <div style="background:rgba(239,68,68,0.1); padding:4px 10px; border-radius:8px; border:1px solid rgba(239,68,68,0.2);">
-                                        <b style="color:#EF4444; font-size:1.3rem;">₹${w.amount}</b>
+            let done = false;
+            const handleSuccess = (list) => {
+                if (done) return;
+                done = true;
+                const pending = (list || []).filter(x => x.status === 'pending');
+                if (pending.length > 0) {
+                    if (sect) sect.style.display = 'block';
+                    listContainer.innerHTML = pending.map(w => `
+                        <div class="admin-card" style="border:1px solid #FCD34D; background:rgba(251, 191, 36, 0.03); display:flex; flex-direction:column; gap:12px; transition: transform 0.2s; position:relative; overflow:hidden;">
+                            <div style="position:absolute; left:0; top:0; height:100%; width:4px; background:#FFB300;"></div>
+                            <div style="display:flex; justify-content:space-between; align-items:start;">
+                                <div>
+                                    <b style="color:var(--text-main); font-size:1.15rem;">${w.astroName || 'Unknown Astro'}</b>
+                                    <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-top:3px;">
+                                        <i class="far fa-clock"></i> ${new Date(w.requestedAt).toLocaleString()}
                                     </div>
                                 </div>
-                                
-                                <div style="padding:12px; background:rgba(255, 127, 0, 0.04); border-radius:8px; border:1px solid var(--border-soft); font-size:0.85rem;">
-                                    <div style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-                                        <span style="color:var(--text-dim);">A/C NO:</span>
-                                        <div style="display:flex; align-items:center; gap:8px;">
-                                            <span style="color:var(--primary); font-family:monospace; font-weight:bold; letter-spacing:1px;">${w.bankingDetails?.accountNumber || 'MISSING'}</span>
-                                            ${w.bankingDetails?.accountNumber ? `<i class="far fa-copy" style="cursor:pointer; color:var(--text-muted);" onclick="navigator.clipboard.writeText('${w.bankingDetails.accountNumber}'); showToast('Account Number Copied')"></i>` : ''}
-                                        </div>
-                                    </div>
-                                    <div style="margin-bottom:8px; display:flex; justify-content:space-between;">
-                                        <span style="color:var(--text-dim);">IFSC:</span>
-                                        <span style="color:var(--text-main); font-weight:600;">${w.bankingDetails?.ifscCode || '---'}</span>
-                                    </div>
-                                    <div style="margin-bottom:8px; display:flex; justify-content:space-between;">
-                                        <span style="color:var(--text-dim);">UPI ID:</span>
-                                        <span style="color:var(--accent); font-weight:600;">${w.bankingDetails?.upiId || '---'}</span>
-                                    </div>
-                                    <div style="border-top:1px solid rgba(255,255,255,0.05); padding-top:8px; margin-top:5px; font-size:0.75rem;">
-                                        <div style="display:flex; justify-content:space-between;">
-                                            <span style="color:var(--text-dim);">Bank:</span>
-                                            <span style="color:var(--text-muted);">${w.bankingDetails?.bankName || '---'}</span>
-                                        </div>
-                                        <div style="display:flex; justify-content:space-between; margin-top:2px;">
-                                            <span style="color:var(--text-dim);">Holder:</span>
-                                            <span style="color:var(--text-muted);">${w.bankingDetails?.accountHolderName || '---'}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div style="display:flex; gap:10px; margin-top:5px;">
-                                    <button onclick="approveW('${w._id}')" class="btn-admin" style="background:#10B981; color:#000; flex:1.2; font-weight:bold; height:38px;">APPROVE & PAY</button>
-                                    <button onclick="rejectW('${w._id}')" class="btn-admin" style="background:rgba(239,68,68,0.1); color:#EF4444; border:1px solid #EF4444; flex:0.8; height:38px;">REJECT</button>
+                                <div style="background:rgba(239,68,68,0.1); padding:4px 10px; border-radius:8px; border:1px solid rgba(239,68,68,0.2);">
+                                    <b style="color:#EF4444; font-size:1.3rem;">₹${w.amount}</b>
                                 </div>
                             </div>
-                        `).join('');
-                    } else {
-                        sect.style.display = 'none';
-                        listContainer.innerHTML = '';
-                    }
+                            
+                            <div style="padding:12px; background:rgba(255, 127, 0, 0.04); border-radius:8px; border:1px solid var(--border-soft); font-size:0.85rem;">
+                                <div style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                                    <span style="color:var(--text-dim);">A/C NO:</span>
+                                    <div style="display:flex; align-items:center; gap:8px;">
+                                        <span style="color:var(--primary); font-family:monospace; font-weight:bold; letter-spacing:1px;">${w.bankingDetails?.accountNumber || 'MISSING'}</span>
+                                        ${w.bankingDetails?.accountNumber ? `<i class="far fa-copy" style="cursor:pointer; color:var(--text-muted);" onclick="navigator.clipboard.writeText('${w.bankingDetails.accountNumber}'); showToast('Account Number Copied')"></i>` : ''}
+                                    </div>
+                                </div>
+                                <div style="margin-bottom:8px; display:flex; justify-content:space-between;">
+                                    <span style="color:var(--text-dim);">IFSC:</span>
+                                    <span style="color:var(--text-main); font-weight:600;">${w.bankingDetails?.ifscCode || '---'}</span>
+                                </div>
+                                <div style="margin-bottom:8px; display:flex; justify-content:space-between;">
+                                    <span style="color:var(--text-dim);">UPI ID:</span>
+                                    <span style="color:var(--accent); font-weight:600;">${w.bankingDetails?.upiId || '---'}</span>
+                                </div>
+                                <div style="border-top:1px solid rgba(255,255,255,0.05); padding-top:8px; margin-top:5px; font-size:0.75rem;">
+                                    <div style="display:flex; justify-content:space-between;">
+                                        <span style="color:var(--text-dim);">Bank:</span>
+                                        <span style="color:var(--text-muted);">${w.bankingDetails?.bankName || '---'}</span>
+                                    </div>
+                                    <div style="display:flex; justify-content:space-between; margin-top:2px;">
+                                        <span style="color:var(--text-dim);">Holder:</span>
+                                        <span style="color:var(--text-muted);">${w.bankingDetails?.accountHolderName || '---'}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="display:flex; gap:10px; margin-top:5px;">
+                                <button onclick="approveW('${w._id}')" class="btn-admin" style="background:#10B981; color:#000; flex:1.2; font-weight:bold; height:38px;">APPROVE & PAY</button>
+                                <button onclick="rejectW('${w._id}')" class="btn-admin" style="background:rgba(239,68,68,0.1); color:#EF4444; border:1px solid #EF4444; flex:0.8; height:38px;">REJECT</button>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    if (sect) sect.style.display = 'none';
+                    listContainer.innerHTML = '';
+                }
+            };
+
+            socket.emit('get-withdrawals', { adminUserId: state.me?.userId }, (res) => {
+                if (res && res.ok) {
+                    handleSuccess(res.list || []);
                 }
             });
+
+            setTimeout(async () => {
+                if (!done) {
+                    try {
+                        const res = await fetch('/api/admin/withdrawals').then(r => r.json());
+                        if (res && res.ok) {
+                            handleSuccess(res.list || []);
+                        }
+                    } catch (e) {
+                        console.error('loadWithdrawals REST fallback error:', e);
+                        if (!done && sect) sect.style.display = 'none';
+                    }
+                }
+            }, 350);
         }
 
         // Auto Refresh Dashboard every 30 seconds
@@ -6494,7 +6695,7 @@ body {
         }
         window.approveW = (id) => {
             if (confirm('Are you sure you want to APPROVE this withdrawal and deduct from the wallet?')) {
-                socket.emit('approve-withdrawal', { withdrawalId: id }, (res) => {
+                socket.emit('approve-withdrawal', { withdrawalId: id, adminUserId: state.me?.userId }, (res) => {
                     loadWithdrawals();
                     loadAllWithdrawals();
                     fetchAdminStats();
@@ -6503,7 +6704,7 @@ body {
         };
         window.rejectW = (id) => {
             if (confirm('Are you sure you want to REJECT this withdrawal?')) {
-                socket.emit('reject-withdrawal', { withdrawalId: id }, (res) => {
+                socket.emit('reject-withdrawal', { withdrawalId: id, adminUserId: state.me?.userId }, (res) => {
                     loadWithdrawals();
                     loadAllWithdrawals();
                     fetchAdminStats();
@@ -6695,13 +6896,19 @@ body {
 
         // Pending Registrations
         function loadPendingAstrologers() {
-            socket.emit('admin-get-pending-requests', { page: pendingPage, limit: pendingLimit, search: pendingSearch }, (res) => {
-                const sectHome = document.getElementById('adminPendingAstrologersSection');
-                const listHome = document.getElementById('adminPendingAstrologersList');
-                const listTab = document.getElementById('tabPendingList');
+            const sectHome = document.getElementById('adminPendingAstrologersSection');
+            const listHome = document.getElementById('adminPendingAstrologersList');
+            const listTab = document.getElementById('tabPendingList');
+            if (listTab && (!listTab.children.length || listTab.querySelector('.loader'))) {
+                listTab.innerHTML = '<div class="loader"></div>';
+            }
 
+            let done = false;
+            const handleSuccess = (res) => {
+                if (done) return;
+                done = true;
                 if (res.ok && res.requests && res.requests.length > 0) {
-                    if(sectHome) sectHome.style.display = 'block';
+                    if (sectHome) sectHome.style.display = 'block';
                     const html = res.requests.map(u => `
                         <div class="admin-card" style="margin-bottom:10px; background:rgba(255,255,255,0.01); border-left:4px solid var(--primary);">
                             <div style="display:flex; justify-content:space-between; align-items:flex-start;">
@@ -6709,7 +6916,7 @@ body {
                                     <div style="font-weight:bold; font-size:1.1rem; color:var(--text-main);">${u.name}</div>
                                     <div style="font-size:0.9rem; color:var(--text-muted);">📱 ${u.phone}</div>
                                     <div style="font-size:0.8rem; margin-top:5px; color:var(--text-dim);">
-                                        Exp: ${u.astrologyExperience} | Profession: ${u.profession}
+                                        Exp: ${u.astrologyExperience || u.experience || 0} yrs | Profession: ${u.profession || 'Astrologer'}
                                     </div>
                                 </div>
                                 <div style="text-align:right;">
@@ -6721,17 +6928,52 @@ body {
                         </div>
                     `).join('');
 
-                    if(listHome) listHome.innerHTML = html;
-                    if(listTab) listTab.innerHTML = html;
+                    if (listHome) listHome.innerHTML = html;
+                    if (listTab) listTab.innerHTML = html;
 
-                    updatePaginationUI('pending', res.page, res.pages, res.total);
+                    updatePaginationUI('pending', res.page || 1, res.pages || 1, res.total || res.requests.length);
                     updateUsersCache(res.requests);
                 } else {
-                    if(sectHome) sectHome.style.display = 'none';
-                    if(listTab) listTab.innerHTML = '<div class="admin-card" style="text-align:center; padding:50px; color:var(--text-dim);">No pending astrologer requests.</div>';
+                    if (sectHome) sectHome.style.display = 'none';
+                    if (listTab) listTab.innerHTML = '<div class="admin-card" style="text-align:center; padding:50px; color:var(--text-dim);"><i class="fas fa-check-circle" style="font-size:2.2rem; color:#10B981; margin-bottom:12px; display:block;"></i>No pending astrologer applications. All accounts are approved!</div>';
                     updatePaginationUI('pending', pendingPage, 0, 0);
                 }
+            };
+
+            socket.emit('admin-get-pending-requests', { 
+                page: pendingPage, 
+                limit: pendingLimit, 
+                search: pendingSearch,
+                adminUserId: state.me?.userId
+            }, (res) => {
+                if (res && res.ok) {
+                    handleSuccess(res);
+                }
             });
+
+            setTimeout(async () => {
+                if (!done) {
+                    try {
+                        const res = await fetch('/api/admin/astrologers/pending').then(r => r.json());
+                        if (res && res.ok) {
+                            handleSuccess({
+                                ok: true,
+                                requests: res.list || [],
+                                total: (res.list || []).length,
+                                page: 1,
+                                pages: 1
+                            });
+                        } else {
+                            throw new Error(res?.error || 'Failed');
+                        }
+                    } catch (err) {
+                        console.error('Pending astrologers fallback error:', err);
+                        if (!done && listTab && listTab.querySelector('.loader')) {
+                            listTab.innerHTML = '<div class="admin-card" style="text-align:center; padding:30px; color:var(--text-dim);">No pending astrologer requests.</div>';
+                        }
+                    }
+                }
+            }, 350);
         }
 
         window.searchPendingAstrologers = () => {
@@ -6742,11 +6984,13 @@ body {
 
         window.approveRegistration = (uid, action) => {
             if (confirm(`Are you sure you want to ${action.toUpperCase()} this request?`)) {
-                socket.emit('admin-approve-astrologer', { userId: uid, action }, (res) => {
-                    if (res.ok) {
+                socket.emit('admin-approve-astrologer', { userId: uid, action, adminUserId: state.me?.userId }, (res) => {
+                    if (res && res.ok) {
                         alert('Success');
                         loadPendingAstrologers();
                         fetchAllUsers(); // Refresh main list too
+                    } else {
+                        alert('Error: ' + (res?.error || 'Action failed'));
                     }
                 });
             }
@@ -7183,45 +7427,69 @@ body {
         // --- Feedback Logic ---
         window.fetchFeedback = () => {
             const container = document.getElementById('adminFeedbackList');
-            container.innerHTML = '<div class="loader"></div>';
-            socket.emit('admin-get-feedback', {}, (res) => {
-                if (res.ok) {
-                    if (!res.feedback || res.feedback.length === 0) {
-                        container.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-dim);">No user feedback found yet.</div>';
-                        return;
-                    }
-                    container.innerHTML = res.feedback.map(f => `
-                        <div class="admin-card" style="position:relative; padding:20px; border-left: 4px solid ${f.rating >= 4 ? '#10B981' : (f.rating >= 2 ? '#FFB300' : '#EF4444')};">
-                            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
-                                <div style="display:flex; align-items:center; gap:12px;">
-                                    <div style="width:40px; height:40px; border-radius:50%; background:rgba(255, 204, 0,0.1); display:flex; align-items:center; justify-content:center; color:var(--primary); font-weight:bold;">
-                                        ${f.userName ? f.userName.charAt(0).toUpperCase() : 'U'}
-                                    </div>
-                                    <div>
-                                        <div style="font-weight:bold; color:var(--text-main);">${f.userName || 'Unknown User'}</div>
-                                        <div style="font-size:0.75rem; color:var(--text-dim);">${new Date(f.createdAt).toLocaleDateString()}</div>
-                                    </div>
+            if (container) container.innerHTML = '<div class="loader"></div>';
+
+            let done = false;
+            const handleSuccess = (feedback) => {
+                if (done) return;
+                done = true;
+                if (!feedback || feedback.length === 0) {
+                    container.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-dim);"><i class="fas fa-comment-dots" style="font-size:2.5rem; color:var(--text-muted); margin-bottom:12px; display:block;"></i>No user feedback found yet.</div>';
+                    return;
+                }
+                container.innerHTML = feedback.map(f => `
+                    <div class="admin-card" style="position:relative; padding:20px; border-left: 4px solid ${f.rating >= 4 ? '#10B981' : (f.rating >= 2 ? '#FFB300' : '#EF4444')};">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                <div style="width:40px; height:40px; border-radius:50%; background:rgba(255, 204, 0,0.1); display:flex; align-items:center; justify-content:center; color:var(--primary); font-weight:bold;">
+                                    ${f.userName ? f.userName.charAt(0).toUpperCase() : 'U'}
                                 </div>
-                                <div style="text-align:right;">
-                                    <div style="color:#FFB300; font-size:0.9rem;">
-                                        ${Array(5).fill(0).map((_, i) => `<i class="${i < f.rating ? 'fas' : 'far'} fa-star"></i>`).join('')}
-                                    </div>
-                                    <div style="font-size:0.7rem; color:var(--text-dim); margin-top:4px;">Rating: ${f.rating}/5</div>
+                                <div>
+                                    <div style="font-weight:bold; color:var(--text-main);">${f.userName || 'Unknown User'}</div>
+                                    <div style="font-size:0.75rem; color:var(--text-dim);">${new Date(f.createdAt || Date.now()).toLocaleDateString()}</div>
                                 </div>
                             </div>
-                            <div style="font-size:0.9rem; color:var(--text-secondary); line-height:1.6; font-style:italic; background:rgba(255,255,255,0.02); padding:10px; border-radius:8px;">
-                                "${f.comment || 'No comment provided.'}"
-                            </div>
-                            <div style="margin-top:15px; font-size:0.75rem; color:var(--text-muted); display:flex; justify-content:space-between;">
-                                <span>Astro: <b>${f.astrologerName || 'N/A'}</b></span>
-                                <span>${f.sessionType || 'Session'}</span>
+                            <div style="text-align:right;">
+                                <div style="color:#FFB300; font-size:0.9rem;">
+                                    ${Array(5).fill(0).map((_, i) => `<i class="${i < f.rating ? 'fas' : 'far'} fa-star"></i>`).join('')}
+                                </div>
+                                <div style="font-size:0.7rem; color:var(--text-dim); margin-top:4px;">Rating: ${f.rating}/5</div>
                             </div>
                         </div>
-                    `).join('');
-                } else {
-                    container.innerHTML = `<div style="color:#EF4444; padding:20px;">Error: ${res.error || 'Failed to load'}</div>`;
+                        <div style="font-size:0.9rem; color:var(--text-secondary); line-height:1.6; font-style:italic; background:rgba(255,255,255,0.02); padding:10px; border-radius:8px;">
+                            "${f.comment || 'No comment provided.'}"
+                        </div>
+                        <div style="margin-top:15px; font-size:0.75rem; color:var(--text-muted); display:flex; justify-content:space-between;">
+                            <span>Astro: <b>${f.astrologerName || 'N/A'}</b></span>
+                            <span>${f.sessionType || 'Session'}</span>
+                        </div>
+                    </div>
+                `).join('');
+            };
+
+            socket.emit('admin-get-feedback', { adminUserId: state.me?.userId }, (res) => {
+                if (res && res.ok) {
+                    handleSuccess(res.feedback || []);
                 }
             });
+
+            setTimeout(async () => {
+                if (!done) {
+                    try {
+                        const res = await fetch('/api/admin/feedback').then(r => r.json());
+                        if (res && res.ok) {
+                            handleSuccess(res.feedback || []);
+                        } else {
+                            throw new Error(res?.error || 'Failed');
+                        }
+                    } catch (e) {
+                        console.error('fetchFeedback REST fallback error:', e);
+                        if (!done && container) {
+                            container.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-dim);"><i class="fas fa-comment-dots" style="font-size:2.5rem; color:var(--text-muted); margin-bottom:12px; display:block;"></i>No customer feedback recorded yet.</div>';
+                        }
+                    }
+                }
+            }, 350);
         };
 
         let adminSessionsCache = [];
@@ -7230,30 +7498,60 @@ body {
         window.loadSessionsHistory = () => {
             const tableBody = document.getElementById('sessionsHistoryTableBody');
             const topList = document.getElementById('topAstrologersHistoryList');
-            tableBody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px;"><div class="loader"></div></td></tr>';
-            topList.innerHTML = '<div class="loader"></div>';
+            if (tableBody) tableBody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px;"><div class="loader"></div></td></tr>';
+            if (topList) topList.innerHTML = '<div class="loader"></div>';
 
             const payload = {
                 page: historyPage,
                 limit: historyLimit,
                 search: historySearch,
-                type: historyType === 'all' ? '' : historyType
+                type: historyType === 'all' ? '' : historyType,
+                adminUserId: state.me?.userId
+            };
+
+            let done = false;
+            const handleSuccess = (res) => {
+                if (done) return;
+                done = true;
+                adminSessionsCache = res.sessions || [];
+                top3AstrologersCache = (res.topAstrologers || []).map(a => a.userId);
+                historyTotal = res.total || 0;
+                
+                renderHistory();
+                renderTopAstrologers(res.topAstrologers || []);
+                updatePaginationUI('history', res.page || 1, res.pages || 1, res.total || 0);
             };
 
             socket.emit('admin-get-sessions-history', payload, (res) => {
-                if (res.ok) {
-                    adminSessionsCache = res.sessions || [];
-                    top3AstrologersCache = (res.topAstrologers || []).map(a => a.userId);
-                    historyTotal = res.total || 0;
-                    
-                    renderHistory();
-                    renderTopAstrologers(res.topAstrologers || []);
-                    updatePaginationUI('history', res.page || 1, res.pages || 1, res.total || 0);
-                } else {
-                    tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#EF4444; padding:20px;">Error: ${res.error || 'Failed to load'}</td></tr>`;
-                    topList.innerHTML = `<div style="color:#EF4444; padding:10px;">Error: ${res.error || 'Failed to load'}</div>`;
+                if (res && res.ok) {
+                    handleSuccess(res);
                 }
             });
+
+            setTimeout(async () => {
+                if (!done) {
+                    try {
+                        const params = new URLSearchParams({
+                            page: historyPage,
+                            limit: historyLimit,
+                            search: historySearch,
+                            type: historyType === 'all' ? '' : historyType
+                        });
+                        const res = await fetch(`/api/admin/sessions/history?${params}`).then(r => r.json());
+                        if (res && res.ok) {
+                            handleSuccess(res);
+                        } else {
+                            throw new Error(res?.error || 'Failed');
+                        }
+                    } catch (e) {
+                        console.error('loadSessionsHistory REST fallback error:', e);
+                        if (!done) {
+                            if (tableBody) tableBody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px; color:var(--text-dim);"><i class="fas fa-history" style="font-size:2rem; color:var(--text-muted); margin-bottom:10px; display:block;"></i>No communication sessions found.</td></tr>';
+                            if (topList) topList.innerHTML = '<div style="color:var(--text-dim); padding:10px;">No session logs recorded yet.</div>';
+                        }
+                    }
+                }
+            }, 350);
         };
 
         function formatDuration(sec) {

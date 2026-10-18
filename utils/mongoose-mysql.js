@@ -212,10 +212,23 @@ class QueryChain {
         if (!orderObj) return this;
         const keys = Object.keys(orderObj);
         if (keys.length > 0) {
-            const key = keys[0];
-            const dir = (orderObj[key] === -1 || orderObj[key] === 'desc') ? 'DESC' : 'ASC';
-            const dbKey = (key === '_id') ? 'id' : key;
-            this._sort = ` ORDER BY \`${dbKey}\` ${dir}`;
+            const parts = [];
+            const schemaDef = this.model?.schema?.definition || {};
+            for (const key of keys) {
+                const dir = (orderObj[key] === -1 || orderObj[key] === 'desc') ? 'DESC' : 'ASC';
+                let dbKey = (key === '_id') ? 'id' : key;
+                if (dbKey !== 'id' && !schemaDef[dbKey]) {
+                    if (dbKey === 'createdAt' || dbKey === 'updatedAt') {
+                        dbKey = 'id';
+                    } else {
+                        continue;
+                    }
+                }
+                parts.push(`\`${dbKey}\` ${dir}`);
+            }
+            if (parts.length > 0) {
+                this._sort = ` ORDER BY ${parts.join(', ')}`;
+            }
         }
         return this;
     }

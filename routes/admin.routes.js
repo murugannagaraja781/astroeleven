@@ -23,5 +23,9 @@ router.get('/smtp-config', adminController.getSmtpConfig);
 router.post('/smtp-config', adminController.updateSmtpConfig);
 
 router.get('/users', adminController.getUsers);
+router.get('/withdrawals', adminController.getWithdrawals);
+router.get('/sessions/history', adminController.getSessionsHistory);
+router.get('/feedback', adminController.getFeedback);
+router.get('/slab-rates', adminController.getSlabRates);
 
 module.exports = router;

@@ -2,6 +2,10 @@ const AcademyVideo = require('../models/AcademyVideo');
 const Banner = require('../models/Banner');
 const AccountDeletionRequest = require('../models/AccountDeletionRequest');
 const User = require('../models/User');
+const Withdrawal = require('../models/Withdrawal');
+const Session = require('../models/Session');
+const Feedback = require('../models/Feedback');
+const GlobalSettings = require('../models/GlobalSettings');
 const performanceService = require('../services/performance.service');
 const fs = require('fs');
 const path = require('path');
@@ -143,7 +147,7 @@ exports.updateBalance = async (req, res) => {
 
 exports.getPendingAstrologers = async (req, res) => {
     try {
-        const list = await User.find({ role: 'astrologer', approvalStatus: 'pending' }).sort({ createdAt: -1 });
+        const list = await User.find({ role: 'astrologer', approvalStatus: 'pending' }).sort({ _id: -1 });
         res.json({ ok: true, list });
     } catch (e) {
         res.json({ ok: false, error: e.message });
@@ -374,15 +378,26 @@ exports.getUsers = async (req, res) => {
         const andConditions = [];
 
         if (search) {
-            const searchRegex = new RegExp(search.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'i');
-            andConditions.push({
-                $or: [
-                    { name: searchRegex },
-                    { phone: searchRegex },
-                    { userId: searchRegex },
-                    { email: searchRegex }
-                ]
-            });
+            const lowerSearch = search.trim().toLowerCase();
+            if (lowerSearch === 'online') {
+                query.isOnline = true;
+            } else if (lowerSearch === 'offline') {
+                query.isOnline = false;
+            } else if (lowerSearch === 'approved') {
+                query.approvalStatus = 'approved';
+            } else if (lowerSearch === 'pending') {
+                query.approvalStatus = 'pending';
+            } else {
+                const searchRegex = new RegExp(search.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'i');
+                andConditions.push({
+                    $or: [
+                        { name: searchRegex },
+                        { phone: searchRegex },
+                        { userId: searchRegex },
+                        { email: searchRegex }
+                    ]
+                });
+            }
         }
 
         if (city) {
@@ -431,6 +446,116 @@ exports.getUsers = async (req, res) => {
     } catch (e) {
         console.error('[AdminController] Error in getUsers:', e);
         res.status(500).json({ ok: false, error: 'Failed to fetch users' });
+    }
+};
+
+exports.getWithdrawals = async (req, res) => {
+    try {
+        const list = await Withdrawal.find().sort({ requestedAt: -1 }).limit(100);
+        const enriched = [];
+        for (const w of list) {
+            const u = await User.findOne({ userId: w.astroId });
+            enriched.push({
+                ...(w.toObject ? w.toObject() : w),
+                astroName: u ? u.name : 'Unknown Astro',
+                bankingDetails: u ? {
+                    bankName: 'Details Below',
+                    accountNumber: u.bankDetails || 'N/A',
+                    accountHolderName: u.realName || u.name,
+                    ifscCode: '-',
+                    upiId: `${u.upiId || ''} ${u.upiNumber ? '(' + u.upiNumber + ')' : ''}`
+                } : null
+            });
+        }
+        res.json({ ok: true, list: enriched });
+    } catch (e) {
+        console.error('[AdminController] Error in getWithdrawals:', e);
+        res.status(500).json({ ok: false, error: 'Failed to fetch withdrawals' });
+    }
+};
+
+exports.getSessionsHistory = async (req, res) => {
+    try {
+        const { page = 1, limit = 10, search = '', type = '' } = req.query;
+        const parsedPage = Math.max(1, parseInt(page) || 1);
+        const parsedLimit = Math.max(1, parseInt(limit) || 10);
+
+        const query = { status: 'ended' };
+        if (type) query.type = type;
+
+        if (search) {
+            const searchRegex = new RegExp(search.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'i');
+            const matchingUsers = await User.find({ name: searchRegex }).select('userId').lean();
+            const matchingUserIds = matchingUsers.map(u => u.userId);
+            query.$or = [
+                { clientId: { $in: matchingUserIds } },
+                { fromUserId: { $in: matchingUserIds } },
+                { astrologerId: { $in: matchingUserIds } },
+                { toUserId: { $in: matchingUserIds } }
+            ];
+        }
+
+        const total = await Session.countDocuments(query);
+        const sessions = await Session.find(query)
+            .sort({ id: -1 })
+            .skip((parsedPage - 1) * parsedLimit)
+            .limit(parsedLimit)
+            .lean();
+
+        const populated = await Promise.all(sessions.map(async (s) => {
+            const cId = s.clientId || s.fromUserId;
+            const aId = s.astrologerId || s.toUserId;
+            const [client, astro] = await Promise.all([
+                User.findOne({ userId: cId }).select('name').lean(),
+                User.findOne({ userId: aId }).select('name').lean()
+            ]);
+
+            let calculatedDuration = s.duration || 0;
+            if (!calculatedDuration && s.startTime && s.endTime) {
+                calculatedDuration = Math.round((s.endTime - s.startTime) / 1000);
+            } else if (!calculatedDuration && s.actualBillingStart && s.sessionEndAt) {
+                calculatedDuration = Math.round((s.sessionEndAt - s.actualBillingStart) / 1000);
+            }
+
+            return {
+                ...s,
+                clientName: client ? client.name : 'Unknown Client',
+                astrologerName: astro ? astro.name : 'Unknown Astrologer',
+                duration: calculatedDuration
+            };
+        }));
+
+        res.json({
+            ok: true,
+            sessions: populated,
+            total,
+            page: parsedPage,
+            pages: Math.ceil(total / parsedLimit)
+        });
+    } catch (e) {
+        console.error('[AdminController] Error in getSessionsHistory:', e);
+        res.status(500).json({ ok: false, error: 'Failed to fetch sessions history' });
+    }
+};
+
+exports.getFeedback = async (req, res) => {
+    try {
+        const feedback = await Feedback.find().sort({ _id: -1 }).limit(100);
+        res.json({ ok: true, feedback });
+    } catch (e) {
+        console.error('[AdminController] Error in getFeedback:', e);
+        res.status(500).json({ ok: false, error: 'Failed to fetch feedback' });
+    }
+};
+
+exports.getSlabRates = async (req, res) => {
+    try {
+        const slabSetting = await GlobalSettings.findOne({ key: 'slab_rates' });
+        const defaultRates = { 1: 0.50, 2: 0.60, 3: 0.70, 4: 0.80 };
+        res.json({ ok: true, rates: slabSetting?.value || defaultRates });
+    } catch (e) {
+        console.error('[AdminController] Error in getSlabRates:', e);
+        res.status(500).json({ ok: false, error: 'Failed to fetch slab rates' });
     }
 };
 
