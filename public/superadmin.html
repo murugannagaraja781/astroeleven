@@ -4189,6 +4189,8 @@ body {
             let modal = document.getElementById('admin-permit-modal');
             if (modal) modal.remove();
 
+            const savedPhone = localStorage.getItem('astro_admin_phone') || '7305307369';
+
             modal = document.createElement('div');
             modal.id = 'admin-permit-modal';
             modal.style.cssText = `
@@ -4203,12 +4205,16 @@ body {
                     <h2 style="margin: 0 0 8px 0; color: #D4AF37; font-size: 1.3rem;">Super Admin Permit</h2>
                     <p style="font-size: 0.82rem; color: #9CA3AF; margin-bottom: 20px;">${msg || 'Enter your authorized credentials to access Astro Eleven Admin Portal'}</p>
                     <div style="text-align: left; margin-bottom: 15px;">
-                        <label style="font-size: 0.75rem; color: #D1D5DB; display: block; margin-bottom: 5px;">Admin Mobile Number</label>
-                        <input type="text" id="adminPermitPhone" value="9876543210" placeholder="Mobile Number" style="width: 100%; box-sizing: border-box; padding: 12px; border-radius: 8px; border: 1px solid #374151; background: #1F2937; color: #fff; font-size: 0.95rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                            <label style="font-size: 0.75rem; color: #D1D5DB;">Admin Mobile Number</label>
+                            <button type="button" id="btnAdminSendOtp" onclick="sendAdminOtpModal()" style="background: none; border: none; color: #D4AF37; font-size: 0.75rem; cursor: pointer; text-decoration: underline; padding: 0;">Get SMS OTP</button>
+                        </div>
+                        <input type="text" id="adminPermitPhone" value="${savedPhone}" placeholder="Mobile Number" style="width: 100%; box-sizing: border-box; padding: 12px; border-radius: 8px; border: 1px solid #374151; background: #1F2937; color: #fff; font-size: 0.95rem;">
+                        <div id="adminOtpNotice" style="display: none; font-size: 0.75rem; color: #10B981; margin-top: 5px; font-weight: 500;"></div>
                     </div>
                     <div style="text-align: left; margin-bottom: 20px;">
-                        <label style="font-size: 0.75rem; color: #D1D5DB; display: block; margin-bottom: 5px;">Master Passkey / PIN</label>
-                        <input type="password" id="adminPermitPin" value="1369" placeholder="Enter PIN" style="width: 100%; box-sizing: border-box; padding: 12px; border-radius: 8px; border: 1px solid #374151; background: #1F2937; color: #fff; font-size: 0.95rem;">
+                        <label style="font-size: 0.75rem; color: #D1D5DB; display: block; margin-bottom: 5px;">Master Passkey (1369) or SMS OTP</label>
+                        <input type="password" id="adminPermitPin" value="1369" placeholder="Enter PIN (1369) or SMS OTP" style="width: 100%; box-sizing: border-box; padding: 12px; border-radius: 8px; border: 1px solid #374151; background: #1F2937; color: #fff; font-size: 0.95rem;">
                     </div>
                     <button id="btnAdminPermitSubmit" onclick="submitAdminPermit()" style="width: 100%; padding: 12px; border: none; border-radius: 8px; background: linear-gradient(135deg, #D4AF37, #AA771C); color: #000; font-weight: bold; font-size: 1rem; cursor: pointer; transition: opacity 0.2s;">
                         Authorize & Enter
@@ -4221,11 +4227,45 @@ body {
             document.body.appendChild(modal);
         };
 
+        window.sendAdminOtpModal = async function() {
+            const phone = document.getElementById('adminPermitPhone').value.trim();
+            const btn = document.getElementById('btnAdminSendOtp');
+            const notice = document.getElementById('adminOtpNotice');
+            if (!phone) return alert('Please enter your mobile number first');
+            btn.disabled = true;
+            btn.innerText = 'Sending OTP...';
+            try {
+                const res = await fetch('/api/send-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone })
+                }).then(r => r.json());
+
+                if (res.ok) {
+                    notice.style.display = 'block';
+                    notice.innerText = 'OTP sent via SMS to ' + phone + '! Enter it below.';
+                    const pinInput = document.getElementById('adminPermitPin');
+                    pinInput.value = '';
+                    pinInput.placeholder = 'Enter 4-digit SMS OTP';
+                    pinInput.type = 'text';
+                    pinInput.focus();
+                    btn.innerText = 'Resend OTP';
+                } else {
+                    alert(res.error || 'Failed to send OTP. You can still use PIN 1369.');
+                    btn.innerText = 'Get SMS OTP';
+                }
+            } catch (e) {
+                alert('Connection error while requesting OTP. You can still use PIN 1369.');
+                btn.innerText = 'Get SMS OTP';
+            }
+            btn.disabled = false;
+        };
+
         window.submitAdminPermit = async function() {
             const phone = document.getElementById('adminPermitPhone').value.trim();
             const otp = document.getElementById('adminPermitPin').value.trim();
             const btn = document.getElementById('btnAdminPermitSubmit');
-            if (!phone || !otp) return alert('Please enter phone and passkey');
+            if (!phone || !otp) return alert('Please enter phone and passkey/OTP');
             btn.disabled = true;
             btn.innerText = 'Verifying...';
 
@@ -4238,6 +4278,7 @@ body {
 
                 if (res.ok && (res.role === 'superadmin' || res.role === 'admin')) {
                     localStorage.setItem('astro_session', JSON.stringify(res));
+                    localStorage.setItem('astro_admin_phone', phone);
                     const modal = document.getElementById('admin-permit-modal');
                     if (modal) modal.remove();
                     init();
@@ -4246,7 +4287,7 @@ body {
                     btn.disabled = false;
                     btn.innerText = 'Authorize & Enter';
                 } else {
-                    alert(res.error || 'Access Denied: Invalid Mobile Number or Passkey.');
+                    alert(res.error || 'Access Denied: Invalid Mobile Number or Passkey/OTP.');
                     btn.disabled = false;
                     btn.innerText = 'Authorize & Enter';
                 }
