@@ -3542,6 +3542,139 @@ body {
                 </div>
             </div>
 
+            <!-- Tab: Dedicated Puja Bookings Screen -->
+            <div id="admin-sect-puja-bookings" class="admin-tab-section">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+                    <div>
+                        <h2 style="font-size:1.5rem; font-weight:900; color:var(--text-main); margin:0;">
+                            <i class="fas fa-fire-alt" style="color:var(--primary);"></i> Puja Bookings Management
+                        </h2>
+                        <p style="font-size:0.8rem; color:var(--text-muted); margin:4px 0 0 0;">Review sacred puja orders, make direct phone calls to customers, verify payments, and manage rituals lifecycle.</p>
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <button onclick="loadPujaBookings(1)" class="btn-admin btn-secondary-action">
+                            <i class="fas fa-sync-alt"></i> Refresh Data
+                        </button>
+                    </div>
+                </div>
+
+                <div class="puja-booking-container" style="box-shadow:none; border:none; padding:0;">
+                    <!-- Embedded Puja Management View -->
+                    <div class="puja-stats-strip">
+                        <div class="puja-mini-stat" onclick="filterPujaStatusQuick('ALL')">
+                            <div class="puja-mini-stat-label">Total Bookings</div>
+                            <div class="puja-mini-stat-val" id="pujaFullStripTotal">0</div>
+                        </div>
+                        <div class="puja-mini-stat" onclick="filterPujaStatusQuick('TODAY')">
+                            <div class="puja-mini-stat-label" style="color:#059669;">Today's New</div>
+                            <div class="puja-mini-stat-val" id="pujaFullStripToday" style="color:#059669;">0</div>
+                        </div>
+                        <div class="puja-mini-stat" onclick="filterPujaStatusQuick('PENDING')">
+                            <div class="puja-mini-stat-label" style="color:#D97706;">Pending</div>
+                            <div class="puja-mini-stat-val" id="pujaFullStripPending" style="color:#D97706;">0</div>
+                        </div>
+                        <div class="puja-mini-stat" onclick="filterPujaStatusQuick('CONFIRMED')">
+                            <div class="puja-mini-stat-label" style="color:#2563EB;">Confirmed</div>
+                            <div class="puja-mini-stat-val" id="pujaFullStripConfirmed" style="color:#2563EB;">0</div>
+                        </div>
+                        <div class="puja-mini-stat" onclick="filterPujaStatusQuick('IN_PROGRESS')">
+                            <div class="puja-mini-stat-label" style="color:#4F46E5;">In Progress</div>
+                            <div class="puja-mini-stat-val" id="pujaFullStripInProgress" style="color:#4F46E5;">0</div>
+                        </div>
+                        <div class="puja-mini-stat" onclick="filterPujaStatusQuick('COMPLETED')">
+                            <div class="puja-mini-stat-label" style="color:#059669;">Completed</div>
+                            <div class="puja-mini-stat-val" id="pujaFullStripCompleted" style="color:#059669;">0</div>
+                        </div>
+                        <div class="puja-mini-stat" onclick="filterPujaStatusQuick('CANCELLED')">
+                            <div class="puja-mini-stat-label" style="color:#DC2626;">Cancelled</div>
+                            <div class="puja-mini-stat-val" id="pujaFullStripCancelled" style="color:#DC2626;">0</div>
+                        </div>
+                    </div>
+
+                    <!-- Puja Search & Filters Bar -->
+                    <div class="puja-filter-bar">
+                        <div class="puja-filter-inputs">
+                            <div style="position:relative; flex:1; min-width:200px;">
+                                <i class="fas fa-search" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--text-dim); font-size:0.8rem;"></i>
+                                <input type="text" id="pujaSearchInput" class="app-input" style="padding-left:30px; margin:0; height:36px;" placeholder="Search Booking ID, Customer, Phone, Puja, Rasi..." oninput="handlePujaSearch()">
+                            </div>
+                            <select id="pujaStatusFilter" class="puja-select" onchange="handlePujaFilterChange()">
+                                <option value="ALL">All Booking Status</option>
+                                <option value="PENDING">Pending</option>
+                                <option value="CONFIRMED">Confirmed</option>
+                                <option value="IN_PROGRESS">In Progress</option>
+                                <option value="COMPLETED">Completed</option>
+                                <option value="CANCELLED">Cancelled</option>
+                                <option value="REJECTED">Rejected</option>
+                            </select>
+                            <select id="pujaPaymentFilter" class="puja-select" onchange="handlePujaFilterChange()">
+                                <option value="ALL">All Payments</option>
+                                <option value="PAID">Paid</option>
+                                <option value="PENDING">Pending</option>
+                                <option value="FAILED">Failed</option>
+                                <option value="REFUNDED">Refunded</option>
+                            </select>
+                            <input type="date" id="pujaStartDate" class="puja-date-input" title="Start Date" onchange="handlePujaFilterChange()">
+                            <input type="date" id="pujaEndDate" class="puja-date-input" title="End Date" onchange="handlePujaFilterChange()">
+                            <select id="pujaSortSelect" class="puja-select" onchange="handlePujaFilterChange()">
+                                <option value="createdAt_desc">Latest First</option>
+                                <option value="createdAt_asc">Oldest First</option>
+                                <option value="amount_desc">Highest Amount</option>
+                                <option value="amount_asc">Lowest Amount</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Desktop Puja Table -->
+                    <div class="puja-table-wrap">
+                        <table class="puja-table">
+                            <thead>
+                                <tr>
+                                    <th>Booking ID</th>
+                                    <th>Customer & Contact</th>
+                                    <th>Puja Service & Sankalpam</th>
+                                    <th>Scheduled Date & Time</th>
+                                    <th>Amount</th>
+                                    <th>Payment</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th style="text-align:right;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pujaBookingsTableBody">
+                                <tr>
+                                    <td colspan="9" style="text-align:center; padding:30px; color:var(--text-muted);">
+                                        <div class="loader" style="margin: 0 auto 10px auto;"></div>
+                                        Loading Puja Bookings...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Mobile Puja Cards View -->
+                    <div id="pujaBookingsCardsView" class="puja-cards-view">
+                        <!-- Dynamic Mobile Cards injected here -->
+                    </div>
+
+                    <!-- Pagination -->
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; flex-wrap:wrap; gap:10px;">
+                        <div id="pujaPaginationInfo" style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">
+                            Showing 0 of 0 bookings
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <button id="btnPujaPrev" onclick="changePujaPage(-1)" class="btn-admin btn-secondary-action" style="padding:6px 12px; font-size:0.75rem;" disabled>
+                                <i class="fas fa-chevron-left"></i> Previous
+                            </button>
+                            <span id="pujaCurrentPageNum" style="display:inline-flex; align-items:center; padding:0 10px; font-size:0.78rem; font-weight:800; background:#F1F5F9; border-radius:8px;">1</span>
+                            <button id="btnPujaNext" onclick="changePujaPage(1)" class="btn-admin btn-secondary-action" style="padding:6px 12px; font-size:0.75rem;" disabled>
+                                Next <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="admin-footer"
                 style="background: var(--bg-glass-heavy); backdrop-filter: var(--glass-blur); border-top: 1px solid var(--border-soft);">
                 <div class="admin-footer-content">
@@ -3728,138 +3861,6 @@ body {
                 <div style="margin-top:30px; display:flex; gap:15px;">
                     <button class="cosmic-btn" style="flex:1;" onclick="saveUserEdit()"><i class="fas fa-save"></i> Save Changes</button>
                     <button class="btn-admin" style="background:var(--border-soft); color:var(--text-muted);" onclick="closeModal('modal-edit-user')">Cancel</button>
-                </div>
-            </div>
-            <!-- Tab: Dedicated Puja Bookings Screen -->
-            <div id="admin-sect-puja-bookings" class="admin-tab-section">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
-                    <div>
-                        <h2 style="font-size:1.5rem; font-weight:900; color:var(--text-main); margin:0;">
-                            <i class="fas fa-fire-alt" style="color:var(--primary);"></i> Puja Bookings Management
-                        </h2>
-                        <p style="font-size:0.8rem; color:var(--text-muted); margin:4px 0 0 0;">Review sacred puja orders, make direct phone calls to customers, verify payments, and manage rituals lifecycle.</p>
-                    </div>
-                    <div style="display:flex; gap:10px;">
-                        <button onclick="loadPujaBookings(1)" class="btn-admin btn-secondary-action">
-                            <i class="fas fa-sync-alt"></i> Refresh Data
-                        </button>
-                    </div>
-                </div>
-
-                <div class="puja-booking-container" style="box-shadow:none; border:none; padding:0;">
-                    <!-- Embedded Puja Management View -->
-                    <div class="puja-stats-strip">
-                        <div class="puja-mini-stat" onclick="filterPujaStatusQuick('ALL')">
-                            <div class="puja-mini-stat-label">Total Bookings</div>
-                            <div class="puja-mini-stat-val" id="pujaFullStripTotal">0</div>
-                        </div>
-                        <div class="puja-mini-stat" onclick="filterPujaStatusQuick('TODAY')">
-                            <div class="puja-mini-stat-label" style="color:#059669;">Today's New</div>
-                            <div class="puja-mini-stat-val" id="pujaFullStripToday" style="color:#059669;">0</div>
-                        </div>
-                        <div class="puja-mini-stat" onclick="filterPujaStatusQuick('PENDING')">
-                            <div class="puja-mini-stat-label" style="color:#D97706;">Pending</div>
-                            <div class="puja-mini-stat-val" id="pujaFullStripPending" style="color:#D97706;">0</div>
-                        </div>
-                        <div class="puja-mini-stat" onclick="filterPujaStatusQuick('CONFIRMED')">
-                            <div class="puja-mini-stat-label" style="color:#2563EB;">Confirmed</div>
-                            <div class="puja-mini-stat-val" id="pujaFullStripConfirmed" style="color:#2563EB;">0</div>
-                        </div>
-                        <div class="puja-mini-stat" onclick="filterPujaStatusQuick('IN_PROGRESS')">
-                            <div class="puja-mini-stat-label" style="color:#4F46E5;">In Progress</div>
-                            <div class="puja-mini-stat-val" id="pujaFullStripInProgress" style="color:#4F46E5;">0</div>
-                        </div>
-                        <div class="puja-mini-stat" onclick="filterPujaStatusQuick('COMPLETED')">
-                            <div class="puja-mini-stat-label" style="color:#059669;">Completed</div>
-                            <div class="puja-mini-stat-val" id="pujaFullStripCompleted" style="color:#059669;">0</div>
-                        </div>
-                        <div class="puja-mini-stat" onclick="filterPujaStatusQuick('CANCELLED')">
-                            <div class="puja-mini-stat-label" style="color:#DC2626;">Cancelled</div>
-                            <div class="puja-mini-stat-val" id="pujaFullStripCancelled" style="color:#DC2626;">0</div>
-                        </div>
-                    </div>
-
-                    <!-- Puja Search & Filters Bar -->
-                    <div class="puja-filter-bar">
-                        <div class="puja-filter-inputs">
-                            <div style="position:relative; flex:1; min-width:200px;">
-                                <i class="fas fa-search" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--text-dim); font-size:0.8rem;"></i>
-                                <input type="text" id="pujaSearchInput" class="app-input" style="padding-left:30px; margin:0; height:36px;" placeholder="Search Booking ID, Customer, Phone, Puja, Rasi..." oninput="handlePujaSearch()">
-                            </div>
-                            <select id="pujaStatusFilter" class="puja-select" onchange="handlePujaFilterChange()">
-                                <option value="ALL">All Booking Status</option>
-                                <option value="PENDING">Pending</option>
-                                <option value="CONFIRMED">Confirmed</option>
-                                <option value="IN_PROGRESS">In Progress</option>
-                                <option value="COMPLETED">Completed</option>
-                                <option value="CANCELLED">Cancelled</option>
-                                <option value="REJECTED">Rejected</option>
-                            </select>
-                            <select id="pujaPaymentFilter" class="puja-select" onchange="handlePujaFilterChange()">
-                                <option value="ALL">All Payments</option>
-                                <option value="PAID">Paid</option>
-                                <option value="PENDING">Pending</option>
-                                <option value="FAILED">Failed</option>
-                                <option value="REFUNDED">Refunded</option>
-                            </select>
-                            <input type="date" id="pujaStartDate" class="puja-date-input" title="Start Date" onchange="handlePujaFilterChange()">
-                            <input type="date" id="pujaEndDate" class="puja-date-input" title="End Date" onchange="handlePujaFilterChange()">
-                            <select id="pujaSortSelect" class="puja-select" onchange="handlePujaFilterChange()">
-                                <option value="createdAt_desc">Latest First</option>
-                                <option value="createdAt_asc">Oldest First</option>
-                                <option value="amount_desc">Highest Amount</option>
-                                <option value="amount_asc">Lowest Amount</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Desktop Puja Table -->
-                    <div class="puja-table-wrap">
-                        <table class="puja-table">
-                            <thead>
-                                <tr>
-                                    <th>Booking ID</th>
-                                    <th>Customer & Contact</th>
-                                    <th>Puja Service & Sankalpam</th>
-                                    <th>Scheduled Date & Time</th>
-                                    <th>Amount</th>
-                                    <th>Payment</th>
-                                    <th>Status</th>
-                                    <th>Created</th>
-                                    <th style="text-align:right;">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="pujaBookingsTableBody">
-                                <tr>
-                                    <td colspan="9" style="text-align:center; padding:30px; color:var(--text-muted);">
-                                        <div class="loader" style="margin: 0 auto 10px auto;"></div>
-                                        Loading Puja Bookings...
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- Mobile Puja Cards View -->
-                    <div id="pujaBookingsCardsView" class="puja-cards-view">
-                        <!-- Dynamic Mobile Cards injected here -->
-                    </div>
-
-                    <!-- Pagination -->
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; flex-wrap:wrap; gap:10px;">
-                        <div id="pujaPaginationInfo" style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">
-                            Showing 0 of 0 bookings
-                        </div>
-                        <div style="display:flex; gap:8px;">
-                            <button id="btnPujaPrev" onclick="changePujaPage(-1)" class="btn-admin btn-secondary-action" style="padding:6px 12px; font-size:0.75rem;" disabled>
-                                <i class="fas fa-chevron-left"></i> Previous
-                            </button>
-                            <span id="pujaCurrentPageNum" style="display:inline-flex; align-items:center; padding:0 10px; font-size:0.78rem; font-weight:800; background:#F1F5F9; border-radius:8px;">1</span>
-                            <button id="btnPujaNext" onclick="changePujaPage(1)" class="btn-admin btn-secondary-action" style="padding:6px 12px; font-size:0.75rem;" disabled>
-                                Next <i class="fas fa-chevron-right"></i>
-                            </button>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
