@@ -15,7 +15,7 @@ elif [ -d "/var/www/astroelevent" ]; then
 else
     APP_DIR="/var/www/astroeleven"
 fi
-REPO_URL="https://github.com/murugannagaraja781/astroelevent.git"
+REPO_URL="https://github.com/murugannagaraja781/astroeleven.git"
 APP_NAME="astro-app"
 
 # Step 1.5: Setup Swap if memory is low (Mandatory for 512MB RAM)
@@ -55,7 +55,7 @@ if [ -f "github_action_key" ]; then
         current_url=$(git remote get-url origin)
         if [[ "$current_url" == https* ]]; then
              echo "Switching remote to SSH..."
-             git remote set-url origin git@github.com:murugannagaraja781/astroelevent.git
+             git remote set-url origin git@github.com:murugannagaraja781/astroeleven.git
         fi
     fi
 fi

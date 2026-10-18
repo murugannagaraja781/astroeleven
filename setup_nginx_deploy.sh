@@ -55,7 +55,7 @@ if [ ! -d "$APP_DIR" ]; then
     sudo mkdir -p /var/www
     sudo chown $USER:$USER /var/www
     cd /var/www
-    git clone https://github.com/murugannagaraja781/astroelevent.git "$APP_DIR"
+    git clone https://github.com/murugannagaraja781/astroeleven.git "$APP_DIR"
 else
     echo "Updating existing code in $APP_DIR..."
     cd "$APP_DIR"
