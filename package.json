@@ -30,6 +30,7 @@
     "razorpay": "^2.9.6",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
+    "ssh2": "^1.17.0",
     "sweph-wasm": "^2.6.9"
   },
   "description": ""

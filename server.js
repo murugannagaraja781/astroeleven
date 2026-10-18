@@ -3280,7 +3280,6 @@ io.on('connection', (socket) => {
 
       // Live Video & Online Astrologers Data
       let liveAstrologersData = [];
-      const onlineUserIds = Array.from(userSockets.keys());
       let liveAstroIds = [];
       if (activeSessions && activeSessions.size > 0) {
         for (let session of activeSessions.values()) {
@@ -3313,14 +3312,6 @@ io.on('connection', (socket) => {
   // --- Admin: Get Full Sessions History ---
   socket.on('admin-get-sessions-history', async (data, cb) => {
     // Check if callback is first argument (fallback for legacy page loads without arguments)
-    let callback = cb;
-    let queryParams = data;
-    if (typeof data === 'function') {
-      callback = data;
-      queryParams = {};
-    }
-
-    // Support callback as first argument for legacy calls (if any)
     let callback = cb;
     let queryParams = data;
     if (typeof data === 'function') {
