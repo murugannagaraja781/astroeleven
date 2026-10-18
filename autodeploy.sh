@@ -8,7 +8,13 @@ echo "    astroeleven Auto Deploy"
 echo "=========================================="
 
 # Variables
-APP_DIR="/var/www/astroelevent"
+if [ -d "/var/www/astroeleven" ]; then
+    APP_DIR="/var/www/astroeleven"
+elif [ -d "/var/www/astroelevent" ]; then
+    APP_DIR="/var/www/astroelevent"
+else
+    APP_DIR="/var/www/astroeleven"
+fi
 REPO_URL="https://github.com/murugannagaraja781/astroelevent.git"
 APP_NAME="astro-app"
 
