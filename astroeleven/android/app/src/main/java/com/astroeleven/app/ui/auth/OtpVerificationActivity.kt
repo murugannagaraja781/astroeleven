@@ -120,7 +120,7 @@ class OtpVerificationActivity : AppCompatActivity() {
                 Toast.makeText(this@OtpVerificationActivity, "Welcome ${user.name}", Toast.LENGTH_SHORT).show()
                 val intent = when (user.role) {
                     "astrologer" -> Intent(this@OtpVerificationActivity, com.astroeleven.app.ui.astro.AstrologerDashboardActivity::class.java)
-                    "admin" -> Intent(this@OtpVerificationActivity, com.astroeleven.app.ui.admin.SuperPowerAdminDashboardActivity::class.java)
+                    "admin", "superadmin" -> Intent(this@OtpVerificationActivity, com.astroeleven.app.ui.admin.SuperPowerAdminDashboardActivity::class.java)
                     else -> Intent(this@OtpVerificationActivity, com.astroeleven.app.ui.home.HomeActivity::class.java)
                 }
                 startActivity(intent)
