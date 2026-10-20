@@ -301,6 +301,10 @@ class PaymentActivity : AppCompatActivity() {
     private fun handlePaymentResult(status: String) {
         runOnUiThread {
             if (status == "success") {
+                val rechargeAmount = intent.getDoubleExtra("amount", 0.0)
+                if (rechargeAmount > 0) {
+                    com.astroeleven.app.utils.AppEventsTracker.trackPurchase(this, rechargeAmount)
+                }
                 Toast.makeText(this, "Payment Completed Successfully!", Toast.LENGTH_LONG).show()
             } else {
                 Toast.makeText(this, "Payment Cancelled or Failed.", Toast.LENGTH_LONG).show()

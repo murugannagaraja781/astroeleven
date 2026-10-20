@@ -69,6 +69,7 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         tokenManager = TokenManager(this)
+        com.astroeleven.app.utils.AppEventsTracker.trackAppLaunch(this)
 
         handleIntent(intent)
         checkInstallReferrer()

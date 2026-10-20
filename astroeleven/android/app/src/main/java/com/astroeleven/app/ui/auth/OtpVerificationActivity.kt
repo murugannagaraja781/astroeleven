@@ -116,6 +116,19 @@ class OtpVerificationActivity : AppCompatActivity() {
                 user.userId?.let { userId ->
                     FcmTokenHelper.registerFcmToken(userId)
                 }
+
+                // Track Registration & Login events for Meta / Analytics
+                if (user.isNewUser == true) {
+                    com.astroeleven.app.utils.AppEventsTracker.trackRegistration(
+                        this@OtpVerificationActivity,
+                        userId = user.userId
+                    )
+                }
+                com.astroeleven.app.utils.AppEventsTracker.trackLogin(
+                    this@OtpVerificationActivity,
+                    userId = user.userId,
+                    role = user.role
+                )
                 
                 Toast.makeText(this@OtpVerificationActivity, "Welcome ${user.name}", Toast.LENGTH_SHORT).show()
                 val intent = when (user.role) {
