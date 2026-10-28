@@ -8,6 +8,7 @@ router.post('/validate-coupon', paymentController.validateCoupon);
 router.post('/create', paymentController.createPayment);
 router.post('/callback', paymentController.callback);
 router.get('/callback', paymentController.callback);
+router.post('/webhook', paymentController.callback);
 router.get('/history/:userId', paymentController.getHistory);
 
 module.exports = router;

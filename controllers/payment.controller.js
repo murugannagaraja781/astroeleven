@@ -321,7 +321,26 @@ exports.processPaymentSuccess = processPaymentSuccess;
 exports.callback = async (req, res) => {
     try {
         const io = req.app.get('io');
-        const merchantTransactionId = req.query.txnId || req.body.merchantTransactionId || req.body.transactionId || req.query.transactionId;
+
+        // PhonePe Webhook sends base64 payload in req.body.response
+        let decodedPayload = null;
+        if (req.body && req.body.response) {
+            try {
+                const decodedStr = Buffer.from(req.body.response, 'base64').toString('utf8');
+                decodedPayload = JSON.parse(decodedStr);
+                console.log('[PhonePe Webhook Decoded Payload]:', JSON.stringify(decodedPayload));
+            } catch (err) {
+                console.error('[PhonePe Webhook Decode Error]:', err.message);
+            }
+        }
+
+        const merchantTransactionId = req.query.txnId 
+            || req.body.merchantTransactionId 
+            || req.body.transactionId 
+            || req.query.transactionId
+            || decodedPayload?.data?.merchantTransactionId
+            || decodedPayload?.data?.merchantOrderId;
+
         const isApp = req.query.isApp === 'true' || req.body.isApp === true;
 
         if (!merchantTransactionId) {
