@@ -368,6 +368,16 @@ exports.callback = async (req, res) => {
             }
             return res.json({ ok: true, status: 'success' });
         } else {
+            // Update payment status to failed in database
+            try {
+                await Payment.updateOne(
+                    { transactionId: merchantTransactionId },
+                    { $set: { status: 'failed' } }
+                );
+            } catch (failDbErr) {
+                console.error('[Payment] Error setting failed status:', failDbErr);
+            }
+
             if (isApp) {
                 return res.send(`
                     <!DOCTYPE html>

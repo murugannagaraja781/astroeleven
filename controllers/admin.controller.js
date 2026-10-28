@@ -749,10 +749,13 @@ exports.verifyPayment = async (req, res) => {
                 credited: processRes.success
             });
         } else {
+            if (phonepeData.state === 'FAILED') {
+                await Payment.updateOne({ transactionId }, { $set: { status: 'failed' } });
+            }
             return res.json({
                 ok: true,
-                status: phonepeData.state || 'pending',
-                message: `PhonePe status is ${phonepeData.state || 'not completed'}.`,
+                status: phonepeData.state === 'FAILED' ? 'failed' : (phonepeData.state || 'pending'),
+                message: `PhonePe status: ${phonepeData.state || 'not completed'} (${phonepeData.detailedErrorCode || phonepeData.errorCode || 'Not paid'}).`,
                 phonepeData
             });
         }
