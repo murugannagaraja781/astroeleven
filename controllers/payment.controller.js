@@ -453,16 +453,19 @@ exports.webhook = async (req, res) => {
             }
         }
 
+        const eventPayload = req.body?.payload || req.body?.data || decodedPayload?.data || decodedPayload || {};
+
         const merchantTransactionId = req.body?.merchantTransactionId 
             || req.body?.transactionId 
+            || req.body?.merchantOrderId
+            || eventPayload?.merchantOrderId
+            || eventPayload?.merchantTransactionId
+            || eventPayload?.orderId
             || req.query?.txnId 
-            || req.query?.transactionId
-            || decodedPayload?.data?.merchantTransactionId
-            || decodedPayload?.data?.merchantOrderId
-            || decodedPayload?.merchantOrderId;
+            || req.query?.transactionId;
 
         if (!merchantTransactionId) {
-            console.warn('[PhonePe Webhook] Missing transaction ID in payload');
+            console.warn('[PhonePe Webhook] Missing transaction ID in payload. Body:', JSON.stringify(req.body));
             return res.status(200).json({ ok: false, error: 'Missing transaction identifier' });
         }
 
@@ -470,21 +473,23 @@ exports.webhook = async (req, res) => {
         const statusResult = await checkPhonePeOrderStatus(merchantTransactionId);
         let isSuccess = false;
         let isFailed = false;
-        let providerRefId = '';
+        let providerRefId = eventPayload?.orderId || eventPayload?.transactionId || '';
 
         if (statusResult.ok && statusResult.data) {
             const data = statusResult.data;
             if (data.state === 'COMPLETED' || data.state === 'SUCCESS' || data.code === 'PAYMENT_SUCCESS' || data.success === true) {
                 isSuccess = true;
-                providerRefId = data.orderId || data.providerReferenceId || '';
+                providerRefId = data.orderId || data.providerReferenceId || providerRefId;
             } else if (data.state === 'FAILED') {
                 isFailed = true;
             }
-        } else if (decodedPayload) {
-            if (decodedPayload.code === 'PAYMENT_SUCCESS' || decodedPayload.success === true) {
+        } else {
+            // Direct event fallback if status API is momentarily slow
+            const eventName = req.body?.event || '';
+            const eventState = eventPayload?.state || decodedPayload?.code || '';
+            if (eventName === 'checkout.order.completed' || eventState === 'COMPLETED' || eventState === 'SUCCESS' || eventState === 'PAYMENT_SUCCESS') {
                 isSuccess = true;
-                providerRefId = decodedPayload.data?.transactionId || decodedPayload.data?.orderId || '';
-            } else if (decodedPayload.code === 'PAYMENT_ERROR' || decodedPayload.code === 'PAYMENT_DECLINED' || decodedPayload.success === false) {
+            } else if (eventName === 'checkout.order.failed' || eventState === 'FAILED' || eventState === 'PAYMENT_ERROR') {
                 isFailed = true;
             }
         }
