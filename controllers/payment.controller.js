@@ -435,3 +435,73 @@ exports.getHistory = async (req, res) => {
         res.json({ ok: false });
     }
 };
+
+// Dedicated PhonePe Server-to-Server (S2S) Webhook Endpoint
+exports.webhook = async (req, res) => {
+    try {
+        const io = req.app.get('io');
+        console.log('[PhonePe Webhook Received] Body:', JSON.stringify(req.body));
+
+        let decodedPayload = null;
+        if (req.body && req.body.response) {
+            try {
+                const decodedStr = Buffer.from(req.body.response, 'base64').toString('utf8');
+                decodedPayload = JSON.parse(decodedStr);
+                console.log('[PhonePe Webhook Decoded Payload]:', JSON.stringify(decodedPayload));
+            } catch (err) {
+                console.error('[PhonePe Webhook Decode Error]:', err.message);
+            }
+        }
+
+        const merchantTransactionId = req.body?.merchantTransactionId 
+            || req.body?.transactionId 
+            || req.query?.txnId 
+            || req.query?.transactionId
+            || decodedPayload?.data?.merchantTransactionId
+            || decodedPayload?.data?.merchantOrderId
+            || decodedPayload?.merchantOrderId;
+
+        if (!merchantTransactionId) {
+            console.warn('[PhonePe Webhook] Missing transaction ID in payload');
+            return res.status(200).json({ ok: false, error: 'Missing transaction identifier' });
+        }
+
+        // Cross-verify with PhonePe Order Status API
+        const statusResult = await checkPhonePeOrderStatus(merchantTransactionId);
+        let isSuccess = false;
+        let isFailed = false;
+        let providerRefId = '';
+
+        if (statusResult.ok && statusResult.data) {
+            const data = statusResult.data;
+            if (data.state === 'COMPLETED' || data.state === 'SUCCESS' || data.code === 'PAYMENT_SUCCESS' || data.success === true) {
+                isSuccess = true;
+                providerRefId = data.orderId || data.providerReferenceId || '';
+            } else if (data.state === 'FAILED') {
+                isFailed = true;
+            }
+        } else if (decodedPayload) {
+            if (decodedPayload.code === 'PAYMENT_SUCCESS' || decodedPayload.success === true) {
+                isSuccess = true;
+                providerRefId = decodedPayload.data?.transactionId || decodedPayload.data?.orderId || '';
+            } else if (decodedPayload.code === 'PAYMENT_ERROR' || decodedPayload.code === 'PAYMENT_DECLINED' || decodedPayload.success === false) {
+                isFailed = true;
+            }
+        }
+
+        if (isSuccess) {
+            const result = await processPaymentSuccess(merchantTransactionId, providerRefId, io);
+            console.log(`[PhonePe Webhook] Credited successfully for ${merchantTransactionId}`);
+            return res.status(200).json({ ok: true, message: 'Payment credited successfully', result });
+        } else if (isFailed) {
+            await Payment.updateOne({ transactionId: merchantTransactionId }, { $set: { status: 'failed' } });
+            console.log(`[PhonePe Webhook] Marked payment as failed for ${merchantTransactionId}`);
+            return res.status(200).json({ ok: true, message: 'Payment marked as failed' });
+        }
+
+        return res.status(200).json({ ok: true, message: 'Webhook received' });
+    } catch (e) {
+        console.error('[PhonePe Webhook Error]:', e);
+        return res.status(200).json({ ok: false, error: e.message });
+    }
+};
