@@ -24,6 +24,9 @@ async function sendFcmV1Push(fcmToken, data, notification, userId = null) {
         // Determine if this should be a data-only message (Required for background calls/chats)
         const isCall = data && (data.type === 'INCOMING_CALL' || data.type === 'INCOMING_CHAT');
         
+        const defaultLogo = 'https://astroeleven.com/app-logo.png';
+        const notifImage = notification?.image || data?.image || defaultLogo;
+
         const messagePayload = {
             token: fcmToken,
             // If it's a call, we MUST NOT include the notification object
@@ -31,17 +34,26 @@ async function sendFcmV1Push(fcmToken, data, notification, userId = null) {
             notification: (!isCall && notification) ? {
                 title: notification.title,
                 body: notification.body,
-                image: notification.image || undefined
+                image: notifImage
             } : undefined,
             data: {
                 ...data,
                 title: notification ? notification.title : (data.title || ''),
                 body: notification ? notification.body : (data.body || ''),
-                image: notification?.image || data?.image || ''
+                image: notifImage
             },
             android: {
                 priority: 'high',
-                ttl: '0s'
+                ttl: '0s',
+                ...((!isCall && notification) ? {
+                    notification: {
+                        icon: 'ic_launcher',
+                        color: '#FDBA16',
+                        image: notifImage,
+                        defaultSound: true,
+                        notificationPriority: 'PRIORITY_HIGH'
+                    }
+                } : {})
             }
         };
 
