@@ -681,12 +681,31 @@ exports.getPayments = async (req, res) => {
 
         const populatedPayments = payments.map(p => {
             const u = userMap[p.userId] || {};
+
+            let statusReason = p.failureReason || '';
+            if (!statusReason) {
+                if (p.status === 'success') {
+                    statusReason = 'Payment Completed & Wallet Credited';
+                } else if (p.status === 'failed') {
+                    statusReason = 'Order Expired / User Cancelled';
+                } else if (p.status === 'pending') {
+                    const createdTime = new Date(p.createdAt || p.created_at || Date.now()).getTime();
+                    const ageMins = Math.round((Date.now() - createdTime) / (60 * 1000));
+                    if (ageMins <= 20) {
+                        statusReason = `Awaiting customer payment (${ageMins}m ago)`;
+                    } else {
+                        statusReason = 'Payment timed out (Customer did not complete UPI pay)';
+                    }
+                }
+            }
+
             return {
                 ...p,
                 userName: u.name || p.userName || 'Guest User',
                 userPhone: u.phone || p.userPhone || 'N/A',
                 userRole: u.role || 'client',
-                userBalance: u.walletBalance || 0
+                userBalance: u.walletBalance || 0,
+                statusReason
             };
         });
 
@@ -741,21 +760,39 @@ exports.verifyPayment = async (req, res) => {
 
         if (isSuccess) {
             const processRes = await processPaymentSuccess(transactionId, providerRefId, io);
+            await Payment.updateOne(
+                { transactionId },
+                { $set: { failureReason: 'Verified with PhonePe (Success)' } }
+            );
             return res.json({
                 ok: true,
                 status: 'success',
                 message: 'Payment verified and wallet credited successfully!',
+                reason: 'Completed & Credited',
                 phonepeData,
                 credited: processRes.success
             });
         } else {
+            let reasonText = phonepeData.detailedErrorCode || phonepeData.errorCode || phonepeData.message || 'Payment not completed';
+            if (phonepeData.detailedErrorCode === 'ORDER_EXPIRED') {
+                reasonText = 'Order Expired (Customer did not enter UPI PIN / cancelled)';
+            } else if (phonepeData.detailedErrorCode === 'TXN_AUTO_FAILED') {
+                reasonText = 'Auto-cancelled / Declined in UPI App';
+            } else if (phonepeData.state === 'PENDING') {
+                reasonText = 'Awaiting payment (Customer has not entered UPI PIN yet)';
+            }
+
             if (phonepeData.state === 'FAILED') {
-                await Payment.updateOne({ transactionId }, { $set: { status: 'failed' } });
+                await Payment.updateOne(
+                    { transactionId },
+                    { $set: { status: 'failed', failureReason: reasonText } }
+                );
             }
             return res.json({
                 ok: true,
                 status: phonepeData.state === 'FAILED' ? 'failed' : (phonepeData.state || 'pending'),
-                message: `PhonePe status: ${phonepeData.state || 'not completed'} (${phonepeData.detailedErrorCode || phonepeData.errorCode || 'Not paid'}).`,
+                message: `PhonePe Status: ${phonepeData.state || 'PENDING'} - ${reasonText}`,
+                reason: reasonText,
                 phonepeData
             });
         }
