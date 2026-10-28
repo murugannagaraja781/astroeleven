@@ -27,5 +27,7 @@ router.get('/withdrawals', adminController.getWithdrawals);
 router.get('/sessions/history', adminController.getSessionsHistory);
 router.get('/feedback', adminController.getFeedback);
 router.get('/slab-rates', adminController.getSlabRates);
+router.get('/payments', adminController.getPayments);
+router.post('/payments/verify', adminController.verifyPayment);
 
 module.exports = router;

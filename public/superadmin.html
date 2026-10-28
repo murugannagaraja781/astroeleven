@@ -98,6 +98,74 @@ textarea:focus {
     box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.12);
 }
 
+.client-joined-filters {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding: 10px 14px;
+    background: #FFFFFF;
+    border-radius: 12px;
+    border: 1px solid var(--border-soft);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+}
+
+.joined-pill {
+    background: #F1F5F9;
+    color: #475569;
+    border: 1px solid #E2E8F0;
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    outline: none;
+}
+
+.joined-pill:hover {
+    background: #E2E8F0;
+    color: #0F172A;
+    transform: translateY(-1px);
+}
+
+.joined-pill.active {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    color: #FFFFFF;
+    border-color: #047857;
+    box-shadow: 0 3px 10px rgba(5, 150, 105, 0.28);
+}
+
+.pay-status-pill, .pay-date-pill {
+    background: #F1F5F9;
+    color: #475569;
+    border: 1px solid #E2E8F0;
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    outline: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.pay-status-pill.active, .pay-date-pill.active {
+    background: var(--primary, #047857);
+    color: #FFFFFF;
+    border-color: var(--primary, #047857);
+    box-shadow: 0 2px 6px rgba(4,120,87,0.25);
+}
+.pay-status-pill:hover:not(.active), .pay-date-pill:hover:not(.active) {
+    background: #E2E8F0;
+    color: #0F172A;
+}
+
 body {
     margin: 0;
     font-family: var(--font-body);
@@ -1753,6 +1821,7 @@ body {
                             <option value="">Quick Jump...</option>
                             <optgroup label="Operations & Bookings">
                                 <option value="puja-bookings">Puja Bookings</option>
+                                <option value="payments">Wallet Recharges</option>
                                 <option value="earnings">Financial Ledger</option>
                                 <option value="performance">Performance</option>
                                 <option value="history">Session Logs</option>
@@ -2017,6 +2086,21 @@ body {
                                 <div class="hub-card-body">
                                     <div class="hub-card-title">Financial Ledger</div>
                                     <div class="hub-card-desc">Platform revenue streams, astrologer splits, taxes & transaction inflow.</div>
+                                </div>
+                                <div class="hub-card-footer">
+                                    <span>Launch Module</span>
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
+                            </div>
+
+                            <!-- 2.5 Wallet Recharges -->
+                            <div class="hub-app-card" onclick="navAdmin('payments', event)" data-keywords="wallet recharges payments deposits client money phonepe upi transactions">
+                                <div class="hub-card-top">
+                                    <div class="hub-icon-container gradient-teal"><i class="fas fa-receipt"></i></div>
+                                </div>
+                                <div class="hub-card-body">
+                                    <div class="hub-card-title">Wallet Recharges</div>
+                                    <div class="hub-card-desc">Client wallet top-ups, PhonePe transaction logs & date-wise collections.</div>
                                 </div>
                                 <div class="hub-card-footer">
                                     <span>Launch Module</span>
@@ -2642,6 +2726,139 @@ body {
                 </div>
             </div>
 
+            <!-- Tab: Wallet Recharges & Payments -->
+            <div id="admin-sect-payments" class="admin-tab-section">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:20px;">
+                    <div>
+                        <h2 style="margin:0 0 6px 0;"><i class="fas fa-receipt" style="color:#10B981;"></i> Client Wallet Recharges & Payment Logs</h2>
+                        <div style="color:var(--text-muted); font-size:0.85rem;">Date-wise view of all user wallet top-ups, PhonePe status & instant balance verification</div>
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn-admin" onclick="loadAdminPayments(1)" style="background:var(--primary); color:white; width:auto; padding:9px 18px; margin:0; display:inline-flex; align-items:center; gap:8px;">
+                            <i class="fas fa-sync-alt"></i> Refresh Recharges
+                        </button>
+                    </div>
+                </div>
+
+                <!-- KPI Metric Cards Strip -->
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:15px; margin-bottom: 22px;">
+                    <div class="admin-card" style="display:flex; align-items:center; gap:15px; padding:16px; border-left:4px solid #10B981; background:var(--bg-card);">
+                        <div style="width:44px; height:44px; border-radius:12px; background:rgba(16,185,129,0.12); display:flex; align-items:center; justify-content:center; color:#10B981; font-size:1.3rem;">
+                            <i class="fas fa-coins"></i>
+                        </div>
+                        <div>
+                            <div id="payKpiTotalVolume" style="font-size:1.45rem; font-weight:800; color:var(--text-main);">₹0</div>
+                            <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Total Successful Volume</div>
+                        </div>
+                    </div>
+                    <div class="admin-card" style="display:flex; align-items:center; gap:15px; padding:16px; border-left:4px solid #3B82F6; background:var(--bg-card);">
+                        <div style="width:44px; height:44px; border-radius:12px; background:rgba(59,130,246,0.12); display:flex; align-items:center; justify-content:center; color:#3B82F6; font-size:1.3rem;">
+                            <i class="fas fa-calendar-day"></i>
+                        </div>
+                        <div>
+                            <div id="payKpiTodayVolume" style="font-size:1.45rem; font-weight:800; color:var(--text-main);">₹0</div>
+                            <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Today's Collections</div>
+                        </div>
+                    </div>
+                    <div class="admin-card" style="display:flex; align-items:center; gap:15px; padding:16px; border-left:4px solid #059669; background:var(--bg-card);">
+                        <div style="width:44px; height:44px; border-radius:12px; background:rgba(5,150,105,0.12); display:flex; align-items:center; justify-content:center; color:#059669; font-size:1.3rem;">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div>
+                            <div id="payKpiSuccessCount" style="font-size:1.45rem; font-weight:800; color:var(--text-main);">0</div>
+                            <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Successful Payments</div>
+                        </div>
+                    </div>
+                    <div class="admin-card" style="display:flex; align-items:center; gap:15px; padding:16px; border-left:4px solid #F59E0B; background:var(--bg-card);">
+                        <div style="width:44px; height:44px; border-radius:12px; background:rgba(245,158,11,0.12); display:flex; align-items:center; justify-content:center; color:#F59E0B; font-size:1.3rem;">
+                            <i class="fas fa-hourglass-half"></i>
+                        </div>
+                        <div>
+                            <div id="payKpiPendingCount" style="font-size:1.45rem; font-weight:800; color:var(--text-main);">0</div>
+                            <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Pending Incomplete</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter Controls Card -->
+                <div class="admin-card" style="padding:16px; margin-bottom:20px; background:var(--bg-card); border-radius:14px; border:1px solid var(--border-soft);">
+                    <div style="display:flex; flex-direction:column; gap:14px;">
+                        <!-- Row 1: Search & Status -->
+                        <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+                            <div style="position:relative; flex:1; min-width:240px;">
+                                <i class="fas fa-search" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--text-muted);"></i>
+                                <input type="text" id="paymentsSearchInput" placeholder="Search Client Name, Phone, Txn ID, or PhonePe Order ID..." 
+                                       oninput="debouncePaymentsSearch()" 
+                                       style="width:100%; padding:10px 14px 10px 40px; background:var(--bg-main); border:1px solid var(--border-soft); border-radius:10px; color:var(--text-main); font-size:0.9rem;">
+                            </div>
+                            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                                <span style="font-size:0.8rem; font-weight:700; color:var(--text-muted); margin-right:4px;">STATUS:</span>
+                                <button class="pay-status-pill active" onclick="setPaymentsStatusFilter('all', this)">All</button>
+                                <button class="pay-status-pill" onclick="setPaymentsStatusFilter('success', this)">Success</button>
+                                <button class="pay-status-pill" onclick="setPaymentsStatusFilter('pending', this)">Pending</button>
+                                <button class="pay-status-pill" onclick="setPaymentsStatusFilter('failed', this)">Failed</button>
+                            </div>
+                        </div>
+
+                        <!-- Row 2: Date Filters -->
+                        <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:space-between; border-top:1px solid var(--border-soft); padding-top:12px;">
+                            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                                <span style="font-size:0.8rem; font-weight:700; color:var(--text-muted); margin-right:4px;"><i class="fas fa-calendar-alt"></i> DATE:</span>
+                                <button class="pay-date-pill active" onclick="setPaymentsDateFilter('all', this)">All Time</button>
+                                <button class="pay-date-pill" onclick="setPaymentsDateFilter('today', this)">Today</button>
+                                <button class="pay-date-pill" onclick="setPaymentsDateFilter('yesterday', this)">Yesterday</button>
+                                <button class="pay-date-pill" onclick="setPaymentsDateFilter('7days', this)">Last 7 Days</button>
+                                <button class="pay-date-pill" onclick="setPaymentsDateFilter('30days', this)">Last 30 Days</button>
+                            </div>
+                            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                                <input type="date" id="payCustomStartDate" style="padding:6px 10px; background:var(--bg-main); border:1px solid var(--border-soft); border-radius:8px; color:var(--text-main); font-size:0.82rem;">
+                                <span style="color:var(--text-muted); font-size:0.82rem;">to</span>
+                                <input type="date" id="payCustomEndDate" style="padding:6px 10px; background:var(--bg-main); border:1px solid var(--border-soft); border-radius:8px; color:var(--text-main); font-size:0.82rem;">
+                                <button class="btn-admin" onclick="applyCustomDatePayments()" style="width:auto; padding:6px 14px; margin:0; background:var(--secondary); color:white; font-size:0.82rem;">
+                                    Apply
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recharges Data Table Card -->
+                <div class="admin-card" style="padding:0; overflow:hidden; border-radius:14px; border:1px solid var(--border-soft);">
+                    <div style="overflow-x:auto;">
+                        <table style="width:100%; border-collapse:collapse; min-width:850px;">
+                            <thead>
+                                <tr style="background:var(--bg-card-secondary, #F8FAFC); border-bottom:1px solid var(--border-soft); text-align:left;">
+                                    <th style="padding:14px 16px; font-size:0.78rem; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Date & Time</th>
+                                    <th style="padding:14px 16px; font-size:0.78rem; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Client Details</th>
+                                    <th style="padding:14px 16px; font-size:0.78rem; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Transaction IDs</th>
+                                    <th style="padding:14px 16px; font-size:0.78rem; text-transform:uppercase; color:var(--text-muted); font-weight:700; text-align:right;">Amount (Base + GST)</th>
+                                    <th style="padding:14px 16px; font-size:0.78rem; text-transform:uppercase; color:var(--text-muted); font-weight:700; text-align:center;">Type / Bonus</th>
+                                    <th style="padding:14px 16px; font-size:0.78rem; text-transform:uppercase; color:var(--text-muted); font-weight:700; text-align:center;">Status</th>
+                                    <th style="padding:14px 16px; font-size:0.78rem; text-transform:uppercase; color:var(--text-muted); font-weight:700; text-align:center;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="paymentsTableBody">
+                                <tr>
+                                    <td colspan="7" style="padding:40px; text-align:center;">
+                                        <div class="loader"></div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Pagination Strip -->
+                <div class="admin-pagination-container" style="margin-top:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <div id="paymentsPaginationInfo" style="font-size:0.9rem; color:var(--text-muted);">Showing 0 to 0 of 0 Recharges</div>
+                    <div style="display:flex; gap:10px;">
+                        <button id="paymentsPrevBtn" onclick="changePaymentPage(-1)" class="btn-admin" style="width:auto; padding:8px 16px; margin:0;" disabled>Prev</button>
+                        <span id="paymentsCurrentPageBadge" style="padding:8px 12px; font-size:0.88rem; font-weight:bold; color:var(--text-main); display:flex; align-items:center;">Page 1</span>
+                        <button id="paymentsNextBtn" onclick="changePaymentPage(1)" class="btn-admin" style="width:auto; padding:8px 16px; margin:0;" disabled>Next</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Tab 3: Payouts/Astrologers -->
             <div id="admin-sect-payouts" class="admin-tab-section">
                 <h2 style="margin-bottom:20px;"><i class="fas fa-user-astronaut"></i> Astrologer Management</h2>
@@ -2728,14 +2945,47 @@ body {
             <div id="admin-sect-users" class="admin-tab-section">
                 <h2 style="margin-bottom:20px;"><i class="fas fa-users"></i> Client Management</h2>
                 
-                <!-- Client Filter Bar: Search, City, DOB & CSV Download (Item 17) -->
-                <div style="margin-bottom:20px; display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) auto; gap:10px; align-items:center;">
+                <!-- Quick Filter by Joined Date (Client Only) -->
+                <div class="client-joined-filters">
+                    <div style="font-size:0.85rem; font-weight:700; color:var(--text-main); display:flex; align-items:center; gap:6px; margin-right:6px;">
+                        <i class="fas fa-user-clock" style="color:var(--primary);"></i> Recently Joined:
+                    </div>
+                    <button type="button" class="joined-pill active" data-range="all" onclick="setClientJoinedFilter('all')">
+                        <i class="fas fa-users"></i> All Clients
+                    </button>
+                    <button type="button" class="joined-pill" data-range="1day" onclick="setClientJoinedFilter('1day')">
+                        <i class="fas fa-calendar-day"></i> Today / 1 Day
+                    </button>
+                    <button type="button" class="joined-pill" data-range="3days" onclick="setClientJoinedFilter('3days')">
+                        <i class="fas fa-history"></i> Recent 3 Days
+                    </button>
+                    <button type="button" class="joined-pill" data-range="5days" onclick="setClientJoinedFilter('5days')">
+                        <i class="fas fa-history"></i> Recent 5 Days
+                    </button>
+                    <button type="button" class="joined-pill" data-range="1week" onclick="setClientJoinedFilter('1week')">
+                        <i class="fas fa-calendar-week"></i> 1 Week
+                    </button>
+                    <button type="button" class="joined-pill" data-range="1month" onclick="setClientJoinedFilter('1month')">
+                        <i class="fas fa-calendar-alt"></i> 1 Month Ago
+                    </button>
+                </div>
+
+                <!-- Client Filter Bar: Search, City, DOB, Joined Dropdown & CSV Download -->
+                <div style="margin-bottom:20px; display:grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)) auto; gap:10px; align-items:center;">
                     <input type="text" id="adminUserSearch" oninput="searchAdminUsers()"
                         placeholder="Search name, phone, or ID..." class="app-input" style="margin:0;">
                     <input type="text" id="adminUserCity" oninput="searchAdminUsers()"
                         placeholder="Filter City / POB..." class="app-input" style="margin:0;">
                     <input type="text" id="adminUserDob" oninput="searchAdminUsers()"
                         placeholder="Filter DOB (YYYY-MM-DD)..." class="app-input" style="margin:0;">
+                    <select id="adminUserJoinedSelect" onchange="setClientJoinedFilter(this.value)" class="app-input" style="margin:0; cursor:pointer;" title="Filter by Joining Date">
+                        <option value="all">Joined: All Time</option>
+                        <option value="1day">Joined: Today / 1 Day</option>
+                        <option value="3days">Joined: Recent 3 Days</option>
+                        <option value="5days">Joined: Recent 5 Days</option>
+                        <option value="1week">Joined: 1 Week Ago</option>
+                        <option value="1month">Joined: 1 Month Ago</option>
+                    </select>
                     <button onclick="exportClientsCSV()" class="btn-admin" style="background:#10B981; color:#FFFFFF; font-weight:bold; height:42px; display:flex; align-items:center; gap:8px; padding:0 18px; margin:0; border-radius:8px; cursor:pointer;" title="Download Filtered Users as CSV">
                         <i class="fas fa-file-csv"></i> Download CSV
                     </button>
@@ -4061,6 +4311,7 @@ body {
             </div>
             <div class="nav-subcategory-list">
                 <div class="admin-nav-item" onclick="navAdmin('users', event)"><i class="fas fa-users"></i><span>Users <small id="legacy-nav-count-users" style="color:#EF4444; font-weight:bold;"></small></span></div>
+                <div class="admin-nav-item" onclick="navAdmin('payments', event)"><i class="fas fa-receipt" style="color:#10B981;"></i><span>Recharges <small id="legacy-nav-count-payments" style="color:#10B981; font-weight:bold;"></small></span></div>
                 <div class="admin-nav-item" onclick="navAdmin('notifications', event)"><i class="fas fa-bell"></i><span>Notifications <small id="legacy-nav-count-notifs" style="color:#EF4444; font-weight:bold;"></small></span></div>
             </div>
 
@@ -4115,7 +4366,7 @@ body {
 
         // Pagination State
         let clientPage = 1, clientLimit = 10, clientTotal = 0, clientSearch = '';
-        let astroPage = 1, astroLimit = 10, astroTotal = 0, astroSearch = '';
+        let astroPage = 1, astroLimit = 5, astroTotal = 0, astroSearch = '';
         let pendingPage = 1, pendingLimit = 10, pendingTotal = 0, pendingSearch = '';
         let historyPage = 1, historyLimit = 10, historyTotal = 0, historySearch = '', historyType = 'all';
 
@@ -4189,8 +4440,6 @@ body {
             let modal = document.getElementById('admin-permit-modal');
             if (modal) modal.remove();
 
-            const savedPhone = localStorage.getItem('astro_admin_phone') || '7305307369';
-
             modal = document.createElement('div');
             modal.id = 'admin-permit-modal';
             modal.style.cssText = `
@@ -4209,12 +4458,12 @@ body {
                             <label style="font-size: 0.75rem; color: #D1D5DB;">Admin Mobile Number</label>
                             <button type="button" id="btnAdminSendOtp" onclick="sendAdminOtpModal()" style="background: none; border: none; color: #D4AF37; font-size: 0.75rem; cursor: pointer; text-decoration: underline; padding: 0;">Get SMS OTP</button>
                         </div>
-                        <input type="text" id="adminPermitPhone" value="${savedPhone}" placeholder="Mobile Number" style="width: 100%; box-sizing: border-box; padding: 12px; border-radius: 8px; border: 1px solid #374151; background: #1F2937; color: #fff; font-size: 0.95rem;">
+                        <input type="text" id="adminPermitPhone" value="" autocomplete="off" placeholder="Enter Mobile Number" style="width: 100%; box-sizing: border-box; padding: 12px; border-radius: 8px; border: 1px solid #374151; background: #1F2937; color: #fff; font-size: 0.95rem;">
                         <div id="adminOtpNotice" style="display: none; font-size: 0.75rem; color: #10B981; margin-top: 5px; font-weight: 500;"></div>
                     </div>
                     <div style="text-align: left; margin-bottom: 20px;">
-                        <label style="font-size: 0.75rem; color: #D1D5DB; display: block; margin-bottom: 5px;">Master Passkey (1369) or SMS OTP</label>
-                        <input type="password" id="adminPermitPin" value="1369" placeholder="Enter PIN (1369) or SMS OTP" style="width: 100%; box-sizing: border-box; padding: 12px; border-radius: 8px; border: 1px solid #374151; background: #1F2937; color: #fff; font-size: 0.95rem;">
+                        <label style="font-size: 0.75rem; color: #D1D5DB; display: block; margin-bottom: 5px;">Master Passkey or SMS OTP</label>
+                        <input type="password" id="adminPermitPin" value="" autocomplete="new-password" placeholder="Enter Passkey or SMS OTP" style="width: 100%; box-sizing: border-box; padding: 12px; border-radius: 8px; border: 1px solid #374151; background: #1F2937; color: #fff; font-size: 0.95rem;">
                     </div>
                     <button id="btnAdminPermitSubmit" onclick="submitAdminPermit()" style="width: 100%; padding: 12px; border: none; border-radius: 8px; background: linear-gradient(135deg, #D4AF37, #AA771C); color: #000; font-weight: bold; font-size: 1rem; cursor: pointer; transition: opacity 0.2s;">
                         Authorize & Enter
@@ -4278,7 +4527,7 @@ body {
 
                 if (res.ok && (res.role === 'superadmin' || res.role === 'admin')) {
                     localStorage.setItem('astro_session', JSON.stringify(res));
-                    localStorage.setItem('astro_admin_phone', phone);
+                    localStorage.removeItem('astro_admin_phone');
                     const modal = document.getElementById('admin-permit-modal');
                     if (modal) modal.remove();
                     init();
@@ -4997,15 +5246,22 @@ body {
             }, 350);
         }
 
+        let lastLoadDataTime = 0;
         function loadData() {
+            const now = Date.now();
+            if (now - lastLoadDataTime < 1500) return; // Prevent duplicate rapid blitz calls
+            lastLoadDataTime = now;
+
+            // Phase 1 (High Priority): Instant Dashboard Hub view
             fetchAdminStats();
-            loadPujaBookings(1);
-            fetchPujaSummary();
-            fetchAllUsers();
-            fetchAcademyVideos();
-            fetchBanners();
-            loadWithdrawals();
-            loadPendingAstrologers();
+            if (typeof fetchPujaSummary === 'function') fetchPujaSummary();
+            if (typeof loadPujaBookings === 'function') loadPujaBookings(1);
+
+            // Phase 2 (Non-blocking background): Pending counts & notifications
+            setTimeout(() => {
+                if (typeof loadWithdrawals === 'function') loadWithdrawals();
+                if (typeof loadPendingAstrologers === 'function') loadPendingAstrologers();
+            }, 600);
         }
 
         // Astrologer Directory Quick Filter (Used by Overview Cards)
@@ -5023,7 +5279,7 @@ body {
                 astroSearch = 'online';
                 if (searchInput) searchInput.value = 'online';
             }
-            fetchAllUsers();
+            fetchAstrologers();
         };
 
         let currentOverviewFilter = 'all';
@@ -5098,10 +5354,16 @@ body {
             });
         }
 
-        function getImageUrl(path) {
-            if (!path) return 'images/default-astro.png';
-            if (path.startsWith('http')) return path;
-            return path.startsWith('/') ? path : '/' + path;
+        function getImageUrl(path, name = 'Astrologer') {
+            if (!path || typeof path !== 'string') {
+                return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(name) + '&background=D4AF37&color=fff&bold=true';
+            }
+            const clean = path.trim();
+            if (!clean || clean === 'images/default-user.png' || clean === 'images/default-astro.png' || clean === '/images/default-astro.png' || clean === '/images/default-user.png') {
+                return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(name) + '&background=D4AF37&color=fff&bold=true';
+            }
+            if (clean.startsWith('http://') || clean.startsWith('https://')) return clean;
+            return clean.startsWith('/') ? clean : '/' + clean;
         }
 
         function renderLiveAstros(liveAstros) {
@@ -5118,7 +5380,7 @@ body {
             container.innerHTML = liveAstros.map(astro => `
                 <div class="live-astro-chip" onclick="showPerformance('${astro.userId || ''}')" style="cursor:pointer;" title="Click to view performance statistics">
                     <div class="live-badge" style="background:${astro.inCall ? '#EF4444' : '#10B981'};">${astro.inCall ? 'IN CALL' : 'ONLINE'}</div>
-                    <img src="${getImageUrl(astro.image)}" onerror="this.src='images/default-astro.png'" style="width:45px; height:45px; border-radius:12px; object-fit:cover; border:2px solid var(--border-soft);">
+                    <img src="${getImageUrl(astro.image, astro.name)}" loading="lazy" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=' + encodeURIComponent('${encodeURIComponent(astro.name || 'Astrologer')}') + '&background=D4AF37&color=fff&bold=true';" style="width:45px; height:45px; border-radius:12px; object-fit:cover; border:2px solid var(--border-soft);">
                     <div style="flex:1; min-width:0;">
                         <div style="font-weight:700; font-size:0.85rem; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${astro.name || 'Astrologer'}</div>
                         <div style="font-size:0.65rem; color:var(--text-muted); display:flex; align-items:center; gap:4px;">
@@ -5132,23 +5394,39 @@ body {
 
         let clientCity = '';
         let clientDob = '';
+        let clientJoined = 'all';
 
-        function fetchAllUsers() {
+        window.setClientJoinedFilter = (val) => {
+            clientJoined = val || 'all';
+            clientPage = 1;
+
+            // Sync pill buttons active state
+            document.querySelectorAll('.joined-pill').forEach(btn => {
+                if (btn.getAttribute('data-range') === clientJoined) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            // Sync dropdown select element
+            const selectEl = document.getElementById('adminUserJoinedSelect');
+            if (selectEl && selectEl.value !== clientJoined) {
+                selectEl.value = clientJoined;
+            }
+
+            fetchClients();
+        };
+
+        function fetchAstrologers() {
             const adminUid = state.me?.userId;
             const astroList = document.getElementById('adminAstroList');
-            const clientList = document.getElementById('adminClientList');
 
             if (astroList && (!astroList.children.length || astroList.querySelector('.loader'))) {
                 astroList.innerHTML = '<div class="loader"></div>';
             }
-            if (clientList && (!clientList.children.length || clientList.querySelector('.loader'))) {
-                clientList.innerHTML = '<div class="loader"></div>';
-            }
 
             let astroDone = false;
-            let clientDone = false;
-
-            // 1. Socket Fetch: Astrologers
             socket.emit('admin-get-users', { 
                 role: 'astrologer', 
                 page: astroPage, 
@@ -5165,26 +5443,6 @@ body {
                 }
             });
 
-            // 2. Socket Fetch: Clients
-            socket.emit('admin-get-users', { 
-                role: 'client', 
-                page: clientPage, 
-                limit: clientLimit, 
-                search: clientSearch,
-                city: clientCity,
-                dob: clientDob,
-                adminUserId: adminUid
-            }, (res) => {
-                if (res && res.ok) {
-                    clientDone = true;
-                    clientTotal = res.total || 0;
-                    renderClientsList(res.users || []);
-                    updatePaginationUI('client', res.page || 1, res.pages || 1, res.total || 0);
-                    updateUsersCache(res.users || []);
-                }
-            });
-
-            // 3. Robust REST API Fallback
             setTimeout(async () => {
                 if (!astroDone) {
                     try {
@@ -5201,24 +5459,43 @@ body {
                             renderAstrosList(res.users || []);
                             updatePaginationUI('astro', res.page || 1, res.pages || 1, res.total || 0);
                             updateUsersCache(res.users || []);
-                        } else {
-                            throw new Error(res?.error || 'Failed to fetch astrologers');
                         }
                     } catch (err) {
-                        console.error('REST fetch astrologers error:', err);
-                        if (astroList && astroList.querySelector('.loader')) {
-                            astroList.innerHTML = `
-                                <div style="grid-column: 1 / -1; text-align:center; padding: 40px; background:var(--bg-card); border-radius:12px; border:1px solid var(--border-soft);">
-                                    <div style="font-size:1.5rem; color:#EF4444; margin-bottom:10px;"><i class="fas fa-exclamation-triangle"></i></div>
-                                    <div style="font-weight:700; color:var(--text-main); margin-bottom:6px;">Unable to load Astrologers</div>
-                                    <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:15px;">Server responded with an issue or is reconnecting.</div>
-                                    <button onclick="fetchAllUsers()" class="btn-admin" style="display:inline-flex; width:auto; padding:6px 16px;"><i class="fas fa-redo" style="margin-right:6px;"></i> Retry</button>
-                                </div>
-                            `;
-                        }
+                        console.error('Fallback fetch astrologers error:', err);
                     }
                 }
+            }, 2000);
+        }
 
+        function fetchClients() {
+            const adminUid = state.me?.userId;
+            const clientList = document.getElementById('adminClientList');
+
+            if (clientList && (!clientList.children.length || clientList.querySelector('.loader'))) {
+                clientList.innerHTML = '<div class="loader"></div>';
+            }
+
+            let clientDone = false;
+            socket.emit('admin-get-users', { 
+                role: 'client', 
+                page: clientPage, 
+                limit: clientLimit, 
+                search: clientSearch,
+                city: clientCity,
+                dob: clientDob,
+                joined: clientJoined,
+                adminUserId: adminUid
+            }, (res) => {
+                if (res && res.ok) {
+                    clientDone = true;
+                    clientTotal = res.total || 0;
+                    renderClientsList(res.users || []);
+                    updatePaginationUI('client', res.page || 1, res.pages || 1, res.total || 0);
+                    updateUsersCache(res.users || []);
+                }
+            });
+
+            setTimeout(async () => {
                 if (!clientDone) {
                     try {
                         const params = new URLSearchParams({
@@ -5227,7 +5504,8 @@ body {
                             limit: clientLimit,
                             search: clientSearch,
                             city: clientCity,
-                            dob: clientDob
+                            dob: clientDob,
+                            joined: clientJoined
                         });
                         const res = await fetch(`/api/admin/users?${params}`).then(r => r.json());
                         if (res && res.ok) {
@@ -5236,24 +5514,17 @@ body {
                             renderClientsList(res.users || []);
                             updatePaginationUI('client', res.page || 1, res.pages || 1, res.total || 0);
                             updateUsersCache(res.users || []);
-                        } else {
-                            throw new Error(res?.error || 'Failed to fetch clients');
                         }
                     } catch (err) {
-                        console.error('REST fetch clients error:', err);
-                        if (clientList && clientList.querySelector('.loader')) {
-                            clientList.innerHTML = `
-                                <div style="text-align:center; padding: 40px; background:var(--bg-card); border-radius:12px; border:1px solid var(--border-soft);">
-                                    <div style="font-size:1.5rem; color:#EF4444; margin-bottom:10px;"><i class="fas fa-exclamation-triangle"></i></div>
-                                    <div style="font-weight:700; color:var(--text-main); margin-bottom:6px;">Unable to load Clients</div>
-                                    <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:15px;">Server responded with an issue or is reconnecting.</div>
-                                    <button onclick="fetchAllUsers()" class="btn-admin" style="display:inline-flex; width:auto; padding:6px 16px;"><i class="fas fa-redo" style="margin-right:6px;"></i> Retry</button>
-                                </div>
-                            `;
-                        }
+                        console.error('Fallback fetch clients error:', err);
                     }
                 }
-            }, 350);
+            }, 2000);
+        }
+
+        function fetchAllUsers() {
+            fetchAstrologers();
+            fetchClients();
         }
 
         function updateUsersCache(users) {
@@ -5274,7 +5545,7 @@ body {
             
             if (!info || !prevBtn || !nextBtn) return;
             
-            const limit = 10;
+            const limit = prefix === 'astro' ? astroLimit : (prefix === 'client' ? clientLimit : (prefix === 'pending' ? pendingLimit : 10));
             const start = totalCount === 0 ? 0 : (page - 1) * limit + 1;
             const end = Math.min(page * limit, totalCount);
             
@@ -5285,13 +5556,19 @@ body {
         }
 
         window.changeClientPage = (dir) => {
-            clientPage += dir;
-            fetchAllUsers();
+            const maxPages = Math.ceil(clientTotal / clientLimit) || 1;
+            const nextP = clientPage + dir;
+            if (nextP < 1 || nextP > maxPages) return;
+            clientPage = nextP;
+            fetchClients();
         };
 
         window.changeAstroPage = (dir) => {
-            astroPage += dir;
-            fetchAllUsers();
+            const maxPages = Math.ceil(astroTotal / astroLimit) || 1;
+            const nextP = astroPage + dir;
+            if (nextP < 1 || nextP > maxPages) return;
+            astroPage = nextP;
+            fetchAstrologers();
         };
 
         window.changePendingPage = (dir) => {
@@ -5353,9 +5630,20 @@ body {
 
         window.searchAstrologers = () => {
             astroPage = 1;
-            astroSearch = document.getElementById('adminAstroSearch').value;
-            fetchAllUsers();
+            astroSearch = (document.getElementById('adminAstroSearch')?.value || '').trim();
+            fetchAstrologers();
         };
+
+        function formatJoinedDate(rawDate) {
+            if (!rawDate) return 'N/A';
+            try {
+                const d = new Date(rawDate);
+                if (isNaN(d.getTime())) return 'N/A';
+                return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) + ', ' + d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+            } catch (e) {
+                return 'N/A';
+            }
+        }
 
         function renderUserCard(u) {
             const isAstro = u.role === 'astrologer';
@@ -5363,13 +5651,14 @@ body {
             const phone = u.phone || 'No Phone';
             const userId = u.userId || '';
             const shortId = userId ? userId.slice(0, 8) : 'N/A';
-            const avatarSrc = u.image ? getImageUrl(u.image) : ('https://ui-avatars.com/api/?name=' + encodeURIComponent(name) + '&background=D4AF37&color=fff');
+            const avatarSrc = getImageUrl(u.image, name);
+            const fallbackAvatar = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(name) + '&background=D4AF37&color=fff&bold=true';
             const statusBadge = isAstro ? (u.isOnline ? '<span style="display:inline-block; width:8px; height:8px; background:#10B981; border-radius:50%; margin-right:4px;"></span> Online' : '<span style="display:inline-block; width:8px; height:8px; background:#9CA3AF; border-radius:50%; margin-right:4px;"></span> Offline') : '';
 
             return `
         <div class="admin-user-card" id="user-card-${userId}">
           <div class="admin-user-header">
-            <img class="admin-user-avatar" src="${avatarSrc}" onerror="this.src='images/default-astro.png'" alt="${name}">
+            <img class="admin-user-avatar" src="${avatarSrc}" loading="lazy" onerror="this.onerror=null; this.src='${fallbackAvatar}';" alt="${name}">
             <div class="admin-user-info">
               <div class="admin-user-name">
                 ${name} 
@@ -5377,6 +5666,9 @@ body {
               </div>
               <div class="admin-user-meta">
                 <i class="fas fa-phone-alt" style="font-size:0.7rem; color:#9CA3AF;"></i> ${phone} &bull; ID: ${shortId}
+              </div>
+              <div class="admin-user-meta" style="margin-top:2px;">
+                <i class="fas fa-calendar-alt" style="font-size:0.7rem; color:#9CA3AF;"></i> Joined: ${formatJoinedDate(u.createdAt || u.created_at)}
               </div>
               ${isAstro ? `
                 <div style="font-size:0.75rem; color:#6B7280; margin-top:3px; display:flex; align-items:center; gap:8px;">
@@ -5411,6 +5703,7 @@ body {
         const ADMIN_MODULE_TITLES = {
             'home': 'Dashboard Hub',
             'puja-bookings': 'Puja Bookings & Vedic Services',
+            'payments': 'Client Wallet Recharges & Payments',
             'earnings': 'Financial Ledger & Platform Revenue',
             'payouts': 'Astrologers Directory & Payouts',
             'performance': 'Astrologer Performance Leaderboard',
@@ -5477,6 +5770,9 @@ body {
             }
             if (id === 'users') {
                 fetchAllUsers();
+            }
+            if (id === 'payments') {
+                if (typeof loadAdminPayments === 'function') loadAdminPayments(1);
             }
             if (id === 'earnings') {
                 if (typeof fetchAdminStats === 'function') fetchAdminStats();
@@ -5599,9 +5895,13 @@ body {
             const inputs = document.querySelectorAll('.slab-rate-input');
             const rates = {};
             inputs.forEach(i => {
-                rates[i.dataset.key] = parseFloat(i.value);
+                const k = i.dataset.key;
+                const v = parseFloat(i.value);
+                if (k && !isNaN(v)) {
+                    rates[k] = v;
+                }
             });
-            socket.emit('update-slab-rates', { ...rates, adminUserId: state.me?.userId }, (res) => {
+            socket.emit('update-slab-rates', { rates, adminUserId: state.me?.userId }, (res) => {
                 if (res && res.ok) alert('Slab Rates Updated Successfully');
                 else alert('Error: ' + (res?.error || 'Failed to update'));
             });
@@ -5842,6 +6142,7 @@ body {
             clientSearch = document.getElementById('adminUserSearch')?.value || '';
             clientCity = document.getElementById('adminUserCity')?.value || '';
             clientDob = document.getElementById('adminUserDob')?.value || '';
+            clientJoined = document.getElementById('adminUserJoinedSelect')?.value || clientJoined || 'all';
             fetchAllUsers();
         };
 
@@ -5850,7 +6151,7 @@ body {
             const c = document.getElementById('adminUserCity')?.value || '';
             const d = document.getElementById('adminUserDob')?.value || '';
             
-            socket.emit('admin-get-users', { role: 'client', exportAll: true, search: s, city: c, dob: d }, (res) => {
+            socket.emit('admin-get-users', { role: 'client', exportAll: true, search: s, city: c, dob: d, joined: clientJoined }, (res) => {
                 if (!res.ok || !res.users || res.users.length === 0) {
                     return alert('No client records found to export.');
                 }
@@ -6446,6 +6747,221 @@ body {
                     btn.innerHTML = oldText;
                     btn.disabled = false;
                 }
+            }
+        };
+
+        // ==========================================
+        // Client Wallet Recharges & Payments Logic
+        // ==========================================
+        let currentPaymentsPage = 1;
+        let currentPaymentsStatus = 'all';
+        let currentPaymentsDateRange = 'all';
+        let currentPaymentsSearch = '';
+        let paymentsSearchTimer = null;
+
+        window.setPaymentsStatusFilter = (status, el) => {
+            currentPaymentsStatus = status;
+            document.querySelectorAll('.pay-status-pill').forEach(p => p.classList.remove('active'));
+            if (el) el.classList.add('active');
+            loadAdminPayments(1);
+        };
+
+        window.setPaymentsDateFilter = (range, el) => {
+            currentPaymentsDateRange = range;
+            document.querySelectorAll('.pay-date-pill').forEach(p => p.classList.remove('active'));
+            if (el) el.classList.add('active');
+            const startInput = document.getElementById('payCustomStartDate');
+            const endInput = document.getElementById('payCustomEndDate');
+            if (startInput) startInput.value = '';
+            if (endInput) endInput.value = '';
+            loadAdminPayments(1);
+        };
+
+        window.applyCustomDatePayments = () => {
+            const startInput = document.getElementById('payCustomStartDate');
+            const endInput = document.getElementById('payCustomEndDate');
+            if (!startInput.value && !endInput.value) {
+                alert('Please select at least a Start Date or End Date');
+                return;
+            }
+            currentPaymentsDateRange = 'custom';
+            document.querySelectorAll('.pay-date-pill').forEach(p => p.classList.remove('active'));
+            loadAdminPayments(1);
+        };
+
+        window.debouncePaymentsSearch = () => {
+            clearTimeout(paymentsSearchTimer);
+            paymentsSearchTimer = setTimeout(() => {
+                const input = document.getElementById('paymentsSearchInput');
+                currentPaymentsSearch = input ? input.value.trim() : '';
+                loadAdminPayments(1);
+            }, 350);
+        };
+
+        window.changePaymentPage = (delta) => {
+            loadAdminPayments(currentPaymentsPage + delta);
+        };
+
+        window.loadAdminPayments = async (page = 1) => {
+            currentPaymentsPage = Math.max(1, page);
+            const tbody = document.getElementById('paymentsTableBody');
+            if (!tbody) return;
+
+            tbody.innerHTML = `<tr><td colspan="7" style="padding:40px; text-align:center;"><div class="loader"></div></td></tr>`;
+
+            try {
+                const params = new URLSearchParams({
+                    page: currentPaymentsPage,
+                    limit: 20,
+                    status: currentPaymentsStatus,
+                    dateRange: currentPaymentsDateRange,
+                    search: currentPaymentsSearch
+                });
+
+                if (currentPaymentsDateRange === 'custom') {
+                    const startVal = document.getElementById('payCustomStartDate')?.value;
+                    const endVal = document.getElementById('payCustomEndDate')?.value;
+                    if (startVal) params.append('startDate', startVal);
+                    if (endVal) params.append('endDate', endVal);
+                }
+
+                const res = await fetch('/api/admin/payments?' + params.toString());
+                const data = await res.json();
+
+                if (!data.ok) {
+                    tbody.innerHTML = `<tr><td colspan="7" style="padding:30px; text-align:center; color:#EF4444;"><i class="fas fa-exclamation-circle"></i> ${data.error || 'Failed to load payments'}</td></tr>`;
+                    return;
+                }
+
+                if (data.summary) {
+                    const s = data.summary;
+                    const totVolEl = document.getElementById('payKpiTotalVolume');
+                    const todVolEl = document.getElementById('payKpiTodayVolume');
+                    const succCountEl = document.getElementById('payKpiSuccessCount');
+                    const pendCountEl = document.getElementById('payKpiPendingCount');
+                    if (totVolEl) totVolEl.textContent = '₹' + Number(s.totalVolume || 0).toLocaleString('en-IN');
+                    if (todVolEl) todVolEl.textContent = '₹' + Number(s.todayVolume || 0).toLocaleString('en-IN');
+                    if (succCountEl) succCountEl.textContent = Number(s.successCount || 0).toLocaleString('en-IN');
+                    if (pendCountEl) pendCountEl.textContent = Number(s.pendingCount || 0).toLocaleString('en-IN');
+                }
+
+                const payments = data.payments || [];
+                if (payments.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" style="padding:40px; text-align:center; color:var(--text-muted);"><i class="fas fa-inbox" style="font-size:2rem; margin-bottom:8px; display:block;"></i>No recharge records found for the selected filter.</td></tr>`;
+                    const infoEl = document.getElementById('paymentsPaginationInfo');
+                    const prevBtn = document.getElementById('paymentsPrevBtn');
+                    const nextBtn = document.getElementById('paymentsNextBtn');
+                    if (infoEl) infoEl.textContent = 'Showing 0 to 0 of 0 Recharges';
+                    if (prevBtn) prevBtn.disabled = true;
+                    if (nextBtn) nextBtn.disabled = true;
+                    return;
+                }
+
+                let html = '';
+                payments.forEach(p => {
+                    const dateVal = p.createdAt || p.created_at;
+                    const dateStr = dateVal ? new Date(dateVal).toLocaleString('en-IN', {
+                        day: '2-digit', month: 'short', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit', hour12: true
+                    }) : 'N/A';
+
+                    let statusBadge = '';
+                    if (p.status === 'success') {
+                        statusBadge = `<span style="background:rgba(16,185,129,0.12); color:#059669; padding:4px 10px; border-radius:20px; font-size:0.75rem; font-weight:700; display:inline-flex; align-items:center; gap:4px;"><i class="fas fa-check-circle"></i> SUCCESS</span>`;
+                    } else if (p.status === 'pending') {
+                        statusBadge = `<span style="background:rgba(245,158,11,0.12); color:#D97706; padding:4px 10px; border-radius:20px; font-size:0.75rem; font-weight:700; display:inline-flex; align-items:center; gap:4px;"><i class="fas fa-clock"></i> PENDING</span>`;
+                    } else {
+                        statusBadge = `<span style="background:rgba(239,68,68,0.12); color:#DC2626; padding:4px 10px; border-radius:20px; font-size:0.75rem; font-weight:700; display:inline-flex; align-items:center; gap:4px;"><i class="fas fa-times-circle"></i> FAILED</span>`;
+                    }
+
+                    const baseAmt = Number(p.baseAmount || 0);
+                    const gstAmt = Number(p.gstAmount || 0);
+                    const totalAmt = Number(p.amount || (baseAmt + gstAmt));
+
+                    let bonusBadge = `<span style="color:var(--text-muted); font-size:0.78rem;">Recharge</span>`;
+                    if (p.couponBonus > 0) {
+                        bonusBadge = `<span style="background:#EDE9FE; color:#6D28D9; padding:2px 8px; border-radius:12px; font-size:0.72rem; font-weight:700;">+₹${p.couponBonus} Bonus</span>`;
+                    } else if (p.reason === 'referral') {
+                        bonusBadge = `<span style="background:#FEF3C7; color:#B45309; padding:2px 8px; border-radius:12px; font-size:0.72rem; font-weight:700;">Referral Reward</span>`;
+                    }
+
+                    html += `
+                        <tr style="border-bottom:1px solid var(--border-soft); transition:background 0.2s;" onmouseover="this.style.background='rgba(0,0,0,0.015)'" onmouseout="this.style.background='transparent'">
+                            <td style="padding:14px 16px; font-size:0.85rem; color:var(--text-main); white-space:nowrap;">
+                                <div style="font-weight:600;">${dateStr}</div>
+                                <small style="color:var(--text-muted); font-size:0.72rem;">ID: #${p.id || '-'}</small>
+                            </td>
+                            <td style="padding:14px 16px;">
+                                <div style="font-weight:700; color:var(--text-main); font-size:0.88rem;">${p.userName || 'Client'}</div>
+                                <div style="color:var(--text-muted); font-size:0.78rem;"><i class="fas fa-phone-alt" style="font-size:0.7rem; color:var(--primary);"></i> ${p.userPhone || 'No Phone'}</div>
+                                <div style="color:var(--text-dim); font-size:0.7rem; font-family:monospace;">${p.userId || ''}</div>
+                            </td>
+                            <td style="padding:14px 16px; font-size:0.8rem;">
+                                <div style="font-family:monospace; font-weight:600; color:var(--text-main);">${p.transactionId || '-'}</div>
+                                ${p.providerRefId ? `<small style="color:var(--text-muted); font-size:0.72rem; display:block;">PhonePe Ref: ${p.providerRefId}</small>` : ''}
+                            </td>
+                            <td style="padding:14px 16px; text-align:right;">
+                                <div style="font-weight:800; font-size:1.05rem; color:var(--primary);">₹${totalAmt.toLocaleString('en-IN')}</div>
+                                <small style="color:var(--text-muted); font-size:0.72rem;">Base: ₹${baseAmt} | GST: ₹${gstAmt}</small>
+                            </td>
+                            <td style="padding:14px 16px; text-align:center;">
+                                ${bonusBadge}
+                            </td>
+                            <td style="padding:14px 16px; text-align:center;">
+                                ${statusBadge}
+                            </td>
+                            <td style="padding:14px 16px; text-align:center; white-space:nowrap;">
+                                ${p.status === 'pending' ? `
+                                    <button class="btn-admin" onclick="verifyPaymentFromAdmin('${p.transactionId}')" style="background:#047857; color:white; width:auto; padding:5px 12px; font-size:0.75rem; margin:0;" title="Check PhonePe Status & Credit Wallet">
+                                        <i class="fas fa-search-dollar"></i> Verify
+                                    </button>
+                                ` : `
+                                    <span style="color:var(--text-muted); font-size:0.75rem;"><i class="fas fa-check"></i> Synced</span>
+                                `}
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                tbody.innerHTML = html;
+
+                const startIdx = (currentPaymentsPage - 1) * 20 + 1;
+                const endIdx = Math.min(currentPaymentsPage * 20, data.total);
+                const infoEl = document.getElementById('paymentsPaginationInfo');
+                const pageBadge = document.getElementById('paymentsCurrentPageBadge');
+                const prevBtn = document.getElementById('paymentsPrevBtn');
+                const nextBtn = document.getElementById('paymentsNextBtn');
+
+                if (infoEl) infoEl.textContent = `Showing ${startIdx} to ${endIdx} of ${data.total} Recharges`;
+                if (pageBadge) pageBadge.textContent = `Page ${currentPaymentsPage} of ${data.pages || 1}`;
+                if (prevBtn) prevBtn.disabled = (currentPaymentsPage <= 1);
+                if (nextBtn) nextBtn.disabled = (currentPaymentsPage >= data.pages);
+
+            } catch (err) {
+                console.error('loadAdminPayments error:', err);
+                tbody.innerHTML = `<tr><td colspan="7" style="padding:30px; text-align:center; color:#EF4444;"><i class="fas fa-exclamation-triangle"></i> Network error loading payments</td></tr>`;
+            }
+        };
+
+        window.verifyPaymentFromAdmin = async (transactionId) => {
+            if (!transactionId) return;
+            if (!confirm('Check PhonePe server for transaction ' + transactionId + ' and credit wallet if completed?')) return;
+
+            try {
+                const res = await fetch('/api/admin/payments/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ transactionId })
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    alert('Result: ' + data.message);
+                    loadAdminPayments(currentPaymentsPage);
+                } else {
+                    alert('Verification issue: ' + (data.error || 'Unknown error'));
+                }
+            } catch (e) {
+                alert('Failed to verify payment: ' + e.message);
             }
         };
 
@@ -7596,16 +8112,27 @@ body {
             }, 350);
         };
 
-        function formatDuration(sec) {
-            if (!sec) return '0s';
-            const h = Math.floor(sec / 3600);
-            const m = Math.floor((sec % 3600) / 60);
-            const s = sec % 60;
+        function formatDuration(sec, item) {
+            if (!sec || isNaN(sec) || Number(sec) <= 0) return '0s';
+            let sNum = Math.max(0, Number(sec));
+            if (item && item.startTime && item.endTime && item.endTime > item.startTime) {
+                const wallSec = Math.ceil((item.endTime - item.startTime) / 1000);
+                if (sNum > wallSec + 5) {
+                    sNum = Math.round(sNum / 1000);
+                }
+            } else if (sNum >= 1000) {
+                sNum = Math.round(sNum / 1000);
+            }
+            sNum = Math.max(0, Math.floor(sNum));
+            if (sNum === 0) return '0s';
+            const h = Math.floor(sNum / 3600);
+            const m = Math.floor((sNum % 3600) / 60);
+            const s = Math.floor(sNum % 60);
             let res = '';
             if (h > 0) res += h + 'h ';
             if (m > 0) res += m + 'm ';
-            if (s > 0 || res === '') res += s + 's';
-            return res.trim();
+            if (s > 0) res += s + 's';
+            return res.trim() || '0s';
         }
 
         function renderHistory() {
@@ -7639,7 +8166,7 @@ body {
                         <td style="padding:15px; font-weight:600; color:var(--text-main);">${s.clientName}</td>
                         <td style="padding:15px; font-weight:600; color:var(--text-main);">${s.astrologerName}${badge}</td>
                         <td style="padding:15px; text-align:center;"><span style="background:rgba(255, 204, 0,0.1); color:var(--primary); font-size:0.75rem; padding:4px 8px; border-radius:50px; text-transform:uppercase; font-weight:600;">${s.type || 'Chat'}</span></td>
-                        <td style="padding:15px; text-align:center; font-weight:bold; color:var(--text-main);">${formatDuration(s.duration)}</td>
+                        <td style="padding:15px; text-align:center; font-weight:bold; color:var(--text-main);">${formatDuration(s.duration, s)}</td>
                         <td style="padding:15px; text-align:right; font-weight:700; color:#10B981;">₹${s.totalCharged || 0}</td>
                         <td style="padding:15px; text-align:center; font-size:0.8rem; color:var(--text-dim);">${dateStr}</td>
                         <td style="padding:15px; text-align:center;">

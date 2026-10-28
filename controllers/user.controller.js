@@ -8,9 +8,13 @@ exports.getProfile = async (req, res) => {
         if (!user) return res.status(404).json({ ok: false, error: 'User not found' });
         
         const SERVER_URL = req.app.get('SERVER_URL');
+        const userObj = user.toObject ? user.toObject() : { ...user };
+        delete userObj.model;
+        delete userObj._doc;
+
         res.json({ 
             ok: true, 
-            ...user._doc, 
+            ...userObj, 
             image: formatImageUrl(user.image, user.name, SERVER_URL)
         });
     } catch (e) {

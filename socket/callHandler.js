@@ -96,14 +96,29 @@ module.exports = (io, socket, SERVER_URL, broadcastAstroUpdate) => {
                 return typeof cb === 'function' && cb({ ok: false, error: 'User not found' });
             }
 
-            // Sync true wallet balance from PHP MySQL before starting the call
+            // Sync true wallet balance before starting the call
             if (fromUser && fromUser.role === 'client') {
-                fromUser.walletBalance = await billingService.syncWalletBalance(fromUserId) || fromUser.walletBalance;
+                const syncedBal = await billingService.syncWalletBalance(fromUserId);
+                if (syncedBal !== null && syncedBal !== undefined) {
+                    fromUser.walletBalance = syncedBal;
+                }
             }
 
-            if (fromUser && fromUser.role === 'client' && (fromUser.walletBalance || 0) <= 0) {
-                console.warn(`[CallHandler][request-session] Insufficient balance for ${fromUserId}`);
-                return typeof cb === 'function' && cb({ ok: false, error: 'Insufficient Main Balance.' });
+            let requiredFirstMin = 10;
+            if (toUser.price && toUser.price > 0) {
+                requiredFirstMin = parseInt(toUser.price);
+            } else {
+                if (type === 'audio') requiredFirstMin = 15;
+                else if (type === 'video') requiredFirstMin = 20;
+                else requiredFirstMin = 10;
+            }
+
+            if (fromUser && fromUser.role === 'client' && (fromUser.walletBalance || 0) < requiredFirstMin) {
+                console.warn(`[CallHandler][request-session] Insufficient balance for ${fromUserId}. Balance: ${fromUser.walletBalance}, Required: ${requiredFirstMin}`);
+                return typeof cb === 'function' && cb({
+                    ok: false,
+                    error: `Insufficient balance. Minimum ₹${requiredFirstMin} required for 1 minute consultation.`
+                });
             }
 
             // Enrich and save birthData/intakeDetails
@@ -197,6 +212,17 @@ module.exports = (io, socket, SERVER_URL, broadcastAstroUpdate) => {
             if (fromUser?.role === 'astrologer') astrologerId = fromUserId;
             if (toUser?.role === 'client') clientId = toUserId;
             if (toUser?.role === 'astrologer') astrologerId = toUserId;
+
+            // Fallback: ensure neither is null
+            if (!astrologerId) {
+                if (toUser?.role === 'astrologer') astrologerId = toUserId;
+                else if (fromUser?.role === 'astrologer') astrologerId = fromUserId;
+                else astrologerId = toUserId;
+            }
+            if (!clientId) {
+                if (fromUserId !== astrologerId) clientId = fromUserId;
+                else clientId = toUserId;
+            }
 
             await Session.create({
                 sessionId, fromUserId, toUserId, type, startTime: Date.now(),
@@ -303,7 +329,8 @@ module.exports = (io, socket, SERVER_URL, broadcastAstroUpdate) => {
     // --- Answer Session ---
     socket.on('answer-session', async (data, cb) => {
         try {
-            const { sessionId, toUserId, type, accept } = data || {};
+            const { sessionId, type, accept } = data || {};
+            let toUserId = data?.toUserId;
             let fromUserId = socketToUser.get(socket.id) || (data && data.fromUserId);
             
             // Self-registration for signaling robustness
@@ -314,9 +341,28 @@ module.exports = (io, socket, SERVER_URL, broadcastAstroUpdate) => {
                 socket.join(fromUserId);
             }
 
+            // Fallback for toUserId if missing from packet
+            if (!toUserId && sessionId) {
+                const existingS = activeSessions.get(sessionId);
+                if (existingS && existingS.users) {
+                    toUserId = existingS.users.find(u => u !== fromUserId);
+                }
+                if (!toUserId) {
+                    const dbS = await Session.findOne({ sessionId });
+                    if (dbS) toUserId = dbS.fromUserId === fromUserId ? dbS.toUserId : dbS.fromUserId;
+                }
+            }
+
             if (!fromUserId || !sessionId || !toUserId) {
-                console.warn(`[CallHandler][answer-session] missing data for session ${sessionId}. fromUserId=${fromUserId}`);
+                console.warn(`[CallHandler][answer-session] missing data for session ${sessionId}. fromUserId=${fromUserId}, toUserId=${toUserId}`);
                 return typeof cb === 'function' && cb({ ok: false, error: 'Missing data' });
+            }
+
+            // Guard: Check if DB session is already ended (prevents late answer packet from resurrecting ended sessions)
+            const existingDbSession = await Session.findOne({ sessionId });
+            if (existingDbSession && existingDbSession.status === 'ended') {
+                console.log(`[CallHandler][answer-session] Session ${sessionId} already ended in DB. Ignoring.`);
+                return typeof cb === 'function' && cb({ ok: false, error: 'Session already ended' });
             }
 
             // Update status to prevent timeout cleanup
@@ -329,7 +375,11 @@ module.exports = (io, socket, SERVER_URL, broadcastAstroUpdate) => {
             }
             
             // Mark in DB as well
-            Session.updateOne({ sessionId }, { status: accept ? 'answered' : 'rejected' }).catch(() => {});
+            const updatePayload = { status: accept ? 'answered' : 'rejected' };
+            if (accept) {
+                updatePayload.astrologerConnectedAt = Date.now();
+            }
+            Session.updateOne({ sessionId }, updatePayload).catch(() => {});
 
             io.to(toUserId).emit('session-answered', {
                 sessionId, fromUserId, type, accept: !!accept
@@ -439,16 +489,32 @@ module.exports = (io, socket, SERVER_URL, broadcastAstroUpdate) => {
     socket.on('session-connect', async (data) => {
         try {
             const { sessionId } = data || {};
-            const userId = socketToUser.get(socket.id);
+            let userId = socketToUser.get(socket.id);
+            if (!userId && data && data.userId) {
+                userId = data.userId;
+                socketToUser.set(socket.id, userId);
+                userSockets.set(userId, socket.id);
+                socket.join(userId);
+            }
             if (!userId || !sessionId) return;
 
             console.log(`[CallHandler][session-connect] User ${userId} joined session ${sessionId}`);
 
             const session = await Session.findOne({ sessionId });
-            if (!session) return;
+            if (!session || session.status === 'ended') return;
+
+            // Ensure clientId and astrologerId are set
+            let updated = false;
+            if (!session.clientId && session.fromUserId) {
+                session.clientId = session.fromUserId;
+                updated = true;
+            }
+            if (!session.astrologerId && session.toUserId) {
+                session.astrologerId = session.toUserId;
+                updated = true;
+            }
 
             const now = Date.now();
-            let updated = false;
 
             if (userId === session.clientId && !session.clientConnectedAt) {
                 session.clientConnectedAt = now;
@@ -460,23 +526,43 @@ module.exports = (io, socket, SERVER_URL, broadcastAstroUpdate) => {
 
             if (updated) await session.save();
 
-            // Check if both are connected to start billing
-            if (session.clientConnectedAt && session.astrologerConnectedAt && !session.actualBillingStart) {
-                const billingStart = Math.max(session.clientConnectedAt, session.astrologerConnectedAt) + 2000;
+            // Check if both are connected or ready to start billing
+            const isClientReady = !!(session.clientConnectedAt || userId === session.clientId);
+            const isAstroReady = !!(session.astrologerConnectedAt || userId === session.astrologerId || session.status === 'answered' || session.status === 'active');
+
+            if (isClientReady && isAstroReady && !session.actualBillingStart) {
+                const billingStart = Date.now();
                 session.actualBillingStart = billingStart;
                 session.status = 'active';
+                if (!session.clientConnectedAt) session.clientConnectedAt = billingStart;
+                if (!session.astrologerConnectedAt) session.astrologerConnectedAt = billingStart;
                 await session.save();
 
-                const activeSession = activeSessions.get(sessionId);
-                if (activeSession) {
+                let activeSession = activeSessions.get(sessionId);
+                if (!activeSession) {
+                    activeSession = {
+                        type: session.type || 'call',
+                        users: [session.fromUserId || session.clientId, session.toUserId || session.astrologerId].filter(Boolean),
+                        startedAt: session.startTime || Date.now(),
+                        clientId: session.clientId,
+                        astrologerId: session.astrologerId,
+                        status: 'active',
+                        elapsedBillableSeconds: 0,
+                        lastBilledMinute: 0,
+                        actualBillingStart: billingStart,
+                        totalDeducted: 0,
+                        totalEarned: 0
+                    };
+                    activeSessions.set(sessionId, activeSession);
+                    if (session.clientId) userActiveSession.set(session.clientId, sessionId);
+                    if (session.astrologerId) userActiveSession.set(session.astrologerId, sessionId);
+                } else {
                     activeSession.status = 'active';
                     activeSession.actualBillingStart = billingStart;
                     activeSession.elapsedBillableSeconds = 0;
-                    activeSession.lastBilledMinute = 1;
                     activeSession.clientId = session.clientId;
                     activeSession.astrologerId = session.astrologerId;
-                    activeSession.totalDeducted = 0;
-                    activeSession.totalEarned = 0;
+                }
                     
                     // Init Slab for Pair
                     const currentMonth = new Date().toISOString().slice(0, 7);
@@ -485,27 +571,35 @@ module.exports = (io, socket, SERVER_URL, broadcastAstroUpdate) => {
                     if (!pairRec) {
                         pairRec = await PairMonth.create({
                             pairId, clientId: session.clientId, astrologerId: session.astrologerId,
-                            yearMonth: currentMonth, currentSlab: 3
+                            yearMonth: currentMonth, currentSlab: 1
                         });
                     }
                     activeSession.pairMonthId = pairRec._id;
-                    activeSession.currentSlab = pairRec.currentSlab;
+                    activeSession.currentSlab = pairRec.currentSlab || 1;
                     activeSession.initialPairSeconds = pairRec.slabLockedAt || 0;
-                }
 
-                // Notify both
-                const client = await User.findOne({ userId: session.clientId });
-                const astro = await User.findOne({ userId: session.astrologerId });
-                const clientBalance = client?.walletBalance || 0;
-                const ratePerMinute = astro?.price || 10;
-                const availableMinutes = Math.floor(clientBalance / ratePerMinute);
+                    // DEDUCT MINUTE 1 UPFRONT IMMEDIATELY ON CONNECT!
+                    const billRes = await billingService.processBillingCharge(sessionId, 60, 1, 'first_60_full');
+                    activeSession.lastBilledMinute = 1;
+                    activeSession.totalDeducted = billRes?.charged || 0;
+                    activeSession.totalEarned = billRes?.astroShare || 0;
 
-                io.to(session.clientId).emit('billing-started', { startTime: billingStart, clientBalance, availableMinutes });
-                io.to(session.astrologerId).emit('billing-started', { startTime: billingStart, clientBalance, ratePerMinute, availableMinutes });
-                
-                console.log(`[CallHandler][session-connect] 🚀 BOTH CONNECTED. Call Active. Billing started for ${sessionId}`);
+                    if (!billRes || !billRes.success) {
+                        console.warn(`[CallHandler][session-connect] Insufficient balance for session ${sessionId} at start. Ending.`);
+                        billingService.endSessionRecord(sessionId, broadcastAstroUpdate);
+                        return;
+                    }
+
+                    const freshClient = await User.findOne({ userId: session.clientId });
+                    const freshAstro = await User.findOne({ userId: session.astrologerId });
+                    const clientBalance = freshClient ? Number(freshClient.walletBalance || 0) : 0;
+                    const ratePerMinute = (freshAstro?.price && freshAstro.price > 0) ? parseInt(freshAstro.price) : 10;
+                    const availableMinutes = Math.floor(clientBalance / ratePerMinute) + 1; // 1 min already paid + remaining
+
+                    io.to(session.clientId).emit('billing-started', { startTime: billingStart, clientBalance, availableMinutes });
+                    io.to(session.astrologerId).emit('billing-started', { startTime: billingStart, clientBalance, ratePerMinute, availableMinutes });
                     
-                    // MARK BUSY
+                    console.log(`[CallHandler][session-connect] 🚀 BOTH CONNECTED. Minute 1 billed upfront (₹${activeSession.totalDeducted}). Client balance: ₹${clientBalance}`);
                     presenceService.setBusy(session.astrologerId, true, io);
             }
         } catch (err) {

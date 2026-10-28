@@ -14,8 +14,8 @@ const getAstrologerPerformance = async (astrologerId, days = 30) => {
         // 1. Core Session Metrics SQL
         const sessionSql = `
             SELECT 
-                IFNULL(SUM(duration / 60), 0) AS totalMinutes,
-                IFNULL(AVG(duration / 60), 0) AS avgMinutes,
+                IFNULL(SUM(CASE WHEN duration >= 1000 THEN duration / 60000 ELSE duration / 60 END), 0) AS totalMinutes,
+                IFNULL(AVG(CASE WHEN duration >= 1000 THEN duration / 60000 ELSE duration / 60 END), 0) AS avgMinutes,
                 IFNULL(SUM(totalEarned), 0) AS totalEarned,
                 IFNULL(SUM(totalCharged), 0) AS totalCharged,
                 COUNT(*) AS sessionCount,
@@ -131,7 +131,7 @@ const getAllAstrologersPerformance = async (days = 30) => {
         const resultsSql = `
             SELECT 
                 astrologerId AS _id,
-                IFNULL(SUM(duration / 60), 0) AS totalMinutes,
+                IFNULL(SUM(CASE WHEN duration >= 1000 THEN duration / 60000 ELSE duration / 60 END), 0) AS totalMinutes,
                 IFNULL(SUM(totalEarned), 0) AS totalEarned,
                 COUNT(*) AS sessionCount,
                 COUNT(DISTINCT clientId) AS uniqueClientsCount

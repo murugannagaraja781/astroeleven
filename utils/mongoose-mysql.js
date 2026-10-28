@@ -77,7 +77,7 @@ function buildWhereClause(query) {
         let val = query[key];
 
         // Map MongoDB _id to SQL auto-increment id
-        const dbKey = (key === '_id') ? 'id' : key;
+        let dbKey = (key === '_id') ? 'id' : key;
 
         // Support for $or operator
         if (key === '$or' && Array.isArray(val)) {
@@ -217,9 +217,9 @@ class QueryChain {
             for (const key of keys) {
                 const dir = (orderObj[key] === -1 || orderObj[key] === 'desc') ? 'DESC' : 'ASC';
                 let dbKey = (key === '_id') ? 'id' : key;
-                if (dbKey !== 'id' && !schemaDef[dbKey]) {
-                    if (dbKey === 'createdAt' || dbKey === 'updatedAt') {
-                        dbKey = 'id';
+                if (dbKey !== 'id' && !schemaDef[dbKey] && !schemaDef[key]) {
+                    if (dbKey === 'createdAt' || dbKey === 'created_at' || dbKey === 'updatedAt' || dbKey === 'updated_at') {
+                        // Allow sorting on timestamp columns
                     } else {
                         continue;
                     }
@@ -337,7 +337,25 @@ class WrappedDocument {
                 val = (val === 1 || val === '1' || val === true || val === 'true');
             }
 
+            const isDateType = fieldDef === Date || (fieldDef && typeof fieldDef === 'object' && fieldDef.type === Date) || key === 'createdAt' || key === 'updatedAt';
+            if (isDateType) {
+                if (!val) {
+                    val = new Date();
+                } else if (!(val instanceof Date)) {
+                    val = new Date(val);
+                }
+            }
+
             this[key] = val;
+        }
+
+        // Ensure createdAt and created_at are both available
+        if (rawData.created_at && !this.createdAt) {
+            this.createdAt = new Date(rawData.created_at);
+            this.created_at = this.createdAt;
+        } else if (rawData.createdAt && !this.created_at) {
+            this.createdAt = new Date(rawData.createdAt);
+            this.created_at = this.createdAt;
         }
 
         // Mongoose _id compatibility
@@ -380,19 +398,30 @@ class WrappedDocument {
             }
         }
 
+        // Ensure allowedColumns is populated
+        if (!this.model.columnNames || this.model.columnNames.length === 0) {
+            try {
+                const [existingCols] = await pool.execute(`SHOW COLUMNS FROM \`${this.model.tableName}\``);
+                this.model.columnNames = existingCols.map(c => c.Field);
+            } catch (err) {
+                console.error(`Failed to fetch columns for ${this.model.tableName}:`, err.message);
+            }
+        }
+
         // Filter and map fields to only columns that exist in the MySQL table
         let dataToSave = {};
         const allowedColumns = this.model.columnNames;
         if (allowedColumns && allowedColumns.length > 0) {
             const allowedLower = allowedColumns.map(c => c.toLowerCase());
             for (const key in rawData) {
-                if (allowedLower.includes(key.toLowerCase())) {
-                    const dbColName = allowedColumns.find(c => c.toLowerCase() === key.toLowerCase()) || key;
+                const lower = key.toLowerCase();
+                if (allowedLower.includes(lower)) {
+                    const dbColName = allowedColumns.find(c => c.toLowerCase() === lower) || key;
                     dataToSave[dbColName] = rawData[key];
                 }
             }
         } else {
-            dataToSave = rawData;
+            dataToSave = { ...rawData };
         }
 
         const keys = Object.keys(dataToSave);
@@ -432,6 +461,7 @@ class WrappedDocument {
 class CustomModel {
     constructor(name, schema) {
         this.name = name;
+        this.modelName = name;
         this.schema = schema;
         this.tableName = getTableName(name);
         this.columnNames = [];
@@ -650,16 +680,26 @@ class CustomModel {
     }
 
     async aggregate(pipeline) {
-        if (this.modelName === 'BillingLedger') {
+        let matchQuery = {};
+        if (Array.isArray(pipeline)) {
+            const matchStage = pipeline.find(stage => stage && stage.$match);
+            if (matchStage && matchStage.$match) {
+                matchQuery = matchStage.$match;
+            }
+        }
+        const { clause, values } = buildWhereClause(matchQuery);
+
+        if (this.name === 'BillingLedger' || this.modelName === 'BillingLedger' || this.tableName === 'billing_ledgers') {
             const sql = `
                 SELECT 
                     IFNULL(SUM(chargedToClient), 0) AS usageRevenue,
                     IFNULL(SUM(creditedToAstrologer), 0) AS totalAstroPayout,
                     IFNULL(SUM(adminAmount), 0) AS totalAdminRevenue,
                     COUNT(*) AS totalMinutes
-                FROM billing_ledgers
+                FROM \`${this.tableName}\`
+                WHERE ${clause}
             `;
-            const [rows] = await pool.execute(sql);
+            const [rows] = await pool.execute(sql, values);
             const r = rows[0] || {};
             return [{
                 _id: null,
@@ -668,13 +708,18 @@ class CustomModel {
                 totalAdminRevenue: Number(r.totalAdminRevenue),
                 totalMinutes: Number(r.totalMinutes)
             }];
-        } else if (this.modelName === 'Payment') {
+        } else if (this.name === 'Payment' || this.modelName === 'Payment' || this.tableName === 'payments') {
+            let paymentClause = clause;
+            let paymentValues = [...values];
+            if (!matchQuery.status) {
+                paymentClause = (paymentClause === '1=1') ? "`status` = 'success'" : `${paymentClause} AND \`status\` = 'success'`;
+            }
             const sql = `
                 SELECT IFNULL(SUM(amount), 0) AS totalCollected
-                FROM payments
-                WHERE status = 'success'
+                FROM \`${this.tableName}\`
+                WHERE ${paymentClause}
             `;
-            const [rows] = await pool.execute(sql);
+            const [rows] = await pool.execute(sql, paymentValues);
             const r = rows[0] || {};
             return [{
                 _id: null,

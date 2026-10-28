@@ -6,6 +6,7 @@ const Withdrawal = require('../models/Withdrawal');
 const Session = require('../models/Session');
 const Feedback = require('../models/Feedback');
 const GlobalSettings = require('../models/GlobalSettings');
+const Payment = require('../models/Payment');
 const performanceService = require('../services/performance.service');
 const fs = require('fs');
 const path = require('path');
@@ -366,7 +367,7 @@ exports.updateSmtpConfig = async (req, res) => {
 
 exports.getUsers = async (req, res) => {
     try {
-        const { role, page = 1, limit = 10, search = '', city = '', dob = '', exportAll = false } = req.query;
+        const { role, page = 1, limit = 10, search = '', city = '', dob = '', joined = 'all', exportAll = false } = req.query;
         const parsedPage = Math.max(1, parseInt(page) || 1);
         const parsedLimit = Math.max(1, parseInt(limit) || 10);
 
@@ -376,6 +377,23 @@ exports.getUsers = async (req, res) => {
         }
 
         const andConditions = [];
+
+        // Recently Joined filter (1day, 3days, 5days, 1week, 1month)
+        if (joined && joined !== 'all') {
+            const now = Date.now();
+            const dayMs = 24 * 60 * 60 * 1000;
+            let daysAgo = 0;
+            if (joined === '1day' || joined === 'today' || joined === '1') daysAgo = 1;
+            else if (joined === '3days' || joined === '3') daysAgo = 3;
+            else if (joined === '5days' || joined === '5') daysAgo = 5;
+            else if (joined === '1week' || joined === '7days' || joined === '7') daysAgo = 7;
+            else if (joined === '1month' || joined === '30days' || joined === '30') daysAgo = 30;
+
+            if (daysAgo > 0) {
+                const sinceDate = new Date(now - daysAgo * dayMs);
+                andConditions.push({ created_at: { $gte: sinceDate } });
+            }
+        }
 
         if (search) {
             const lowerSearch = search.trim().toLowerCase();
@@ -425,16 +443,15 @@ exports.getUsers = async (req, res) => {
             query.$and = andConditions;
         }
 
-        const total = await User.countDocuments(query);
-        let users;
-        if (exportAll === 'true' || exportAll === true) {
-            users = await User.find(query).sort({ _id: -1 }).limit(5000);
-        } else {
-            users = await User.find(query)
-                .sort({ _id: -1 })
-                .skip((parsedPage - 1) * parsedLimit)
-                .limit(parsedLimit);
-        }
+        const isExport = exportAll === 'true' || exportAll === true;
+        const usersQuery = isExport
+            ? User.find(query).sort({ _id: -1 }).limit(5000)
+            : User.find(query).sort({ _id: -1 }).skip((parsedPage - 1) * parsedLimit).limit(parsedLimit);
+
+        const [total, users] = await Promise.all([
+            User.countDocuments(query),
+            usersQuery
+        ]);
 
         res.json({
             ok: true,
@@ -510,12 +527,15 @@ exports.getSessionsHistory = async (req, res) => {
                 User.findOne({ userId: aId }).select('name').lean()
             ]);
 
-            let calculatedDuration = s.duration || 0;
-            if (!calculatedDuration && s.startTime && s.endTime) {
+            let calculatedDuration = Number(s.duration) || 0;
+            if (calculatedDuration >= 1000) {
+                calculatedDuration = Math.round(calculatedDuration / 1000);
+            } else if (!calculatedDuration && s.actualBillingStart && s.endTime && s.endTime > s.actualBillingStart) {
+                calculatedDuration = Math.round((s.endTime - s.actualBillingStart) / 1000);
+            } else if (!calculatedDuration && s.startTime && s.endTime && s.endTime > s.startTime) {
                 calculatedDuration = Math.round((s.endTime - s.startTime) / 1000);
-            } else if (!calculatedDuration && s.actualBillingStart && s.sessionEndAt) {
-                calculatedDuration = Math.round((s.sessionEndAt - s.actualBillingStart) / 1000);
             }
+            calculatedDuration = Math.max(0, calculatedDuration || 0);
 
             return {
                 ...s,
@@ -556,6 +576,189 @@ exports.getSlabRates = async (req, res) => {
     } catch (e) {
         console.error('[AdminController] Error in getSlabRates:', e);
         res.status(500).json({ ok: false, error: 'Failed to fetch slab rates' });
+    }
+};
+
+exports.getPayments = async (req, res) => {
+    try {
+        const {
+            page = 1,
+            limit = 20,
+            status = 'all',
+            dateRange = 'all',
+            startDate,
+            endDate,
+            search = ''
+        } = req.query;
+
+        const parsedPage = Math.max(1, parseInt(page) || 1);
+        const parsedLimit = Math.max(1, parseInt(limit) || 20);
+
+        const query = {};
+        const andConditions = [];
+
+        // Status Filter
+        if (status && status !== 'all') {
+            andConditions.push({ status: status.toLowerCase() });
+        }
+
+        // Date Filter
+        const now = new Date();
+        if (dateRange === 'today') {
+            const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+            andConditions.push({ createdAt: { $gte: startOfDay } });
+        } else if (dateRange === 'yesterday') {
+            const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0);
+            const endOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
+            andConditions.push({ createdAt: { $gte: startOfYesterday, $lte: endOfYesterday } });
+        } else if (dateRange === '7days') {
+            const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+            andConditions.push({ createdAt: { $gte: sevenDaysAgo } });
+        } else if (dateRange === '30days') {
+            const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+            andConditions.push({ createdAt: { $gte: thirtyDaysAgo } });
+        } else if (dateRange === 'custom' && (startDate || endDate)) {
+            const dateCond = {};
+            if (startDate) dateCond.$gte = new Date(startDate + 'T00:00:00');
+            if (endDate) dateCond.$lte = new Date(endDate + 'T23:59:59.999');
+            andConditions.push({ createdAt: dateCond });
+        }
+
+        // Search Filter (TransactionId, ProviderRefId, UserId, or User Name/Phone)
+        if (search && search.trim()) {
+            const term = search.trim();
+            const searchRegex = new RegExp(term.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'i');
+            const matchingUsers = await User.find({
+                $or: [
+                    { name: searchRegex },
+                    { phone: searchRegex },
+                    { userId: term }
+                ]
+            }).select('userId').limit(100).lean();
+
+            const userIds = matchingUsers.map(u => u.userId);
+            if (userIds.length > 0) {
+                andConditions.push({
+                    $or: [
+                        { transactionId: { $regex: term } },
+                        { merchantTransactionId: { $regex: term } },
+                        { providerRefId: { $regex: term } },
+                        { userId: { $in: userIds } }
+                    ]
+                });
+            } else {
+                andConditions.push({
+                    $or: [
+                        { transactionId: { $regex: term } },
+                        { merchantTransactionId: { $regex: term } },
+                        { providerRefId: { $regex: term } },
+                        { userId: term }
+                    ]
+                });
+            }
+        }
+
+        if (andConditions.length > 0) {
+            query.$and = andConditions;
+        }
+
+        const total = await Payment.countDocuments(query);
+        const payments = await Payment.find(query)
+            .sort({ id: -1 })
+            .skip((parsedPage - 1) * parsedLimit)
+            .limit(parsedLimit)
+            .lean();
+
+        // Populate user details (name, phone, role)
+        const uniqueUserIds = [...new Set(payments.map(p => p.userId).filter(Boolean))];
+        const userMap = {};
+        if (uniqueUserIds.length > 0) {
+            const users = await User.find({ userId: { $in: uniqueUserIds } })
+                .select('userId name phone role walletBalance')
+                .lean();
+            users.forEach(u => { userMap[u.userId] = u; });
+        }
+
+        const populatedPayments = payments.map(p => {
+            const u = userMap[p.userId] || {};
+            return {
+                ...p,
+                userName: u.name || p.userName || 'Guest User',
+                userPhone: u.phone || p.userPhone || 'N/A',
+                userRole: u.role || 'client',
+                userBalance: u.walletBalance || 0
+            };
+        });
+
+        // Compute summary metrics (Total Success Collections, Today's Collections, Counts)
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+
+        const [allSuccessTotal, todaySuccessTotal, totalSuccessCount, totalPendingCount] = await Promise.all([
+            Payment.aggregate([{ $match: { status: 'success' } }]),
+            Payment.aggregate([{ $match: { status: 'success', createdAt: { $gte: todayStart } } }]),
+            Payment.countDocuments({ status: 'success' }),
+            Payment.countDocuments({ status: 'pending' })
+        ]);
+
+        const totalVolume = allSuccessTotal[0]?.totalCollected || 0;
+        const todayVolume = todaySuccessTotal[0]?.totalCollected || 0;
+
+        res.json({
+            ok: true,
+            payments: populatedPayments,
+            total,
+            page: parsedPage,
+            pages: Math.ceil(total / parsedLimit),
+            summary: {
+                totalVolume: Math.round(totalVolume * 100) / 100,
+                todayVolume: Math.round(todayVolume * 100) / 100,
+                successCount: totalSuccessCount,
+                pendingCount: totalPendingCount
+            }
+        });
+    } catch (e) {
+        console.error('[AdminController] Error in getPayments:', e);
+        res.status(500).json({ ok: false, error: 'Failed to fetch payments: ' + e.message });
+    }
+};
+
+exports.verifyPayment = async (req, res) => {
+    try {
+        const { transactionId } = req.body;
+        if (!transactionId) return res.status(400).json({ ok: false, error: 'transactionId is required' });
+
+        const io = req.app.get('io');
+        const { checkPhonePeOrderStatus, processPaymentSuccess } = require('./payment.controller');
+
+        const statusRes = await checkPhonePeOrderStatus(transactionId);
+        if (!statusRes.ok) {
+            return res.json({ ok: false, error: statusRes.error || 'Failed to contact PhonePe' });
+        }
+
+        const phonepeData = statusRes.data;
+        const isSuccess = (phonepeData.state === 'COMPLETED' || phonepeData.state === 'SUCCESS' || phonepeData.code === 'PAYMENT_SUCCESS');
+        const providerRefId = phonepeData.orderId || phonepeData.providerReferenceId || '';
+
+        if (isSuccess) {
+            const processRes = await processPaymentSuccess(transactionId, providerRefId, io);
+            return res.json({
+                ok: true,
+                status: 'success',
+                message: 'Payment verified and wallet credited successfully!',
+                phonepeData,
+                credited: processRes.success
+            });
+        } else {
+            return res.json({
+                ok: true,
+                status: phonepeData.state || 'pending',
+                message: `PhonePe status is ${phonepeData.state || 'not completed'}.`,
+                phonepeData
+            });
+        }
+    } catch (e) {
+        console.error('[AdminController] Error in verifyPayment:', e);
+        res.status(500).json({ ok: false, error: e.message });
     }
 };
 

@@ -66,7 +66,9 @@ const UserSchema = new mongoose.Schema({
     isNewUser: { type: Boolean, default: true },
     referredPujaCount: { type: Number, default: 0 },
     referredProductCount: { type: Number, default: 0 },
-    referredCommission: { type: Number, default: 0 }
+    referredCommission: { type: Number, default: 0 },
+    createdAt: { type: Date, default: Date.now },
+    created_at: { type: Date, default: Date.now }
 });
 
 // Added Optimization Indexes

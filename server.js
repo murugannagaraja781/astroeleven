@@ -1000,13 +1000,23 @@ let SLAB_RATES = {
 async function loadSettings() {
   try {
     const slabSetting = await GlobalSettings.findOne({ key: 'slab_rates' });
-    if (slabSetting) {
-      SLAB_RATES = slabSetting.value;
+    if (slabSetting && slabSetting.value) {
+      const cleanRates = {};
+      const raw = typeof slabSetting.value === 'string' ? JSON.parse(slabSetting.value) : slabSetting.value;
+      [1, 2, 3, 4].forEach(k => {
+        if (raw && raw[k] !== undefined && !isNaN(parseFloat(raw[k]))) {
+          cleanRates[k] = parseFloat(raw[k]);
+        } else {
+          cleanRates[k] = SLAB_RATES[k] || 0.30;
+        }
+      });
+      SLAB_RATES = cleanRates;
       console.log('[Settings] Slab Rates loaded:', SLAB_RATES);
     } else {
       // Initialize if not exists
       await GlobalSettings.create({ key: 'slab_rates', value: SLAB_RATES });
     }
+    billingService.setSlabRates(SLAB_RATES);
   } catch (e) {
     console.error('[Settings] Failed to load settings:', e);
   }
@@ -1195,10 +1205,21 @@ app.get('/api/astrology/history/:userId', async (req, res) => {
         User.findOne({ userId: cId }).select('name').lean(),
         User.findOne({ userId: aId }).select('name').lean()
       ]);
+      let calculatedDuration = Number(s.duration) || 0;
+      if (calculatedDuration >= 1000) {
+        calculatedDuration = Math.round(calculatedDuration / 1000);
+      } else if (!calculatedDuration && s.actualBillingStart && s.endTime && s.endTime > s.actualBillingStart) {
+        calculatedDuration = Math.round((s.endTime - s.actualBillingStart) / 1000);
+      } else if (!calculatedDuration && s.startTime && s.endTime && s.endTime > s.startTime) {
+        calculatedDuration = Math.round((s.endTime - s.startTime) / 1000);
+      }
+      calculatedDuration = Math.max(0, calculatedDuration || 0);
+
       return {
         ...s,
         clientName: client ? client.name : 'Unknown Client',
-        astrologerName: astro ? astro.name : 'Unknown Astrologer'
+        astrologerName: astro ? astro.name : 'Unknown Astrologer',
+        duration: calculatedDuration
       };
     }));
 
@@ -2619,79 +2640,77 @@ io.on('connection', (socket) => {
     return 4; // Max slab 4+
   }
 
-  function tickSessions() {
-    const now = Date.now();
-    if (Math.floor(now / 1000) % 10 === 0) {
-      console.log(`[Ticker] Active: ${activeSessions.size}`);
-      for (const [sid, s] of activeSessions) {
-        console.log(`  - ${sid}: Billable=${s.elapsedBillableSeconds}, Start=${s.actualBillingStart}, TotalDed=${s.totalDeducted}`);
-      }
-    }
-    for (const [sessionId, session] of activeSessions) {
-      // 0. GHOST SESSION CLEANUP: If session hasn't started billing for > 5 mins, clean it up
-      const SESSION_TIMEOUT = 5 * 60 * 1000; // 5 minutes
-      if (!session.actualBillingStart && (now - session.startedAt > SESSION_TIMEOUT)) {
-        console.log(`[Ticker] Cleaning up ghost session ${sessionId} (timeout)`);
-        activeSessions.delete(sessionId);
-        if (session.users) {
-          session.users.forEach(u => {
-            if (userActiveSession.get(u) === sessionId) userActiveSession.delete(u);
-          });
+  let isTickRunning = false;
+  async function tickSessions() {
+    if (isTickRunning) return;
+    isTickRunning = true;
+    try {
+      const now = Date.now();
+      if (Math.floor(now / 1000) % 10 === 0) {
+        console.log(`[Ticker] Active: ${activeSessions.size}`);
+        for (const [sid, s] of activeSessions) {
+          console.log(`  - ${sid}: Billable=${s.elapsedBillableSeconds}, Start=${s.actualBillingStart}, TotalDed=${s.totalDeducted}`);
         }
-        continue;
       }
+      for (const [sessionId, session] of activeSessions) {
+        // 0. GHOST SESSION CLEANUP: If session hasn't started billing for > 5 mins, clean it up
+        const SESSION_TIMEOUT = 5 * 60 * 1000; // 5 minutes
+        if (!session.actualBillingStart && (now - session.startedAt > SESSION_TIMEOUT)) {
+          console.log(`[Ticker] Cleaning up ghost session ${sessionId} (timeout)`);
+          activeSessions.delete(sessionId);
+          if (session.users) {
+            session.users.forEach(u => {
+              if (userActiveSession.get(u) === sessionId) userActiveSession.delete(u);
+            });
+          }
+          continue;
+        }
 
-      // 1. Check if Billing Started
-      if (!session.actualBillingStart || now < session.actualBillingStart) continue;
+        // 1. Check if Billing Started
+        if (!session.actualBillingStart || now < session.actualBillingStart) continue;
 
-      // 2. Check Connections (BOTH must be connected)
-      const clientSocketId = userSockets.get(session.clientId);
-      const astroSocketId = userSockets.get(session.astrologerId);
+        // Accurate wall-clock duration calculation
+        const elapsedSeconds = Math.max(0, Math.floor((now - session.actualBillingStart) / 1000));
+        session.elapsedBillableSeconds = elapsedSeconds;
 
-      const isClientConnected = !!clientSocketId;
-      const isAstroConnected = !!astroSocketId;
-
-      if (isClientConnected && isAstroConnected) {
-        session.elapsedBillableSeconds++;
-
-        // DEBUG LOGGING - Throttle to every 10s or 1 minute in production?
-        // For now keep it but it adds up in logs.
         if (session.elapsedBillableSeconds % 30 === 0) {
           console.log(`[${sessionId}] Tick: ${session.elapsedBillableSeconds}s, TotalDed: ${session.totalDeducted}`);
-        }
-
-        // Phase 3: First Minute Check (at 60s exactly)
-        if (session.elapsedBillableSeconds === 60) {
-          console.log(`Session ${sessionId}: First 60s completed.`);
-          billingService.processBillingCharge(sessionId, 60, 1, 'first_60_full');
         }
 
         // Phase 4: Check Slab Upgrade
         if (session.pairMonthId) {
           const totalSeconds = (session.initialPairSeconds || 0) + session.elapsedBillableSeconds;
           const calculatedSlab = getSlabBySeconds(totalSeconds);
-          const effectiveSlab = Math.max(calculatedSlab, session.currentSlab || 0);
+          const effectiveSlab = Math.max(calculatedSlab, session.currentSlab || 1);
 
-          if (effectiveSlab > session.currentSlab) {
+          if (effectiveSlab > (session.currentSlab || 1)) {
             console.log(`Session ${sessionId}: Slab Upgraded ${session.currentSlab} -> ${effectiveSlab}`);
             session.currentSlab = effectiveSlab;
             PairMonth.updateOne({ _id: session.pairMonthId }, { currentSlab: effectiveSlab }).exec();
           }
         }
 
-        // Phase 5: Post-First-Minute Billing
-        if (session.elapsedBillableSeconds > 60) {
-          const eligibleSeconds = session.elapsedBillableSeconds - 60;
-          const eligibleMinutes = Math.floor(eligibleSeconds / 60);
-          const totalShouldBeBilled = 1 + eligibleMinutes;
-
-          if (totalShouldBeBilled > session.lastBilledMinute) {
-            console.log(`Session ${sessionId}: Minute ${totalShouldBeBilled} reached.`);
-            billingService.processBillingCharge(sessionId, 60, totalShouldBeBilled, 'slab');
-            session.lastBilledMinute = totalShouldBeBilled;
+        // Phase 5: Bill each subsequent minute upfront as it is entered (Minute 2 at >=60s, Minute 3 at >=120s, etc.)
+        const currentMinuteDue = Math.floor(session.elapsedBillableSeconds / 60) + 1;
+        if (session.elapsedBillableSeconds >= 60 && currentMinuteDue > (session.lastBilledMinute || 1)) {
+          const nextMinuteIndex = (session.lastBilledMinute || 1) + 1;
+          console.log(`Session ${sessionId}: Minute ${nextMinuteIndex} entered at ${session.elapsedBillableSeconds}s. Charging.`);
+          const billRes = await billingService.processBillingCharge(sessionId, 60, nextMinuteIndex, 'slab');
+          session.lastBilledMinute = nextMinuteIndex;
+          if (!billRes || !billRes.success) {
+            console.log(`[Ticker] Insufficient balance for session ${sessionId} at min ${nextMinuteIndex}. Terminating.`);
+            forceEndSession(sessionId, 'insufficient_balance');
+            continue;
+          }
+          if (billRes.remainingBalance !== undefined && billRes.pricePerMin && billRes.remainingBalance < billRes.pricePerMin) {
+            console.log(`[Ticker] Client balance ₹${billRes.remainingBalance} is lower than next min price ₹${billRes.pricePerMin}.`);
           }
         }
       }
+    } catch (tickErr) {
+      console.error('[Ticker] Error in tickSessions:', tickErr);
+    } finally {
+      isTickRunning = false;
     }
   }
 
@@ -2801,7 +2820,7 @@ io.on('connection', (socket) => {
   socket.on('admin-get-users', async (data, cb) => {
     if (!await checkAdmin(socket.id, data?.adminUserId)) return cb({ ok: false, error: 'Unauthorized' });
     try {
-      const { role, page = 1, limit = 10, search = '', city = '', dob = '', exportAll = false } = data || {};
+      const { role, page = 1, limit = 10, search = '', city = '', dob = '', joined = 'all', exportAll = false } = data || {};
       const parsedPage = Math.max(1, parseInt(page) || 1);
       const parsedLimit = Math.max(1, parseInt(limit) || 10);
       
@@ -2811,6 +2830,23 @@ io.on('connection', (socket) => {
       }
       
       const andConditions = [];
+
+      // Recently Joined filter (1day, 3days, 5days, 1week, 1month)
+      if (joined && joined !== 'all') {
+        const now = Date.now();
+        const dayMs = 24 * 60 * 60 * 1000;
+        let daysAgo = 0;
+        if (joined === '1day' || joined === 'today' || joined === '1') daysAgo = 1;
+        else if (joined === '3days' || joined === '3') daysAgo = 3;
+        else if (joined === '5days' || joined === '5') daysAgo = 5;
+        else if (joined === '1week' || joined === '7days' || joined === '7') daysAgo = 7;
+        else if (joined === '1month' || joined === '30days' || joined === '30') daysAgo = 30;
+
+        if (daysAgo > 0) {
+          const sinceDate = new Date(now - daysAgo * dayMs);
+          andConditions.push({ created_at: { $gte: sinceDate } });
+        }
+      }
 
       if (search) {
         const lowerSearch = search.trim().toLowerCase();
@@ -2860,17 +2896,14 @@ io.on('connection', (socket) => {
         query.$and = andConditions;
       }
       
-      const total = await User.countDocuments(query);
-      
-      let users;
-      if (exportAll) {
-        users = await User.find(query).sort({ _id: -1 }).limit(5000);
-      } else {
-        users = await User.find(query)
-          .sort({ _id: -1 })
-          .skip((parsedPage - 1) * parsedLimit)
-          .limit(parsedLimit);
-      }
+      const usersQuery = exportAll 
+        ? User.find(query).sort({ _id: -1 }).limit(5000)
+        : User.find(query).sort({ _id: -1 }).skip((parsedPage - 1) * parsedLimit).limit(parsedLimit);
+
+      const [total, users] = await Promise.all([
+        User.countDocuments(query),
+        usersQuery
+      ]);
         
       cb({
         ok: true,
@@ -3229,37 +3262,41 @@ io.on('connection', (socket) => {
           totalMinutes: { $sum: 1 }
         }
       });
-      const billingStats = await BillingLedger.aggregate(billingPipeline);
-
-      // Get Real Payment Revenue (Filtered by date if specified)
+      // Parallel execution of all stats queries for ultra-fast performance
       const payMatchObj = { status: 'success', ...dateMatch };
-      const paymentStats = await Payment.aggregate([
-        { $match: payMatchObj },
-        { $group: { _id: null, totalCollected: { $sum: '$amount' } } }
-      ]);
-      const totalCollected = paymentStats[0]?.totalCollected || 0;
-
-      // Get user counts
-      const totalUsers = await User.countDocuments({ role: 'client' });
-      const totalAstros = await User.countDocuments({ role: 'astrologer' });
-      const activeAstros = await User.countDocuments({ role: 'astrologer', approvalStatus: 'approved' });
-      const pendingAstros = await User.countDocuments({ role: 'astrologer', approvalStatus: 'pending' });
-      
-      let pendingWithdrawals = 0;
-      try {
-        pendingWithdrawals = await Withdrawal.countDocuments({ status: 'pending' });
-      } catch (err) {}
-
-      // Live Activity Totals
       const onlineUserIds = Array.from(userSockets.keys());
-      const onlineAstros = await User.countDocuments({ role: 'astrologer', userId: { $in: onlineUserIds } });
-      const onlineClients = await User.countDocuments({ role: 'client', userId: { $in: onlineUserIds } });
       const activeCallCount = activeSessions ? activeSessions.size : 0;
-
-      // Fetch ledger data
       const ledgerQuery = Object.keys(dateMatch).length > 0 ? dateMatch : {};
-      fullLedger = await BillingLedger.find(ledgerQuery).sort({ createdAt: -1 }).limit(100);
 
+      const [
+        billingStats,
+        paymentStats,
+        totalUsers,
+        totalAstros,
+        activeAstros,
+        pendingAstros,
+        pendingWithdrawals,
+        onlineAstros,
+        onlineClients,
+        fetchedLedger
+      ] = await Promise.all([
+        BillingLedger.aggregate(billingPipeline),
+        Payment.aggregate([
+          { $match: payMatchObj },
+          { $group: { _id: null, totalCollected: { $sum: '$amount' } } }
+        ]),
+        User.countDocuments({ role: 'client' }),
+        User.countDocuments({ role: 'astrologer' }),
+        User.countDocuments({ role: 'astrologer', approvalStatus: 'approved' }),
+        User.countDocuments({ role: 'astrologer', approvalStatus: 'pending' }),
+        Withdrawal.countDocuments({ status: 'pending' }).catch(() => 0),
+        onlineUserIds.length > 0 ? User.countDocuments({ role: 'astrologer', userId: { $in: onlineUserIds } }) : Promise.resolve(0),
+        onlineUserIds.length > 0 ? User.countDocuments({ role: 'client', userId: { $in: onlineUserIds } }) : Promise.resolve(0),
+        BillingLedger.find(ledgerQuery).sort({ createdAt: -1 }).limit(100)
+      ]);
+
+      const totalCollected = paymentStats[0]?.totalCollected || 0;
+      fullLedger = fetchedLedger || [];
       const billing = billingStats[0] || {};
 
       // Map to expected format
@@ -3358,12 +3395,15 @@ io.on('connection', (socket) => {
           User.findOne({ userId: aId }).select('name').lean()
         ]);
         
-        let calculatedDuration = s.duration || 0;
-        if (!calculatedDuration && s.startTime && s.endTime) {
+        let calculatedDuration = Number(s.duration) || 0;
+        if (calculatedDuration >= 1000) {
+          calculatedDuration = Math.round(calculatedDuration / 1000);
+        } else if (!calculatedDuration && s.actualBillingStart && s.endTime && s.endTime > s.actualBillingStart) {
+          calculatedDuration = Math.round((s.endTime - s.actualBillingStart) / 1000);
+        } else if (!calculatedDuration && s.startTime && s.endTime && s.endTime > s.startTime) {
           calculatedDuration = Math.round((s.endTime - s.startTime) / 1000);
-        } else if (!calculatedDuration && s.actualBillingStart && s.sessionEndAt) {
-          calculatedDuration = Math.round((s.sessionEndAt - s.actualBillingStart) / 1000);
         }
+        calculatedDuration = Math.max(0, calculatedDuration || 0);
         
         return {
           ...s,
@@ -3642,14 +3682,22 @@ io.on('connection', (socket) => {
   });
 
   socket.on('update-slab-rates', async (data, cb) => {
-    let rates = data;
-    if (data && data.rates) rates = data.rates;
     if (!await checkAdmin(socket.id, data?.adminUserId)) return cb ? cb({ ok: false, error: 'Unauthorized' }) : null;
     try {
-      await GlobalSettings.updateOne({ key: 'slab_rates' }, { value: rates }, { upsert: true });
-      SLAB_RATES = rates;
-      console.log('[Admin] Slab Rates updated:', SLAB_RATES);
-      if (typeof cb === 'function') cb({ ok: true });
+      const raw = (data && data.rates) ? data.rates : data;
+      const cleanRates = {};
+      [1, 2, 3, 4].forEach(k => {
+        if (raw && raw[k] !== undefined && !isNaN(parseFloat(raw[k]))) {
+          cleanRates[k] = parseFloat(raw[k]);
+        } else {
+          cleanRates[k] = SLAB_RATES[k] || 0.30;
+        }
+      });
+      await GlobalSettings.updateOne({ key: 'slab_rates' }, { value: cleanRates }, { upsert: true });
+      SLAB_RATES = cleanRates;
+      billingService.setSlabRates(cleanRates);
+      console.log('[Admin] Slab Rates updated & synced:', SLAB_RATES);
+      if (typeof cb === 'function') cb({ ok: true, rates: cleanRates });
     } catch (e) {
       if (typeof cb === 'function') cb({ ok: false, error: e.message });
     }

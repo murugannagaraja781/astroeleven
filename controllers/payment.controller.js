@@ -186,6 +186,138 @@ exports.createPayment = async (req, res) => {
     }
 };
 
+// Helper to check PhonePe V2 Order Status
+async function checkPhonePeOrderStatus(merchantTransactionId) {
+    const tokenParams = new URLSearchParams();
+    tokenParams.append('client_id', phonepeConfig.CLIENT_ID);
+    tokenParams.append('client_secret', phonepeConfig.CLIENT_SECRET);
+    tokenParams.append('client_version', phonepeConfig.CLIENT_VERSION);
+    tokenParams.append('grant_type', 'client_credentials');
+
+    const tokenRes = await fetch(phonepeConfig.TOKEN_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: tokenParams.toString()
+    });
+
+    const tokenData = await tokenRes.json();
+    const accessToken = tokenData.access_token;
+    if (!accessToken) {
+        return { ok: false, error: tokenData.error_description || 'PhonePe authentication failed' };
+    }
+
+    const statusRes = await fetch(`https://api.phonepe.com/apis/pg/checkout/v2/order/${merchantTransactionId}/status`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'O-Bearer ' + accessToken
+        }
+    });
+    const data = await statusRes.json();
+    return { ok: true, data };
+}
+
+// Reusable payment processing helper
+async function processPaymentSuccess(merchantTransactionId, providerRefId, io) {
+    const payment = await Payment.findOne({ transactionId: merchantTransactionId });
+    if (!payment) return { success: false, error: 'Payment record not found' };
+    if (payment.status === 'success') {
+        return { success: true, alreadyProcessed: true, payment };
+    }
+
+    // 1. Update Payment status atomically
+    await Payment.updateOne(
+        { transactionId: merchantTransactionId },
+        { 
+            $set: { 
+                status: 'success', 
+                providerRefId: providerRefId || payment.providerRefId || ''
+            } 
+        }
+    );
+
+    // 2. Atomically increment User walletBalance & superWalletBalance
+    const baseCredit = Number(payment.baseAmount || payment.amount || 0);
+    const superCredit = Number(payment.couponBonus || 0);
+
+    const incUpdate = { walletBalance: baseCredit };
+    if (superCredit > 0) {
+        incUpdate.superWalletBalance = superCredit;
+    }
+
+    await User.updateOne({ userId: payment.userId }, { $inc: incUpdate });
+
+    // 3. Fetch fresh User record for notifications and referral checks
+    const user = await User.findOne({ userId: payment.userId });
+    if (user) {
+        // Referrer Reward logic
+        if (user.referredBy) {
+            try {
+                const successCount = await Payment.countDocuments({
+                    userId: user.userId,
+                    status: 'success',
+                    reason: 'recharge'
+                });
+
+                if (successCount === 1) {
+                    const referrer = await User.findOne({ userId: user.referredBy });
+                    if (referrer) {
+                        await User.updateOne(
+                            { userId: referrer.userId },
+                            {
+                                $inc: {
+                                    walletBalance: 81,
+                                    totalEarnings: 81,
+                                    referralCount: 1
+                                }
+                            }
+                        );
+
+                        const refSocketId = userSockets.get(referrer.userId);
+                        if (io) {
+                            const refPayload = {
+                                balance: (referrer.walletBalance || 0) + 81,
+                                superBalance: referrer.superWalletBalance || 0
+                            };
+                            if (refSocketId) io.to(refSocketId).emit('wallet-update', refPayload);
+                            io.to(referrer.userId).emit('wallet-update', refPayload);
+                        }
+
+                        await Payment.create({
+                            transactionId: `REF_${crypto.randomBytes(8).toString('hex')}`,
+                            userId: referrer.userId,
+                            amount: 81,
+                            baseAmount: 81,
+                            gstAmount: 0,
+                            status: 'success',
+                            reason: 'referral'
+                        });
+                    }
+                }
+            } catch (refErr) {
+                console.error('[Payment] Referral reward error:', refErr);
+            }
+        }
+
+        // Emit Socket.IO balance update to user room & socketId
+        if (io) {
+            const socketId = userSockets.get(user.userId);
+            const payload = {
+                balance: user.walletBalance,
+                superBalance: user.superWalletBalance
+            };
+            if (socketId) io.to(socketId).emit('wallet-update', payload);
+            io.to(user.userId).emit('wallet-update', payload);
+        }
+    }
+
+    console.log(`[Payment] Successfully credited ₹${baseCredit} to user ${payment.userId} (TXN: ${merchantTransactionId})`);
+    return { success: true, payment, user };
+}
+
+exports.checkPhonePeOrderStatus = checkPhonePeOrderStatus;
+exports.processPaymentSuccess = processPaymentSuccess;
+
 exports.callback = async (req, res) => {
     try {
         const io = req.app.get('io');
@@ -198,102 +330,23 @@ exports.callback = async (req, res) => {
         }
 
         // Verify PhonePe V2 Status
-        const tokenParams = new URLSearchParams();
-        tokenParams.append('client_id', phonepeConfig.CLIENT_ID);
-        tokenParams.append('client_secret', phonepeConfig.CLIENT_SECRET);
-        tokenParams.append('client_version', phonepeConfig.CLIENT_VERSION);
-        tokenParams.append('grant_type', 'client_credentials');
-
-        const tokenRes = await fetch(phonepeConfig.TOKEN_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: tokenParams.toString()
-        });
-
-        const tokenData = await tokenRes.json();
-        const accessToken = tokenData.access_token;
-
+        const statusResult = await checkPhonePeOrderStatus(merchantTransactionId);
         let isSuccess = false;
         let providerRefId = '';
 
-        if (accessToken) {
-            const statusRes = await fetch(`https://api.phonepe.com/apis/pg/checkout/v2/order/${merchantTransactionId}/status`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'O-Bearer ' + accessToken
-                }
-            });
-            const data = await statusRes.json();
+        if (statusResult.ok && statusResult.data) {
+            const data = statusResult.data;
             console.log(`[PhonePe V2 Status Check] TXN: ${merchantTransactionId} ->`, JSON.stringify(data));
             if (data.state === 'COMPLETED' || data.state === 'SUCCESS' || data.code === 'PAYMENT_SUCCESS' || data.success === true) {
                 isSuccess = true;
                 providerRefId = data.orderId || data.providerReferenceId || '';
             }
+        } else {
+            console.warn(`[PhonePe Status Check Failed] TXN: ${merchantTransactionId} ->`, statusResult.error);
         }
 
         if (isSuccess) {
-            const payment = await Payment.findOne({ transactionId: merchantTransactionId });
-            if (payment && payment.status !== 'success') {
-                payment.status = 'success';
-                payment.providerRefId = providerRefId;
-                await payment.save();
-
-                const user = await User.findOne({ userId: payment.userId });
-                if (user) {
-                    user.walletBalance = (user.walletBalance || 0) + payment.baseAmount;
-                    if (payment.couponBonus > 0) {
-                        user.superWalletBalance = (user.superWalletBalance || 0) + payment.couponBonus;
-                    }
-
-                    // Referrer Reward
-                    if (user.referredBy) {
-                        const successCount = await Payment.countDocuments({
-                            userId: user.userId,
-                            status: 'success',
-                            reason: 'recharge'
-                        });
-
-                        if (successCount === 1) {
-                            const referrer = await User.findOne({ userId: user.referredBy });
-                            if (referrer) {
-                                referrer.walletBalance = (referrer.walletBalance || 0) + 81;
-                                referrer.totalEarnings = (referrer.totalEarnings || 0) + 81;
-                                referrer.referralCount = (referrer.referralCount || 0) + 1;
-                                await referrer.save();
-
-                                const refSocketId = userSockets.get(referrer.userId);
-                                if (io && refSocketId) {
-                                    io.to(refSocketId).emit('wallet-update', {
-                                        balance: referrer.walletBalance,
-                                        superBalance: referrer.superWalletBalance
-                                    });
-                                }
-
-                                await Payment.create({
-                                    transactionId: `REF_${crypto.randomBytes(8).toString('hex')}`,
-                                    userId: referrer.userId,
-                                    amount: 81,
-                                    baseAmount: 81,
-                                    gstAmount: 0,
-                                    status: 'success',
-                                    reason: 'referral'
-                                });
-                            }
-                        }
-                    }
-
-                    await user.save();
-
-                    const socketId = userSockets.get(user.userId);
-                    if (io && socketId) {
-                        io.to(socketId).emit('wallet-update', {
-                            balance: user.walletBalance,
-                            superBalance: user.superWalletBalance
-                        });
-                    }
-                }
-            }
+            await processPaymentSuccess(merchantTransactionId, providerRefId, io);
 
             if (isApp) {
                 return res.send(`
