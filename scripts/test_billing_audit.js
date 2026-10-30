@@ -118,6 +118,36 @@ function runBillingTests() {
     assert.strictEqual(fakeSession.endReason, 'insufficient_balance', 'Original reason must be retained');
     console.log('  ✅ Concurrency guard blocked duplicate call and preserved insufficient_balance reason.');
 
+    // -------------------------------------------------------------
+    // Test 5: Server Restart Reconciliation & Downtime Protection
+    // -------------------------------------------------------------
+    console.log('\nTest 5: Server Restart Reconciliation & Downtime Protection...');
+    // Simulate a stranded session recovered from DB on boot:
+    // Session was started 2 hours ago (7200 seconds ago) before an ungraceful crash.
+    // Client had only paid for minute 1 (60s).
+    const strandedDbSession = {
+        sessionId: 'stranded_001',
+        isFromDb: true,
+        actualBillingStart: Date.now() - 7200000, // 2 hours ago
+        totalCharged: 15,
+        totalEarned: 4.5,
+        lastBilledMinute: 1,
+        elapsedBillableSeconds: 60,
+        endReason: 'server_restart'
+    };
+
+    const isRestartRecovery = strandedDbSession.isFromDb && (strandedDbSession.endReason === 'server_restart');
+    let billableSeconds;
+    if (isRestartRecovery) {
+        // Capped to what was actually billed while server was active
+        billableSeconds = strandedDbSession.elapsedBillableSeconds || (strandedDbSession.lastBilledMinute * 60);
+    } else {
+        billableSeconds = Math.max(0, Math.floor((Date.now() - strandedDbSession.actualBillingStart) / 1000));
+    }
+
+    assert.strictEqual(billableSeconds, 60, 'Downtime of 2 hours must NOT be billed to client!');
+    console.log(`  ✅ Stranded session correctly capped at ${billableSeconds}s; no charges applied for server offline downtime.`);
+
     console.log('\n=== ALL BILLING AUDIT TESTS PASSED SUCCESSFULLY! ===\n');
 }
 

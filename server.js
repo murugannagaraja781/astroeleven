@@ -950,27 +950,85 @@ mongoose.connection.on('disconnected', () => {
   console.log('📴 Mongoose disconnected from MongoDB');
 });
 
-// Graceful shutdown
+// Graceful shutdown with session billing safety
+let isShuttingDown = false;
 const gracefulShutdown = async (signal) => {
-  console.log(`📡 Received ${signal}. Shutting down gracefully...`);
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+  console.log(`\n🛑 [Shutdown] Received ${signal}. Starting safe shutdown process...`);
   try {
-    if (mongoose.connection.readyState !== 0) { // 0 = disconnected
-      await mongoose.connection.close();
-      console.log('✅ MongoDB connection closed through app termination');
+    // 1. Stop accepting new incoming requests
+    if (server && server.listening) {
+      server.close(() => {
+        console.log('🚪 [Shutdown] HTTP server stopped accepting new connections.');
+      });
     }
+
+    // 2. Safely end and bill all active in-memory sessions up to this shutdown moment
+    if (activeSessions && activeSessions.size > 0) {
+      console.log(`⏳ [Shutdown] Gracefully finalizing and billing ${activeSessions.size} active sessions...`);
+      const finalizePromises = [];
+      for (const [sessionId, session] of activeSessions) {
+        console.log(`[Shutdown] Finalizing active session ${sessionId}...`);
+        finalizePromises.push(
+          billingService.endSessionRecord(sessionId, null, 'server_restart')
+            .catch(e => console.error(`[Shutdown] Error finalizing session ${sessionId}:`, e.message))
+        );
+      }
+      await Promise.all(finalizePromises);
+      console.log('✅ [Shutdown] All active sessions successfully billed and finalized.');
+    }
+
+    // 3. Clear busy status for astrologers so they are not stuck on restart
+    try {
+      await User.updateMany({ role: 'astrologer', isBusy: true }, { isBusy: false });
+      console.log('✅ [Shutdown] Astrologer busy flags cleared.');
+    } catch (e) {
+      console.error('[Shutdown] Error resetting busy flags:', e.message);
+    }
+
+    // 4. Close database connection pool cleanly
+    if (mongoose.connection && mongoose.connection.readyState !== 0) {
+      await mongoose.connection.close();
+      console.log('✅ [Shutdown] Database connection closed.');
+    }
+
+    console.log('🏁 [Shutdown] Graceful shutdown completed safely. Exiting.\n');
     process.exit(0);
   } catch (err) {
-    if (err.name === 'MongoClientClosedError') {
-      console.log('ℹ️ MongoDB connection was already closed.');
-      process.exit(0);
-    }
-    console.error('❌ Error closing MongoDB connection:', err);
-    process.exit(1);
+    console.error('❌ [Shutdown] Error during graceful shutdown:', err);
+    process.exit(0);
   }
 };
 
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+
+async function reconcileStrandedSessionsOnBoot() {
+  try {
+    console.log('🔄 [Startup] Reconciling stranded sessions from previous server run...');
+    const stranded = await Session.find({
+      status: { $in: ['active', 'connected', 'connecting', 'pending'] }
+    });
+
+    if (stranded && stranded.length > 0) {
+      console.log(`⚠️ [Startup] Found ${stranded.length} stranded session(s). Finalizing...`);
+      for (const s of stranded) {
+        console.log(`[Startup] Finalizing stranded session ${s.sessionId} (${s.type})`);
+        await billingService.endSessionRecord(s.sessionId, null, 'server_restart');
+      }
+      console.log('✅ [Startup] All stranded sessions safely finalized.');
+    } else {
+      console.log('✅ [Startup] No stranded sessions. Database clean.');
+    }
+
+    // Ensure all astrologers are freed from busy state on boot
+    await User.updateMany({ role: 'astrologer', isBusy: true }, { isBusy: false });
+    console.log('✅ [Startup] Astrologer busy statuses verified.');
+  } catch (err) {
+    console.error('❌ [Startup] Error in reconcileStrandedSessionsOnBoot:', err.message);
+  }
+}
 
 // Start connection
 connectDB();
@@ -4345,29 +4403,13 @@ function seedDefaultBannersAsync() {
 const PORT = process.env.PORT || 3000;
 
 // Hostinger hPanel & Standalone HTTP Server Listener
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📦 Environment: ${process.env.NODE_ENV || 'production'}`);
   console.log(`🔒 Rate limiting: Active`);
   console.log(`🛡️  Helmet security: Active`);
   seedDefaultBannersAsync(); // Non-blocking seed
-});
-
-// Graceful shutdown - prevents port stuck issues
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully...');
-  server.close(() => {
-    console.log('Server closed');
-    process.exit(0);
-  });
-});
-
-process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down gracefully...');
-  server.close(() => {
-    console.log('Server closed');
-    process.exit(0);
-  });
+  await reconcileStrandedSessionsOnBoot();
 });
 
 

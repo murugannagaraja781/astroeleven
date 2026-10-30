@@ -206,14 +206,22 @@ async function endSessionRecord(sessionId, broadcastAstroUpdate, endReason = 'en
             totalEarned: dbSess.totalEarned || 0,
             elapsedBillableSeconds: dbSess.duration ? Math.round(dbSess.duration / 1000) : 0,
             lastBilledMinute: Math.ceil((dbSess.totalCharged || 0) / (dbSess.price || 10)),
-            endReason: endReason || 'ended'
+            endReason: endReason || 'ended',
+            isFromDb: true
         };
     }
 
     const endTime = Date.now();
     let billableSeconds = s.elapsedBillableSeconds || 0;
+
+    const isRestartRecovery = s.isFromDb && (endReason === 'server_restart' || s.endReason === 'server_restart');
+
     // Accurate wall-clock duration calculation
-    if (s.actualBillingStart && s.actualBillingStart > 0) {
+    // BUT IF RECOVERING STRANDED DB SESSION ON BOOT: Do NOT bill for downtime while server was offline!
+    if (isRestartRecovery) {
+        billableSeconds = s.elapsedBillableSeconds || ((s.lastBilledMinute || 1) * 60);
+        console.log(`[Billing][endSessionRecord] Reconciled stranded session ${sessionId} on restart. Duration capped at ${billableSeconds}s.`);
+    } else if (s.actualBillingStart && s.actualBillingStart > 0) {
         const wallClockSeconds = Math.max(0, Math.floor((endTime - s.actualBillingStart) / 1000));
         billableSeconds = Math.max(billableSeconds, wallClockSeconds);
     }
@@ -221,8 +229,8 @@ async function endSessionRecord(sessionId, broadcastAstroUpdate, endReason = 'en
 
     console.log(`[Billing][endSessionRecord] sessionId=${sessionId}, reason=${s.endReason || endReason}, billableSeconds=${billableSeconds}, totalDeducted=${s.totalDeducted || 0}, totalEarned=${s.totalEarned || 0}`);
 
-    // If session was connected/active but never billed minute 1, charge minute 1 minimum (unless ended due to insufficient_balance)
-    if (billableSeconds > 0 && (!s.lastBilledMinute || s.lastBilledMinute < 1) && s.endReason !== 'insufficient_balance') {
+    // If session was connected/active but never billed minute 1, charge minute 1 minimum (unless ended due to insufficient_balance or restart recovery)
+    if (billableSeconds > 0 && (!s.lastBilledMinute || s.lastBilledMinute < 1) && s.endReason !== 'insufficient_balance' && !isRestartRecovery) {
         const res = await processBillingCharge(sessionId, billableSeconds, 1, 'early_exit');
         if (res?.success) {
             s.lastBilledMinute = 1;
@@ -231,7 +239,7 @@ async function endSessionRecord(sessionId, broadcastAstroUpdate, endReason = 'en
                 s.totalEarned = (s.totalEarned || 0) + (res.astroShare || 0);
             }
         }
-    } else if (billableSeconds > 60 && s.endReason !== 'insufficient_balance') {
+    } else if (billableSeconds > 60 && s.endReason !== 'insufficient_balance' && !isRestartRecovery) {
         // Ensure any subsequent entered minute that wasn't billed by ticker gets billed
         const lastBilled = s.lastBilledMinute || 1;
         const totalMinutesDue = Math.ceil(billableSeconds / 60);

@@ -91,13 +91,34 @@ module.exports = (io, SERVER_URL) => {
         });
 
         // Rejoin Session
-        socket.on('rejoin-session', (data) => {
+        socket.on('rejoin-session', async (data, cb) => {
             const { sessionId } = data || {};
             const userId = socketToUser.get(socket.id);
-            if (sessionId && userId) {
-                socket.join(sessionId);
-                socket.to(sessionId).emit('peer-reconnected', { userId });
+            if (!sessionId || !userId) return;
+
+            const s = activeSessions.get(sessionId);
+            if (!s) {
+                // If session is not in memory (e.g. server restarted), check DB status
+                const Session = require('../models/Session');
+                const dbSess = await Session.findOne({ sessionId });
+                if (!dbSess || dbSess.status === 'ended') {
+                    socket.emit('session-ended', {
+                        sessionId,
+                        reason: 'ended',
+                        summary: {
+                            deducted: dbSess ? (dbSess.totalCharged || 0) : 0,
+                            earned: dbSess ? (dbSess.totalEarned || 0) : 0,
+                            duration: dbSess ? Math.round((dbSess.duration || 0) / 1000) : 0
+                        }
+                    });
+                    if (typeof cb === 'function') cb({ ok: false, error: 'Session ended' });
+                    return;
+                }
             }
+
+            socket.join(sessionId);
+            socket.to(sessionId).emit('peer-reconnected', { userId });
+            if (typeof cb === 'function') cb({ ok: true });
         });
 
         // Toggle Status
