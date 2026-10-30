@@ -27,6 +27,34 @@ async function syncWalletBalance(userId) {
     return null;
 }
 
+function getRateForSession(astro, sessionType) {
+    if (!astro) return 10;
+    const type = (sessionType || '').toLowerCase();
+    let rate = 0;
+
+    if (type === 'chat') {
+        rate = Number(astro.chatPrice || 0);
+    } else if (type === 'audio' || type === 'call' || type === 'voice') {
+        rate = Number(astro.callPrice || 0);
+    } else if (type === 'video') {
+        rate = Number(astro.videoPrice || 0);
+    }
+
+    // Fallback if specific rate is not set (> 0)
+    if (!rate || rate <= 0) {
+        if (astro.price && Number(astro.price) > 0) {
+            rate = Number(astro.price);
+        } else if (astro.ratePerMinute && Number(astro.ratePerMinute) > 0) {
+            rate = Number(astro.ratePerMinute);
+        } else {
+            if (type === 'video') rate = 20;
+            else if (type === 'audio' || type === 'call' || type === 'voice') rate = 15;
+            else rate = 15;
+        }
+    }
+    return Math.round(rate);
+}
+
 async function processBillingCharge(sessionId, durationSeconds, minuteIndex, type) {
     try {
         const session = await Session.findOne({ sessionId });
@@ -38,13 +66,7 @@ async function processBillingCharge(sessionId, durationSeconds, minuteIndex, typ
         const client = await User.findOne({ userId: session.clientId });
         if (!client) return { success: false, reason: 'client_not_found' };
 
-        let pricePerMin = 10;
-        if (astro.price && astro.price > 0) {
-            pricePerMin = parseInt(astro.price);
-        } else {
-            if (session.type === 'audio') pricePerMin = 15;
-            else if (session.type === 'video') pricePerMin = 20;
-        }
+        const pricePerMin = getRateForSession(astro, session.type);
 
         const activeSess = activeSessions.get(sessionId);
         const currentSlab = activeSess?.currentSlab || (minuteIndex <= 5 ? 1 : minuteIndex <= 10 ? 2 : minuteIndex <= 15 ? 3 : 4);
@@ -70,8 +92,24 @@ async function processBillingCharge(sessionId, durationSeconds, minuteIndex, typ
         const actualBalance = freshClient ? Number(freshClient.walletBalance || 0) : Number(client.walletBalance || 0);
 
         if (actualBalance >= totalToDeduct) {
-            // Atomic decrement in MySQL
-            await User.updateOne({ userId: client.userId }, { $inc: { walletBalance: -totalToDeduct } });
+            // Atomic decrement in MySQL with $gte guard to prevent negative balance
+            const deductRes = await User.updateOne(
+                { userId: client.userId, walletBalance: { $gte: totalToDeduct } },
+                { $inc: { walletBalance: -totalToDeduct } }
+            );
+
+            if (deductRes && deductRes.modifiedCount === 0) {
+                const latestClient = await User.findOne({ userId: client.userId });
+                const latestBal = latestClient ? Number(latestClient.walletBalance || 0) : 0;
+                console.warn(`[Billing] Concurrency guard prevented overdraft for ${client.userId}. Balance: ₹${latestBal}`);
+                if (io) io.to(client.userId).emit('wallet-update', { balance: latestBal });
+                return {
+                    success: false,
+                    reason: 'insufficient_balance',
+                    remainingBalance: latestBal,
+                    pricePerMin
+                };
+            }
 
             // Fetch fresh balance after atomic decrement for exact accuracy
             const freshAfterDeduct = await User.findOne({ userId: client.userId });
@@ -126,17 +164,14 @@ async function processBillingCharge(sessionId, durationSeconds, minuteIndex, typ
             };
         } else {
             console.warn(`[Billing] Insufficient balance for ${client.userId}. Required: ₹${totalToDeduct}, Has: ₹${actualBalance}`);
-            // If user has any remaining balance > 0, deduct it down to 0
-            if (actualBalance > 0) {
-                await User.updateOne({ userId: client.userId }, { $set: { walletBalance: 0 } });
-            }
+            // Keep unspent balance intact
             if (io) {
-                io.to(client.userId).emit('wallet-update', { balance: 0 });
+                io.to(client.userId).emit('wallet-update', { balance: actualBalance });
             }
             return {
                 success: false,
                 reason: 'insufficient_balance',
-                remainingBalance: 0,
+                remainingBalance: actualBalance,
                 pricePerMin
             };
         }
@@ -146,10 +181,18 @@ async function processBillingCharge(sessionId, durationSeconds, minuteIndex, typ
     }
 }
 
-async function endSessionRecord(sessionId, broadcastAstroUpdate) {
+async function endSessionRecord(sessionId, broadcastAstroUpdate, endReason = 'ended') {
     let s = activeSessions.get(sessionId);
-    // If session is not in memory (e.g. multi-process or server restarted), load from DB
-    if (!s) {
+    if (s) {
+        if (s._isEnding) {
+            console.log(`[Billing][endSessionRecord] Session ${sessionId} already ending. Skipping duplicate call.`);
+            return;
+        }
+        s._isEnding = true;
+        if (endReason && endReason !== 'ended') {
+            s.endReason = endReason;
+        }
+    } else {
         const dbSess = await Session.findOne({ sessionId });
         if (!dbSess || dbSess.status === 'ended') return;
         s = {
@@ -162,7 +205,8 @@ async function endSessionRecord(sessionId, broadcastAstroUpdate) {
             totalDeducted: dbSess.totalCharged || 0,
             totalEarned: dbSess.totalEarned || 0,
             elapsedBillableSeconds: dbSess.duration ? Math.round(dbSess.duration / 1000) : 0,
-            lastBilledMinute: Math.ceil((dbSess.totalCharged || 0) / (dbSess.price || 10))
+            lastBilledMinute: Math.ceil((dbSess.totalCharged || 0) / (dbSess.price || 10)),
+            endReason: endReason || 'ended'
         };
     }
 
@@ -175,17 +219,19 @@ async function endSessionRecord(sessionId, broadcastAstroUpdate) {
     }
     s.elapsedBillableSeconds = billableSeconds;
 
-    console.log(`[Billing][endSessionRecord] sessionId=${sessionId}, billableSeconds=${billableSeconds}, totalDeducted=${s.totalDeducted || 0}, totalEarned=${s.totalEarned || 0}`);
+    console.log(`[Billing][endSessionRecord] sessionId=${sessionId}, reason=${s.endReason || endReason}, billableSeconds=${billableSeconds}, totalDeducted=${s.totalDeducted || 0}, totalEarned=${s.totalEarned || 0}`);
 
-    // If session was connected/active but never billed minute 1, charge minute 1 minimum
-    if (billableSeconds > 0 && (!s.lastBilledMinute || s.lastBilledMinute < 1)) {
+    // If session was connected/active but never billed minute 1, charge minute 1 minimum (unless ended due to insufficient_balance)
+    if (billableSeconds > 0 && (!s.lastBilledMinute || s.lastBilledMinute < 1) && s.endReason !== 'insufficient_balance') {
         const res = await processBillingCharge(sessionId, billableSeconds, 1, 'early_exit');
-        s.lastBilledMinute = 1;
-        if (!activeSessions.has(sessionId) && res?.success) {
-            s.totalDeducted = (s.totalDeducted || 0) + (res.charged || 0);
-            s.totalEarned = (s.totalEarned || 0) + (res.astroShare || 0);
+        if (res?.success) {
+            s.lastBilledMinute = 1;
+            if (!activeSessions.has(sessionId)) {
+                s.totalDeducted = (s.totalDeducted || 0) + (res.charged || 0);
+                s.totalEarned = (s.totalEarned || 0) + (res.astroShare || 0);
+            }
         }
-    } else if (billableSeconds > 60) {
+    } else if (billableSeconds > 60 && s.endReason !== 'insufficient_balance') {
         // Ensure any subsequent entered minute that wasn't billed by ticker gets billed
         const lastBilled = s.lastBilledMinute || 1;
         const totalMinutesDue = Math.ceil(billableSeconds / 60);
@@ -240,8 +286,9 @@ async function endSessionRecord(sessionId, broadcastAstroUpdate) {
         });
     }
 
+    const finalReason = s.endReason || endReason || 'ended';
     const payload = {
-        reason: 'ended',
+        reason: finalReason,
         summary: {
             deducted: s.totalDeducted || 0,
             earned: s.totalEarned || 0,
@@ -267,6 +314,7 @@ async function endSessionRecord(sessionId, broadcastAstroUpdate) {
 }
 
 module.exports = {
+    getRateForSession,
     processBillingCharge,
     endSessionRecord,
     setIo,

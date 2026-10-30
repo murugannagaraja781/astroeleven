@@ -2048,25 +2048,10 @@ function forceEndSession(sessionId, reason) {
   if (!session) return;
 
   console.log(`Force Ending Session ${sessionId} due to: ${reason}`);
+  session.endReason = reason;
 
-  // Notify Users (With Summary)
-  const clientSocketId = userSockets.get(session.clientId);
-  const astroSocketId = userSockets.get(session.astrologerId);
-
-  const payload = {
-    reason,
-    summary: {
-      deducted: session.totalDeducted || 0,
-      earned: session.totalEarned || 0,
-      duration: session.elapsedBillableSeconds || 0
-    }
-  };
-
-  if (clientSocketId) io.to(clientSocketId).emit('session-ended', payload);
-  if (astroSocketId) io.to(astroSocketId).emit('session-ended', payload);
-
-  // Cleanup Server State
-  billingService.endSessionRecord(sessionId);
+  // Cleanup Server State and notify clients via authoritative endSessionRecord
+  billingService.endSessionRecord(sessionId, null, reason);
 }
 
 // ===== City Autocomplete API =====
@@ -2698,12 +2683,12 @@ io.on('connection', (socket) => {
           const nextMinuteIndex = (session.lastBilledMinute || 1) + 1;
           console.log(`Session ${sessionId}: Minute ${nextMinuteIndex} entered at ${session.elapsedBillableSeconds}s. Charging.`);
           const billRes = await billingService.processBillingCharge(sessionId, 60, nextMinuteIndex, 'slab');
-          session.lastBilledMinute = nextMinuteIndex;
           if (!billRes || !billRes.success) {
             console.log(`[Ticker] Insufficient balance for session ${sessionId} at min ${nextMinuteIndex}. Terminating.`);
             forceEndSession(sessionId, 'insufficient_balance');
             continue;
           }
+          session.lastBilledMinute = nextMinuteIndex;
           if (billRes.remainingBalance !== undefined && billRes.pricePerMin && billRes.remainingBalance < billRes.pricePerMin) {
             console.log(`[Ticker] Client balance ₹${billRes.remainingBalance} is lower than next min price ₹${billRes.pricePerMin}.`);
           }
@@ -3602,13 +3587,14 @@ io.on('connection', (socket) => {
 
       const u = await User.findOne({ userId: w.astroId });
       if (u) {
-        // REFUND
-        u.walletBalance += w.amount;
-        await u.save();
+        // REFUND atomically
+        await User.updateOne({ userId: u.userId }, { $inc: { walletBalance: w.amount } });
+        const freshU = await User.findOne({ userId: u.userId });
+        const newBal = freshU ? Number(freshU.walletBalance || 0) : ((u.walletBalance || 0) + w.amount);
 
         const sId = userSockets.get(u.userId);
         if (sId) {
-          io.to(sId).emit('wallet-update', { balance: u.walletBalance });
+          io.to(sId).emit('wallet-update', { balance: newBal });
           io.to(sId).emit('app-notification', { text: `❌ Your withdrawal of ₹${w.amount} was rejected. Money refunded.` });
         }
       }

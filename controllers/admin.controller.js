@@ -133,17 +133,15 @@ exports.updateBalance = async (req, res) => {
         const { userId, amount, action } = req.body; // action: 'add' or 'subtract'
         if (!userId || amount === undefined) return res.json({ ok: false, error: 'User ID and amount required' });
 
-        const user = await User.findOne({ userId });
-        if (!user) return res.json({ ok: false, error: 'User not found' });
+        const delta = parseFloat(amount);
+        if (isNaN(delta) || delta < 0) return res.json({ ok: false, error: 'Invalid amount' });
 
-        if (action === 'subtract') {
-            user.walletBalance = (user.walletBalance || 0) - parseFloat(amount);
-        } else {
-            user.walletBalance = (user.walletBalance || 0) + parseFloat(amount);
-        }
+        const inc = action === 'subtract' ? -delta : delta;
+        await User.updateOne({ userId }, { $inc: { walletBalance: inc } });
+        const updatedUser = await User.findOne({ userId });
+        if (!updatedUser) return res.json({ ok: false, error: 'User not found' });
 
-        await user.save();
-        res.json({ ok: true, balance: user.walletBalance });
+        res.json({ ok: true, balance: updatedUser.walletBalance });
     } catch (error) {
         res.json({ ok: false, error: error.message });
     }

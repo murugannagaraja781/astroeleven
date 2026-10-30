@@ -162,14 +162,7 @@ module.exports = (io, socket, SERVER_URL, broadcastAstroUpdate) => {
                 }
             }
 
-            let requiredFirstMin = 10;
-            if (toUser.price && toUser.price > 0) {
-                requiredFirstMin = parseInt(toUser.price);
-            } else {
-                if (type === 'audio') requiredFirstMin = 15;
-                else if (type === 'video') requiredFirstMin = 20;
-                else requiredFirstMin = 10;
-            }
+            const requiredFirstMin = billingService.getRateForSession(toUser, type);
 
             if (fromUser && fromUser.role === 'client' && (fromUser.walletBalance || 0) < requiredFirstMin) {
                 console.warn(`[CallHandler][request-session] Insufficient balance for ${fromUserId}. Balance: ${fromUser.walletBalance}, Required: ${requiredFirstMin}`);
@@ -654,15 +647,15 @@ module.exports = (io, socket, SERVER_URL, broadcastAstroUpdate) => {
 
                     if (!billRes || !billRes.success) {
                         console.warn(`[CallHandler][session-connect] Insufficient balance for session ${sessionId} at start. Ending.`);
-                        billingService.endSessionRecord(sessionId, broadcastAstroUpdate);
+                        billingService.endSessionRecord(sessionId, broadcastAstroUpdate, 'insufficient_balance');
                         return;
                     }
 
                     const freshClient = await User.findOne({ userId: session.clientId });
                     const freshAstro = await User.findOne({ userId: session.astrologerId });
                     const clientBalance = freshClient ? Number(freshClient.walletBalance || 0) : 0;
-                    const ratePerMinute = (freshAstro?.price && freshAstro.price > 0) ? parseInt(freshAstro.price) : 10;
-                    const availableMinutes = Math.floor(clientBalance / ratePerMinute) + 1; // 1 min already paid + remaining
+                    const ratePerMinute = billingService.getRateForSession(freshAstro, session.type);
+                    const availableMinutes = ratePerMinute > 0 ? (Math.floor(clientBalance / ratePerMinute) + 1) : 1; // 1 min already paid + remaining
 
                     io.to(session.clientId).emit('billing-started', { startTime: billingStart, clientBalance, availableMinutes });
                     io.to(session.astrologerId).emit('billing-started', { startTime: billingStart, clientBalance, ratePerMinute, availableMinutes });
