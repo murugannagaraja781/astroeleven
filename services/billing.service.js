@@ -70,19 +70,26 @@ async function processBillingCharge(sessionId, durationSeconds, minuteIndex, typ
         const actualBalance = freshClient ? Number(freshClient.walletBalance || 0) : Number(client.walletBalance || 0);
 
         if (actualBalance >= totalToDeduct) {
-            const newClientBalance = Math.round((actualBalance - totalToDeduct) * 100) / 100;
-            await User.updateOne({ userId: client.userId }, { walletBalance: newClientBalance });
+            // Atomic decrement in MySQL
+            await User.updateOne({ userId: client.userId }, { $inc: { walletBalance: -totalToDeduct } });
+
+            // Fetch fresh balance after atomic decrement for exact accuracy
+            const freshAfterDeduct = await User.findOne({ userId: client.userId });
+            const newClientBalance = freshAfterDeduct ? Number(freshAfterDeduct.walletBalance || 0) : Math.round((actualBalance - totalToDeduct) * 100) / 100;
             client.walletBalance = newClientBalance;
 
             let newAstroBalance = Number(astro.walletBalance || 0);
             let newAstroEarnings = Number(astro.totalEarnings || 0);
             if (astroShare > 0) {
-                newAstroBalance = Math.round((newAstroBalance + astroShare) * 100) / 100;
-                newAstroEarnings = Math.round((newAstroEarnings + astroShare) * 100) / 100;
                 await User.updateOne({ userId: astro.userId }, {
-                    walletBalance: newAstroBalance,
-                    totalEarnings: newAstroEarnings
+                    $inc: {
+                        walletBalance: astroShare,
+                        totalEarnings: astroShare
+                    }
                 });
+                const freshAstro = await User.findOne({ userId: astro.userId });
+                newAstroBalance = freshAstro ? Number(freshAstro.walletBalance || 0) : Math.round((newAstroBalance + astroShare) * 100) / 100;
+                newAstroEarnings = freshAstro ? Number(freshAstro.totalEarnings || 0) : Math.round((newAstroEarnings + astroShare) * 100) / 100;
                 astro.walletBalance = newAstroBalance;
                 astro.totalEarnings = newAstroEarnings;
             }
@@ -119,10 +126,17 @@ async function processBillingCharge(sessionId, durationSeconds, minuteIndex, typ
             };
         } else {
             console.warn(`[Billing] Insufficient balance for ${client.userId}. Required: ₹${totalToDeduct}, Has: ₹${actualBalance}`);
+            // If user has any remaining balance > 0, deduct it down to 0
+            if (actualBalance > 0) {
+                await User.updateOne({ userId: client.userId }, { $set: { walletBalance: 0 } });
+            }
+            if (io) {
+                io.to(client.userId).emit('wallet-update', { balance: 0 });
+            }
             return {
                 success: false,
                 reason: 'insufficient_balance',
-                remainingBalance: actualBalance,
+                remainingBalance: 0,
                 pricePerMin
             };
         }

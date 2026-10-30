@@ -7,9 +7,12 @@ const Session = require('../models/Session');
 const Feedback = require('../models/Feedback');
 const GlobalSettings = require('../models/GlobalSettings');
 const Payment = require('../models/Payment');
+const RechargePackage = require('../models/RechargePackage');
+const KundaliRecord = require('../models/KundaliRecord');
 const performanceService = require('../services/performance.service');
 const fs = require('fs');
 const path = require('path');
+
 
 exports.getVideos = async (req, res) => {
     const videos = await AcademyVideo.find().sort({ createdAt: -1 });
@@ -801,4 +804,404 @@ exports.verifyPayment = async (req, res) => {
         res.status(500).json({ ok: false, error: e.message });
     }
 };
+
+// ==========================================
+// RECHARGE PACKAGES MANAGEMENT (ADMIN)
+// ==========================================
+
+const DEFAULT_ADMIN_PACKAGES = [
+    { packageId: 'pack_2', amount: 2, extraPercentage: 0, badge: 'Trial Pack', description: 'Trial Recharge', isActive: true, order: 1 },
+    { packageId: 'pack_20', amount: 20, extraPercentage: 50, badge: '50% Extra', description: 'Get 50% Extra', isActive: true, order: 2 },
+    { packageId: 'pack_50', amount: 50, extraPercentage: 50, badge: '50% Extra', description: 'Get 50% Extra', isActive: true, order: 3 },
+    { packageId: 'pack_100', amount: 100, extraPercentage: 100, badge: 'Popular', description: 'Get 100% Extra', isActive: true, order: 4 },
+    { packageId: 'pack_200', amount: 200, extraPercentage: 10, badge: '10% Extra', description: 'Get 10% Extra', isActive: true, order: 5 },
+    { packageId: 'pack_500', amount: 500, extraPercentage: 100, badge: 'Best Value', description: 'Get 100% Extra', isActive: true, order: 6 },
+    { packageId: 'pack_1000', amount: 1000, extraPercentage: 100, badge: '100% Extra', description: 'Get 100% Extra', isActive: true, order: 7 },
+    { packageId: 'pack_2000', amount: 2000, extraPercentage: 100, badge: '100% Extra', description: 'Get 100% Extra', isActive: true, order: 8 },
+    { packageId: 'pack_5000', amount: 5000, extraPercentage: 20, badge: 'Mega Saver', description: 'Get 20% Extra', isActive: true, order: 9 }
+];
+
+async function ensureAdminPackagesSeeded() {
+    try {
+        const count = await RechargePackage.countDocuments({});
+        if (count === 0) {
+            for (const p of DEFAULT_ADMIN_PACKAGES) {
+                await RechargePackage.create(p);
+            }
+        }
+    } catch (e) {
+        console.error('[RechargePackage] Seed error in admin:', e.message);
+    }
+}
+
+exports.getRechargePackages = async (req, res) => {
+    try {
+        await ensureAdminPackagesSeeded();
+        const packages = await RechargePackage.find({}).sort({ order: 1, amount: 1 }).lean();
+        res.json({ ok: true, packages });
+    } catch (e) {
+        console.error('[AdminController] Error in getRechargePackages:', e);
+        res.status(500).json({ ok: false, error: e.message });
+    }
+};
+
+exports.addRechargePackage = async (req, res) => {
+    try {
+        const { amount, extraPercentage, badge, description, isActive, order } = req.body;
+        const parsedAmount = parseFloat(amount);
+        if (!parsedAmount || parsedAmount <= 0) {
+            return res.status(400).json({ ok: false, error: 'Valid recharge amount is required' });
+        }
+
+        const packageId = 'pack_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+        const pkg = await RechargePackage.create({
+            packageId,
+            amount: parsedAmount,
+            extraPercentage: parseFloat(extraPercentage) || 0,
+            badge: (badge || '').trim(),
+            description: (description || '').trim(),
+            isActive: isActive === true || isActive === 'true' || isActive === undefined,
+            order: parseInt(order) || 0,
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
+
+        res.json({ ok: true, package: pkg });
+    } catch (e) {
+        console.error('[AdminController] Error in addRechargePackage:', e);
+        res.status(500).json({ ok: false, error: e.message });
+    }
+};
+
+exports.updateRechargePackage = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { amount, extraPercentage, badge, description, isActive, order } = req.body;
+
+        const updateData = { updatedAt: new Date() };
+        if (amount !== undefined) updateData.amount = parseFloat(amount);
+        if (extraPercentage !== undefined) updateData.extraPercentage = parseFloat(extraPercentage);
+        if (badge !== undefined) updateData.badge = String(badge).trim();
+        if (description !== undefined) updateData.description = String(description).trim();
+        if (isActive !== undefined) updateData.isActive = isActive === true || isActive === 'true';
+        if (order !== undefined) updateData.order = parseInt(order);
+
+        const query = (id.startsWith('pack_')) ? { packageId: id } : { _id: id };
+        await RechargePackage.updateOne(query, { $set: updateData });
+        const updated = await RechargePackage.findOne(query);
+
+        res.json({ ok: true, package: updated });
+    } catch (e) {
+        console.error('[AdminController] Error in updateRechargePackage:', e);
+        res.status(500).json({ ok: false, error: e.message });
+    }
+};
+
+exports.deleteRechargePackage = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const query = (id.startsWith('pack_')) ? { packageId: id } : { _id: id };
+        await RechargePackage.deleteOne(query);
+        res.json({ ok: true });
+    } catch (e) {
+        console.error('[AdminController] Error in deleteRechargePackage:', e);
+        res.status(500).json({ ok: false, error: e.message });
+    }
+};
+
+exports.toggleRechargePackage = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const query = (id.startsWith('pack_')) ? { packageId: id } : { _id: id };
+        const pkg = await RechargePackage.findOne(query);
+        if (!pkg) return res.status(404).json({ ok: false, error: 'Package not found' });
+
+        pkg.isActive = !pkg.isActive;
+        pkg.updatedAt = new Date();
+        await pkg.save();
+
+        res.json({ ok: true, isActive: pkg.isActive });
+    } catch (e) {
+        console.error('[AdminController] Error in toggleRechargePackage:', e);
+        res.status(500).json({ ok: false, error: e.message });
+    }
+};
+
+// ==========================================
+// KUNDALI DETAILS & CONSULTATION HOROSCOPE RECORDS (ADMIN)
+// ==========================================
+
+let kundaliBackfillDone = false;
+async function ensureKundaliBackfill() {
+    if (kundaliBackfillDone) return;
+    kundaliBackfillDone = true;
+    try {
+        const count = await KundaliRecord.countDocuments({});
+        if (count === 0) {
+            const users = await User.find({
+                role: 'client'
+            }).limit(3000).lean();
+
+            for (const u of users) {
+                const bd = u.birthDetails || {};
+                const id = u.intakeDetails || {};
+                const dobVal = u.dob || bd.dob;
+                if (!dobVal && !u.pob && !bd.pob) continue;
+
+                let bYear = null, bMonth = null, bDay = null;
+                if (typeof dobVal === 'string') {
+                    if (dobVal.includes('-')) {
+                        const parts = dobVal.split('-').map(Number);
+                        if (parts.length >= 3) {
+                            bYear = parts[0];
+                            bMonth = parts[1];
+                            bDay = parts[2];
+                        }
+                    } else if (dobVal.includes('/')) {
+                        const parts = dobVal.split('/').map(Number);
+                        if (parts.length >= 3) {
+                            bDay = parts[0];
+                            bMonth = parts[1];
+                            bYear = parts[2];
+                        }
+                    }
+                }
+
+                const tobStr = u.tob || bd.tob || '12:00';
+                let tobFormatted = tobStr;
+                if (tobStr && tobStr.includes(':')) {
+                    const [h, m] = tobStr.split(':').map(Number);
+                    if (!isNaN(h)) {
+                        const ampm = h >= 12 ? 'PM' : 'AM';
+                        const h12 = h % 12 || 12;
+                        tobFormatted = `${String(h12).padStart(2, '0')}:${String(m || 0).padStart(2, '0')} ${ampm}`;
+                    }
+                }
+
+                await KundaliRecord.create({
+                    recordId: 'kr_' + (u.userId || Date.now() + Math.random().toString(36).substring(2, 6)),
+                    clientId: u.userId || '',
+                    clientName: u.name || 'Client',
+                    clientPhone: u.phone || '',
+                    dob: dobVal || '',
+                    birthDay: bDay,
+                    birthMonth: bMonth,
+                    birthYear: bYear,
+                    tob: tobStr,
+                    tobFormatted,
+                    pob: u.pob || bd.pob || '',
+                    latitude: bd.lat || null,
+                    longitude: bd.lon || null,
+                    gender: id.gender || u.gender || '',
+                    marital: id.marital || '',
+                    occupation: id.occupation || u.profession || '',
+                    topic: id.topic || 'General Consultation',
+                    astrologerId: '',
+                    astrologerName: 'Platform Intake',
+                    consultationType: 'profile',
+                    sessionId: '',
+                    consultationDate: u.createdAt || new Date(),
+                    createdAt: u.createdAt || new Date()
+                });
+            }
+            console.log('[KundaliRecord] Initial client backfill complete');
+        }
+    } catch (e) {
+        console.error('[KundaliRecord] Backfill error:', e.message);
+    }
+}
+
+function buildKundaliFilters(queryObj) {
+    const {
+        search = '',
+        dateRange = 'all',
+        startDate,
+        endDate,
+        birthDay,
+        birthMonth,
+        birthYear,
+        pob = ''
+    } = queryObj;
+
+    const query = {};
+    const andConditions = [];
+
+    // 1. Search (Client Name, Phone, District/City)
+    if (search && search.trim()) {
+        const term = search.trim();
+        const searchRegex = new RegExp(term.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'i');
+        andConditions.push({
+            $or: [
+                { clientName: searchRegex },
+                { clientPhone: searchRegex },
+                { pob: searchRegex },
+                { topic: searchRegex }
+            ]
+        });
+    }
+
+    // 2. Specific POB / District Filter
+    if (pob && pob.trim()) {
+        const pobRegex = new RegExp(pob.trim().replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'i');
+        andConditions.push({ pob: pobRegex });
+    }
+
+    // 3. Consultation / Recorded Date Range (Today, Yesterday, Last Week, Last Month, Custom)
+    const now = new Date();
+    if (dateRange === 'today') {
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+        andConditions.push({ consultationDate: { $gte: startOfDay } });
+    } else if (dateRange === 'yesterday') {
+        const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0);
+        const endOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
+        andConditions.push({ consultationDate: { $gte: startOfYesterday, $lte: endOfYesterday } });
+    } else if (dateRange === '7days') {
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        andConditions.push({ consultationDate: { $gte: sevenDaysAgo } });
+    } else if (dateRange === '30days') {
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        andConditions.push({ consultationDate: { $gte: thirtyDaysAgo } });
+    } else if (dateRange === 'custom' && (startDate || endDate)) {
+        const dateCond = {};
+        if (startDate) dateCond.$gte = new Date(startDate + 'T00:00:00');
+        if (endDate) dateCond.$lte = new Date(endDate + 'T23:59:59.999');
+        andConditions.push({ consultationDate: dateCond });
+    }
+
+    // 4. Birth Date Filters (Specific Day, Month, Year e.g. 13th, 7th month, 1998)
+    if (birthDay && parseInt(birthDay) > 0) {
+        andConditions.push({ birthDay: parseInt(birthDay) });
+    }
+    if (birthMonth && parseInt(birthMonth) > 0) {
+        andConditions.push({ birthMonth: parseInt(birthMonth) });
+    }
+    if (birthYear && parseInt(birthYear) > 1900) {
+        andConditions.push({ birthYear: parseInt(birthYear) });
+    }
+
+    if (andConditions.length > 0) {
+        query.$and = andConditions;
+    }
+
+    return query;
+}
+
+exports.getKundaliRecords = async (req, res) => {
+    try {
+        await ensureKundaliBackfill();
+
+        const { page = 1, limit = 20 } = req.query;
+        const parsedPage = Math.max(1, parseInt(page) || 1);
+        const parsedLimit = Math.max(1, parseInt(limit) || 20);
+
+        const query = buildKundaliFilters(req.query);
+
+        const total = await KundaliRecord.countDocuments(query);
+        const records = await KundaliRecord.find(query)
+            .sort({ id: -1 })
+            .skip((parsedPage - 1) * parsedLimit)
+            .limit(parsedLimit)
+            .lean();
+
+        // Compute summary counts
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+        const [todayCount, allTotalCount] = await Promise.all([
+            KundaliRecord.countDocuments({ consultationDate: { $gte: startOfToday } }),
+            KundaliRecord.countDocuments({})
+        ]);
+
+        res.json({
+            ok: true,
+            records,
+            total,
+            page: parsedPage,
+            pages: Math.ceil(total / parsedLimit),
+            summary: {
+                totalCount: allTotalCount,
+                filteredCount: total,
+                todayCount
+            }
+        });
+    } catch (e) {
+        console.error('[AdminController] Error in getKundaliRecords:', e);
+        res.status(500).json({ ok: false, error: e.message });
+    }
+};
+
+exports.exportKundaliRecords = async (req, res) => {
+    try {
+        await ensureKundaliBackfill();
+
+        const query = buildKundaliFilters(req.query);
+        const records = await KundaliRecord.find(query)
+            .sort({ id: -1 })
+            .limit(100000)
+            .lean();
+
+        // Build CSV with UTF-8 BOM so Excel opens Tamil characters cleanly
+        const csvRows = [];
+        csvRows.push([
+            'S.No',
+            'Client Name',
+            'Mobile Number',
+            'Date of Birth',
+            'Birth Day',
+            'Birth Month',
+            'Birth Year',
+            'Time of Birth',
+            'Birth District / Place',
+            'Gender',
+            'Marital Status',
+            'Topic',
+            'Astrologer',
+            'Consultation Type',
+            'Consultation Date'
+        ].map(col => `"${col.replace(/"/g, '""')}"`).join(','));
+
+        records.forEach((r, idx) => {
+            const cDate = r.consultationDate ? new Date(r.consultationDate).toISOString().slice(0, 10) : '';
+            csvRows.push([
+                idx + 1,
+                r.clientName || 'Client',
+                r.clientPhone || 'N/A',
+                r.dob || '',
+                r.birthDay || '',
+                r.birthMonth || '',
+                r.birthYear || '',
+                r.tobFormatted || r.tob || '',
+                r.pob || '',
+                r.gender || '',
+                r.marital || '',
+                r.topic || '',
+                r.astrologerName || '',
+                r.consultationType || '',
+                cDate
+            ].map(val => `"${String(val ?? '').replace(/"/g, '""')}"`).join(','));
+        });
+
+        const csvContent = '\uFEFF' + csvRows.join('\r\n');
+        const filename = `kundali_records_${new Date().toISOString().slice(0, 10)}.csv`;
+
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.status(200).send(csvContent);
+    } catch (e) {
+        console.error('[AdminController] Error in exportKundaliRecords:', e);
+        res.status(500).json({ ok: false, error: e.message });
+    }
+};
+
+exports.deleteKundaliRecord = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const query = (id.startsWith('kr_')) ? { recordId: id } : { _id: id };
+        await KundaliRecord.deleteOne(query);
+        res.json({ ok: true });
+    } catch (e) {
+        console.error('[AdminController] Error in deleteKundaliRecord:', e);
+        res.status(500).json({ ok: false, error: e.message });
+    }
+};
+
 

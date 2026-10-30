@@ -365,12 +365,28 @@ class WrappedDocument {
 
         // Keep raw internal object representation
         this._doc = this;
+
+        // Snapshot initial serialized values to track modified fields for save()
+        this._initialData = {};
+        for (const key in this) {
+            if (key !== 'model' && key !== '_doc' && key !== '_initialData') {
+                const val = this[key];
+                if (val && typeof val === 'object' && !(val instanceof Date)) {
+                    this._initialData[key] = JSON.stringify(val);
+                } else if (val instanceof Date) {
+                    this._initialData[key] = val.getTime();
+                } else {
+                    this._initialData[key] = val;
+                }
+            }
+        }
     }
 
     toObject() {
         const obj = { ...this };
         delete obj.model;
         delete obj._doc;
+        delete obj._initialData;
         return obj;
     }
 
@@ -427,13 +443,35 @@ class WrappedDocument {
         const keys = Object.keys(dataToSave);
 
         if (docId) {
-            // Update
-            const setClause = keys.map(k => `\`${k}\` = ?`).join(', ');
-            const values = keys.map(k => dataToSave[k]);
+            // Update: only update columns that actually changed compared to _initialData
+            let keysToUpdate = keys;
+            if (this._initialData && Object.keys(this._initialData).length > 0) {
+                keysToUpdate = keys.filter(k => {
+                    if (!Object.prototype.hasOwnProperty.call(this._initialData, k)) return true;
+                    const oldVal = this._initialData[k];
+                    const newVal = dataToSave[k];
+                    if (oldVal === newVal) return false;
+                    if (oldVal === null && (newVal === undefined || newVal === null)) return false;
+                    if (oldVal === undefined && (newVal === undefined || newVal === null)) return false;
+                    return true;
+                });
+            }
+
+            if (keysToUpdate.length === 0) {
+                return this; // No changes detected, skip SQL update
+            }
+
+            const setClause = keysToUpdate.map(k => `\`${k}\` = ?`).join(', ');
+            const values = keysToUpdate.map(k => dataToSave[k]);
             values.push(docId);
 
             const sql = `UPDATE \`${this.model.tableName}\` SET ${setClause} WHERE id = ?`;
             await pool.execute(sql, values);
+
+            // Refresh _initialData snapshot for subsequent save() calls
+            for (const k of keysToUpdate) {
+                this._initialData[k] = dataToSave[k];
+            }
         } else {
             // Insert
             const cols = keys.map(k => `\`${k}\``).join(', ');
@@ -444,6 +482,9 @@ class WrappedDocument {
             const [result] = await pool.execute(sql, values);
             this.id = result.insertId;
             this._id = result.insertId;
+
+            // Initialize _initialData after insert
+            this._initialData = { ...dataToSave, id: result.insertId, _id: result.insertId };
         }
         return this;
     }

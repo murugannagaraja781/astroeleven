@@ -10,5 +10,8 @@ router.post('/callback', paymentController.callback);
 router.get('/callback', paymentController.callback);
 router.post('/webhook', paymentController.webhook);
 router.get('/history/:userId', paymentController.getHistory);
+router.get('/recharge-packages', paymentController.getPublicRechargePackages);
+router.get('/packages', paymentController.getPublicRechargePackages);
 
 module.exports = router;
+

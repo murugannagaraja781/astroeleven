@@ -45,13 +45,13 @@ class PresenceService {
             if (user.role === 'astrologer' && user.isAvailable) {
                 user.isOnline = true;
                 user.lastSeen = new Date();
-                await user.save();
+                await User.updateOne({ userId }, { $set: { isOnline: true, lastSeen: user.lastSeen } });
                 broadcastAstroUpdate(io, process.env.SERVER_URL);
                 console.log(`[Presence] Astrologer ${user.name} (${userId}) connected and verified ONLINE.`);
             } else if (user.role === 'client') {
                 user.isOnline = true;
                 user.lastSeen = new Date();
-                await user.save();
+                await User.updateOne({ userId }, { $set: { isOnline: true, lastSeen: user.lastSeen } });
                 console.log(`[Presence] Client ${user.name || userId} connected.`);
             }
 
@@ -82,7 +82,7 @@ class PresenceService {
             const user = await User.findOne({ userId });
             if (user) {
                 user.lastSeen = new Date();
-                await user.save();
+                await User.updateOne({ userId }, { $set: { lastSeen: user.lastSeen } });
                 console.log(`[Presence] ${user.name} disconnected. (Stayed Online in DB: ${user.isOnline})`);
             }
 
@@ -133,7 +133,16 @@ class PresenceService {
                 user.isOnline = isOnline;
                 user.isAvailable = isOnline; // Manual toggle is the source of truth
                 user.lastSeen = new Date();
-                await user.save();
+                await User.updateOne({ userId }, {
+                    $set: {
+                        isChatOnline: isOnline,
+                        isAudioOnline: isOnline,
+                        isVideoOnline: isOnline,
+                        isOnline: isOnline,
+                        isAvailable: isOnline,
+                        lastSeen: user.lastSeen
+                    }
+                });
                 
                 broadcastAstroUpdate(io, process.env.SERVER_URL);
                 console.log(`[Presence] ${user.name} manually set status to: ${isOnline ? 'ONLINE' : 'OFFLINE'}`);
@@ -162,7 +171,16 @@ class PresenceService {
                 user.isAudioOnline = false;
                 user.isVideoOnline = false;
                 user.lastSeen = new Date();
-                await user.save();
+                await User.updateOne({ userId }, {
+                    $set: {
+                        isOnline: false,
+                        isAvailable: false,
+                        isChatOnline: false,
+                        isAudioOnline: false,
+                        isVideoOnline: false,
+                        lastSeen: user.lastSeen
+                    }
+                });
 
                 broadcastAstroUpdate(io, process.env.SERVER_URL);
                 console.log(`[Presence] ${user.name} logged out explicitly.`);
@@ -185,7 +203,7 @@ class PresenceService {
             const user = await User.findOne({ userId });
             if (user && user.role === 'astrologer') {
                 user.isBusy = isBusy;
-                await user.save();
+                await User.updateOne({ userId }, { $set: { isBusy } });
                 broadcastSingleAstroUpdate(io, userId, process.env.SERVER_URL);
                 console.log(`[Presence] ${user.name} busy state: ${isBusy}`);
             }

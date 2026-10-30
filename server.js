@@ -453,7 +453,9 @@ app.use('/api', horoscopeRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/chat', userRoutes);
 app.use('/api/payment', paymentRoutes);
+app.get('/api/recharge-packages', (req, res, next) => paymentRoutes(req, res, next));
 app.use('/api/puja-bookings', pujaBookingRoutes);
+
 
 // Shop, Puja Booking, and Astrologer Referral System API
 app.get('/api/shop/items', async (req, res) => {

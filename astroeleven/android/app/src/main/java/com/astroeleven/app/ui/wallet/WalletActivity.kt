@@ -56,6 +56,17 @@ class WalletActivity : ComponentActivity() {
     private val transactionsState = mutableStateListOf<JSONObject>()
     private var balanceState by mutableDoubleStateOf(0.0)
     private var superBalanceState by mutableDoubleStateOf(0.0)
+    private val rechargePacksState = mutableStateListOf<WalletRechargePack>(
+        WalletRechargePack(50, 50, "Get 50% Extra"),
+        WalletRechargePack(100, 100, "Get 100% Extra"),
+        WalletRechargePack(500, 100, "Get 100% Extra"),
+        WalletRechargePack(1000, 100, "Get 100% Extra"),
+        WalletRechargePack(200, 10, "Get 10% Extra"),
+        WalletRechargePack(5000, 20, "Get 20% Extra"),
+        WalletRechargePack(2000, 100, "Get 100% Extra"),
+        WalletRechargePack(20, 50, "Get 50% Extra"),
+        WalletRechargePack(2, 0, "Get 0% Extra")
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -75,6 +86,7 @@ class WalletActivity : ComponentActivity() {
                     balance = balanceState,
                     superBalance = superBalanceState,
                     transactions = transactionsState,
+                    rechargePacks = rechargePacksState,
                     onAddMoney = { amount, promo ->
                         if (amount < 1) {
                             Toast.makeText(this, getString(R.string.enter_valid_amount), Toast.LENGTH_SHORT).show()
@@ -90,18 +102,21 @@ class WalletActivity : ComponentActivity() {
                     onRefreshHistory = {
                         refreshWalletBalance()
                         loadPaymentHistory()
+                        loadRechargePackages()
                     }
                 )
             }
         }
 
         loadPaymentHistory()
+        loadRechargePackages()
     }
 
     override fun onResume() {
         super.onResume()
         refreshWalletBalance()
         loadPaymentHistory()
+        loadRechargePackages()
 
         com.astroeleven.app.data.remote.SocketManager.onWalletUpdate { data ->
             runOnUiThread {
@@ -180,6 +195,47 @@ class WalletActivity : ComponentActivity() {
             }
         }
     }
+
+    private fun loadRechargePackages() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val request = Request.Builder()
+                    .url("${Constants.SERVER_URL}/api/payment/recharge-packages")
+                    .get()
+                    .build()
+
+                val client = OkHttpClient()
+                client.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) {
+                        val body = response.body?.string()
+                        val json = JSONObject(body ?: "{}")
+                        val packages = json.optJSONArray("packages")
+                        if (packages != null && packages.length() > 0) {
+                            val newPacks = ArrayList<WalletRechargePack>()
+                            for (i in 0 until packages.length()) {
+                                val item = packages.getJSONObject(i)
+                                val amount = item.optInt("amount", 0)
+                                if (amount > 0) {
+                                    val extra = item.optInt("extraPercentage", 0)
+                                    val badge = item.optString("badge", "")
+                                    val text = if (badge.isNotEmpty()) badge else if (extra > 0) "Get $extra% Extra" else "Get 0% Extra"
+                                    newPacks.add(WalletRechargePack(amount, extra, text))
+                                }
+                            }
+                            if (newPacks.isNotEmpty()) {
+                                runOnUiThread {
+                                    rechargePacksState.clear()
+                                    rechargePacksState.addAll(newPacks)
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -188,6 +244,7 @@ fun WalletScreen(
     balance: Double,
     superBalance: Double = 0.0,
     transactions: List<JSONObject>,
+    rechargePacks: List<WalletRechargePack> = emptyList(),
     onAddMoney: (Int, String?) -> Unit,
     onRefreshHistory: () -> Unit
 ) {
@@ -199,8 +256,9 @@ fun WalletScreen(
     val yellowBadge = Color(0xFFFFDE03)  // Bright Yellow Extra Offer Badge
     val cardBorder = Color(0xFFE5E7EB)
 
-    // Exact packs shown in the screenshot
-    val rechargePacks = remember {
+    val packs = if (rechargePacks.isNotEmpty()) {
+        rechargePacks
+    } else {
         listOf(
             WalletRechargePack(50, 50, "Get 50% Extra"),
             WalletRechargePack(100, 100, "Get 100% Extra"),

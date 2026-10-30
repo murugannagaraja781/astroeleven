@@ -11,6 +11,64 @@ const { broadcastAstroUpdate } = require('../services/astrologer.service');
 const { getPanchanga } = require('../utils/rasiEng/panchangaCalc');
 const { swissEph } = require('../utils/rasiEng/swisseph');
 const { DateTime } = require('luxon');
+const KundaliRecord = require('../models/KundaliRecord');
+
+async function saveKundaliRecord({ clientId, clientName, clientPhone, birthData, astrologerId, astrologerName, consultationType, sessionId }) {
+    try {
+        if (!clientId && !clientPhone) return;
+        const bYear = parseInt(birthData?.year) || (birthData?.dob ? parseInt(birthData.dob.split('-')[0]) : null);
+        const bMonth = parseInt(birthData?.month) || (birthData?.dob ? parseInt(birthData.dob.split('-')[1]) : null);
+        const bDay = parseInt(birthData?.day) || (birthData?.dob ? parseInt(birthData.dob.split('-')[2]) : null);
+
+        let dobStr = '';
+        if (bYear && bMonth && bDay) {
+            dobStr = `${bYear}-${String(bMonth).padStart(2, '0')}-${String(bDay).padStart(2, '0')}`;
+        } else if (birthData?.dob) {
+            dobStr = birthData.dob;
+        }
+
+        const h = birthData?.hour !== undefined ? parseInt(birthData.hour) : null;
+        const m = birthData?.minute !== undefined ? parseInt(birthData.minute) : 0;
+        let tobStr = birthData?.tob || (h !== null ? `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}` : '');
+        
+        let tobFormatted = tobStr;
+        if (h !== null && !isNaN(h)) {
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            const h12 = h % 12 || 12;
+            tobFormatted = `${String(h12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
+        }
+
+        const pobStr = birthData?.city || birthData?.pob || '';
+
+        await KundaliRecord.create({
+            recordId: 'kr_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+            clientId: clientId || '',
+            clientName: clientName || birthData?.name || 'Client',
+            clientPhone: clientPhone || '',
+            dob: dobStr,
+            birthDay: bDay,
+            birthMonth: bMonth,
+            birthYear: bYear,
+            tob: tobStr,
+            tobFormatted,
+            pob: pobStr,
+            latitude: birthData?.latitude || null,
+            longitude: birthData?.longitude || null,
+            gender: birthData?.gender || '',
+            marital: birthData?.marital || '',
+            occupation: birthData?.occupation || '',
+            topic: birthData?.topic || '',
+            astrologerId: astrologerId || '',
+            astrologerName: astrologerName || 'Astrologer',
+            consultationType: consultationType || 'call',
+            sessionId: sessionId || '',
+            consultationDate: new Date()
+        });
+        console.log(`[KundaliRecord] Recorded consultation horoscope for ${clientName || clientPhone}`);
+    } catch (e) {
+        console.error('[KundaliRecord] Error saving kundali record:', e.message);
+    }
+}
 
 function enrichBirthData(birthData) {
     if (!birthData) return null;
@@ -147,6 +205,16 @@ module.exports = (io, socket, SERVER_URL, broadcastAstroUpdate) => {
                         } : undefined
                     };
                     await fromUser.save();
+                    saveKundaliRecord({
+                        clientId: fromUser.userId,
+                        clientName: fromUser.name,
+                        clientPhone: fromUser.phone,
+                        birthData: enrichedBirthData || birthData,
+                        astrologerId: toUser ? toUser.userId : toUserId,
+                        astrologerName: toUser ? toUser.name : 'Astrologer',
+                        consultationType: type || 'call',
+                        sessionId: sessionId
+                    });
                 }
             } else if (fromUser && fromUser.role === 'client' && fromUser.birthDetails && fromUser.birthDetails.dob) {
                 // Backend fallback: Reconstruct birthData from saved profile details if not passed via socket payload
@@ -648,6 +716,16 @@ module.exports = (io, socket, SERVER_URL, broadcastAstroUpdate) => {
                     occupation: data.occupation, topic: data.topic, partner: data.partner
                 };
                 await u.save();
+                saveKundaliRecord({
+                    clientId: u.userId,
+                    clientName: u.name,
+                    clientPhone: u.phone,
+                    birthData: data,
+                    astrologerId: '',
+                    astrologerName: 'Intake Submission',
+                    consultationType: 'intake',
+                    sessionId: userActiveSession.get(userId) || ''
+                });
                 if (typeof cb === 'function') cb({ ok: true });
 
                 const sessionId = userActiveSession.get(userId);

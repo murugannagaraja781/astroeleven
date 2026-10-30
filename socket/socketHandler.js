@@ -72,7 +72,7 @@ module.exports = (io, SERVER_URL) => {
                     // Only update DB and broadcast if this is a NEW registration (not a duplicate)
                     if (!alreadyRegistered) {
                         user.isOnline = true;
-                        await user.save();
+                        await User.updateOne({ userId }, { $set: { isOnline: true } });
 
                         if (user.role === 'astrologer') {
                             broadcastAstroUpdate(io, SERVER_URL);
@@ -115,7 +115,16 @@ module.exports = (io, SERVER_URL) => {
                 user.isOnline = user.isChatOnline || user.isAudioOnline || user.isVideoOnline;
                 user.isAvailable = user.isOnline;
                 user.lastSeen = new Date();
-                await user.save();
+                await User.updateOne({ userId }, {
+                    $set: {
+                        isChatOnline: user.isChatOnline,
+                        isAudioOnline: user.isAudioOnline,
+                        isVideoOnline: user.isVideoOnline,
+                        isOnline: user.isOnline,
+                        isAvailable: user.isAvailable,
+                        lastSeen: user.lastSeen
+                    }
+                });
                 broadcastAstroUpdate(io, SERVER_URL);
             } catch (e) { console.error(e); }
         });

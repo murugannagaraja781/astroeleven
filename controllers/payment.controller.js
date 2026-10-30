@@ -510,3 +510,43 @@ exports.webhook = async (req, res) => {
         return res.status(200).json({ ok: false, error: e.message });
     }
 };
+
+const RechargePackage = require('../models/RechargePackage');
+
+const DEFAULT_PACKAGES = [
+    { packageId: 'pack_2', amount: 2, extraPercentage: 0, badge: 'Trial Pack', description: 'Trial Recharge', isActive: true, order: 1 },
+    { packageId: 'pack_20', amount: 20, extraPercentage: 50, badge: '50% Extra', description: 'Get 50% Extra', isActive: true, order: 2 },
+    { packageId: 'pack_50', amount: 50, extraPercentage: 50, badge: '50% Extra', description: 'Get 50% Extra', isActive: true, order: 3 },
+    { packageId: 'pack_100', amount: 100, extraPercentage: 100, badge: 'Popular', description: 'Get 100% Extra', isActive: true, order: 4 },
+    { packageId: 'pack_200', amount: 200, extraPercentage: 10, badge: '10% Extra', description: 'Get 10% Extra', isActive: true, order: 5 },
+    { packageId: 'pack_500', amount: 500, extraPercentage: 100, badge: 'Best Value', description: 'Get 100% Extra', isActive: true, order: 6 },
+    { packageId: 'pack_1000', amount: 1000, extraPercentage: 100, badge: '100% Extra', description: 'Get 100% Extra', isActive: true, order: 7 },
+    { packageId: 'pack_2000', amount: 2000, extraPercentage: 100, badge: '100% Extra', description: 'Get 100% Extra', isActive: true, order: 8 },
+    { packageId: 'pack_5000', amount: 5000, extraPercentage: 20, badge: 'Mega Saver', description: 'Get 20% Extra', isActive: true, order: 9 }
+];
+
+async function ensureDefaultPackages() {
+    try {
+        const count = await RechargePackage.countDocuments({});
+        if (count === 0) {
+            for (const p of DEFAULT_PACKAGES) {
+                await RechargePackage.create(p);
+            }
+            console.log('[RechargePackage] Seeded default recharge packages');
+        }
+    } catch (e) {
+        console.error('[RechargePackage] Seeding error:', e.message);
+    }
+}
+
+exports.getPublicRechargePackages = async (req, res) => {
+    try {
+        await ensureDefaultPackages();
+        const packages = await RechargePackage.find({ isActive: true }).sort({ order: 1, amount: 1 }).lean();
+        res.json({ ok: true, packages });
+    } catch (e) {
+        console.error('[PaymentController] Error in getPublicRechargePackages:', e);
+        res.status(500).json({ ok: false, error: e.message });
+    }
+};
+

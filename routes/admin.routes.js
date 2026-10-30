@@ -30,4 +30,17 @@ router.get('/slab-rates', adminController.getSlabRates);
 router.get('/payments', adminController.getPayments);
 router.post('/payments/verify', adminController.verifyPayment);
 
+// Recharge Packages Management
+router.get('/recharge-packages', adminController.getRechargePackages);
+router.post('/recharge-packages', adminController.addRechargePackage);
+router.put('/recharge-packages/:id', adminController.updateRechargePackage);
+router.delete('/recharge-packages/:id', adminController.deleteRechargePackage);
+router.patch('/recharge-packages/:id/toggle', adminController.toggleRechargePackage);
+
+// Kundali Details Management & Filtered Export
+router.get('/kundali', adminController.getKundaliRecords);
+router.get('/kundali/export', adminController.exportKundaliRecords);
+router.delete('/kundali/:id', adminController.deleteKundaliRecord);
+
 module.exports = router;
+

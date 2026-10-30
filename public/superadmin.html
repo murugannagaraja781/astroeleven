@@ -1820,13 +1820,16 @@ body {
                         <select id="quickModuleSelect" onchange="if(this.value) navAdmin(this.value, event)">
                             <option value="">Quick Jump...</option>
                             <optgroup label="Operations & Bookings">
+                                <option value="kundali">Kundali Details</option>
                                 <option value="puja-bookings">Puja Bookings</option>
                                 <option value="payments">Wallet Recharges</option>
+                                <option value="recharge-packages">Recharge Packages</option>
                                 <option value="earnings">Financial Ledger</option>
                                 <option value="performance">Performance</option>
                                 <option value="history">Session Logs</option>
                                 <option value="feedback">Feedback & Reviews</option>
                             </optgroup>
+
                             <optgroup label="Astrologers">
                                 <option value="payouts">Astrologers Directory</option>
                                 <option value="pending">Pending Approvals</option>
@@ -2107,6 +2110,37 @@ body {
                                     <i class="fas fa-arrow-right"></i>
                                 </div>
                             </div>
+
+                            <!-- 2.6 Recharge Packages Management -->
+                            <div class="hub-app-card" onclick="navAdmin('recharge-packages', event)" data-keywords="recharge packages amounts pricing packs edit enable disable create delete">
+                                <div class="hub-card-top">
+                                    <div class="hub-icon-container gradient-amber"><i class="fas fa-tags"></i></div>
+                                </div>
+                                <div class="hub-card-body">
+                                    <div class="hub-card-title">Recharge Packages</div>
+                                    <div class="hub-card-desc">Manage app wallet recharge amounts (₹2, ₹20, ₹100, etc.), badges & bonus tiers.</div>
+                                </div>
+                                <div class="hub-card-footer">
+                                    <span>Launch Module</span>
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
+                            </div>
+
+                            <!-- 2.7 Kundali Details -->
+                            <div class="hub-app-card" onclick="navAdmin('kundali', event)" data-keywords="kundali details horoscope date of birth birth day month year download excel csv client">
+                                <div class="hub-card-top">
+                                    <div class="hub-icon-container gradient-purple"><i class="fas fa-star-and-crescent"></i></div>
+                                </div>
+                                <div class="hub-card-body">
+                                    <div class="hub-card-title">Kundali Details</div>
+                                    <div class="hub-card-desc">Call & chat consultation horoscope records, birth day/month filters & bulk downloads.</div>
+                                </div>
+                                <div class="hub-card-footer">
+                                    <span>Launch Module</span>
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
+                            </div>
+
 
                             <!-- 3. Performance -->
                             <div class="hub-app-card" onclick="navAdmin('performance', event)" data-keywords="performance leaderboard rankings top astrologers ratings earnings">
@@ -2859,8 +2893,310 @@ body {
                 </div>
             </div>
 
+            <!-- ============================================================= -->
+            <!-- Tab: Recharge Packages & Amounts Management                   -->
+            <!-- ============================================================= -->
+            <div id="admin-sect-recharge-packages" class="admin-tab-section">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:20px;">
+                    <div>
+                        <h2 style="margin:0 0 6px 0;"><i class="fas fa-tags" style="color:#F59E0B;"></i> Wallet Recharge Packages Management</h2>
+                        <div style="color:var(--text-muted); font-size:0.85rem;">Create, edit, enable/disable and remove recharge amounts (₹2, ₹20, ₹50, ₹100, ₹200, ₹500...) displayed in App & Web</div>
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn-admin" onclick="openAddPackageModal()" style="background:#10B981; color:white; width:auto; padding:9px 18px; margin:0; display:inline-flex; align-items:center; gap:8px;">
+                            <i class="fas fa-plus-circle"></i> Add New Package
+                        </button>
+                        <button class="btn-admin" onclick="loadAdminRechargePackages()" style="background:var(--primary); color:white; width:auto; padding:9px 18px; margin:0; display:inline-flex; align-items:center; gap:8px;">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <!-- KPI Metric Strip -->
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:15px; margin-bottom:22px;">
+                    <div class="admin-card" style="display:flex; align-items:center; gap:15px; padding:16px; border-left:4px solid #F59E0B; background:var(--bg-card);">
+                        <div style="width:44px; height:44px; border-radius:12px; background:rgba(245,158,11,0.12); display:flex; align-items:center; justify-content:center; color:#F59E0B; font-size:1.3rem;">
+                            <i class="fas fa-cubes"></i>
+                        </div>
+                        <div>
+                            <div id="pkgKpiTotal" style="font-size:1.45rem; font-weight:800; color:var(--text-main);">0</div>
+                            <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Total Packages</div>
+                        </div>
+                    </div>
+                    <div class="admin-card" style="display:flex; align-items:center; gap:15px; padding:16px; border-left:4px solid #10B981; background:var(--bg-card);">
+                        <div style="width:44px; height:44px; border-radius:12px; background:rgba(16,185,129,0.12); display:flex; align-items:center; justify-content:center; color:#10B981; font-size:1.3rem;">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div>
+                            <div id="pkgKpiActive" style="font-size:1.45rem; font-weight:800; color:var(--text-main);">0</div>
+                            <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Active in App</div>
+                        </div>
+                    </div>
+                    <div class="admin-card" style="display:flex; align-items:center; gap:15px; padding:16px; border-left:4px solid #6B7280; background:var(--bg-card);">
+                        <div style="width:44px; height:44px; border-radius:12px; background:rgba(107,114,128,0.12); display:flex; align-items:center; justify-content:center; color:#6B7280; font-size:1.3rem;">
+                            <i class="fas fa-ban"></i>
+                        </div>
+                        <div>
+                            <div id="pkgKpiDisabled" style="font-size:1.45rem; font-weight:800; color:var(--text-main);">0</div>
+                            <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Disabled Packages</div>
+                        </div>
+                    </div>
+                    <div class="admin-card" style="display:flex; align-items:center; gap:15px; padding:16px; border-left:4px solid #3B82F6; background:var(--bg-card);">
+                        <div style="width:44px; height:44px; border-radius:12px; background:rgba(59,130,246,0.12); display:flex; align-items:center; justify-content:center; color:#3B82F6; font-size:1.3rem;">
+                            <i class="fas fa-rupee-sign"></i>
+                        </div>
+                        <div>
+                            <div id="pkgKpiRange" style="font-size:1.25rem; font-weight:800; color:var(--text-main);">₹2 - ₹5000</div>
+                            <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Recharge Range</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Packages Table Card -->
+                <div class="admin-card" style="padding:0; overflow:hidden; border-radius:14px; border:1px solid var(--border-soft);">
+                    <div style="overflow-x:auto;">
+                        <table style="width:100%; border-collapse:collapse; min-width:800px;">
+                            <thead>
+                                <tr style="background:var(--bg-card-secondary, #F8FAFC); border-bottom:1px solid var(--border-soft); text-align:left;">
+                                    <th style="padding:14px 16px; font-size:0.78rem; text-transform:uppercase; color:var(--text-muted); font-weight:700; width:70px;">Order</th>
+                                    <th style="padding:14px 16px; font-size:0.78rem; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Recharge Amount</th>
+                                    <th style="padding:14px 16px; font-size:0.78rem; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Bonus / Cashback</th>
+                                    <th style="padding:14px 16px; font-size:0.78rem; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Badge / Tag</th>
+                                    <th style="padding:14px 16px; font-size:0.78rem; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Description</th>
+                                    <th style="padding:14px 16px; font-size:0.78rem; text-transform:uppercase; color:var(--text-muted); font-weight:700; text-align:center;">Status</th>
+                                    <th style="padding:14px 16px; font-size:0.78rem; text-transform:uppercase; color:var(--text-muted); font-weight:700; text-align:center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rechargePackagesTableBody">
+                                <tr><td colspan="7" style="padding:30px; text-align:center;"><div class="loader"></div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================================= -->
+            <!-- Tab: Kundali Details & Consultation Birth Records             -->
+            <!-- ============================================================= -->
+            <div id="admin-sect-kundali" class="admin-tab-section">
+                <style>
+                    .kundali-date-pill {
+                        padding: 6px 14px;
+                        border-radius: 20px;
+                        border: 1px solid var(--border-soft);
+                        background: rgba(255, 255, 255, 0.05);
+                        color: var(--text-muted);
+                        font-size: 0.82rem;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                    }
+                    .kundali-date-pill:hover {
+                        background: rgba(255, 255, 255, 0.12);
+                        color: var(--text-main);
+                    }
+                    .kundali-date-pill.active {
+                        background: #8B5CF6;
+                        color: #ffffff;
+                        font-weight: 700;
+                        border-color: #8B5CF6;
+                        box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
+                    }
+                </style>
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:20px;">
+                    <div>
+                        <h2 style="margin:0 0 6px 0;"><i class="fas fa-star-and-crescent" style="color:#8B5CF6;"></i> Kundali Details & Consultation Birth Records</h2>
+                        <div style="color:var(--text-muted); font-size:0.85rem;">Client horoscope details captured during calls/chats with birth day/month filtering & bulk downloads</div>
+                    </div>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                        <button class="btn-admin" onclick="exportKundaliCsv()" style="background:#059669; color:white; width:auto; padding:9px 18px; margin:0; display:inline-flex; align-items:center; gap:8px;">
+                            <i class="fas fa-file-excel"></i> Download Filtered CSV
+                        </button>
+                        <button class="btn-admin" onclick="loadAdminKundali(1)" style="background:var(--primary); color:white; width:auto; padding:9px 18px; margin:0; display:inline-flex; align-items:center; gap:8px;">
+                            <i class="fas fa-sync-alt"></i> Refresh Records
+                        </button>
+                    </div>
+                </div>
+
+                <!-- KPI Metric Cards Strip -->
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:15px; margin-bottom:22px;">
+                    <div class="admin-card" style="display:flex; align-items:center; gap:15px; padding:16px; border-left:4px solid #8B5CF6; background:var(--bg-card);">
+                        <div style="width:44px; height:44px; border-radius:12px; background:rgba(139,92,246,0.12); display:flex; align-items:center; justify-content:center; color:#8B5CF6; font-size:1.3rem;">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div>
+                            <div id="kpiKundaliTotal" style="font-size:1.45rem; font-weight:800; color:var(--text-main);">0</div>
+                            <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Total Kundali Records</div>
+                        </div>
+                    </div>
+                    <div class="admin-card" style="display:flex; align-items:center; gap:15px; padding:16px; border-left:4px solid #3B82F6; background:var(--bg-card);">
+                        <div style="width:44px; height:44px; border-radius:12px; background:rgba(59,130,246,0.12); display:flex; align-items:center; justify-content:center; color:#3B82F6; font-size:1.3rem;">
+                            <i class="fas fa-filter"></i>
+                        </div>
+                        <div>
+                            <div id="kpiKundaliFiltered" style="font-size:1.45rem; font-weight:800; color:var(--text-main);">0</div>
+                            <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Current Filter Matches</div>
+                        </div>
+                    </div>
+                    <div class="admin-card" style="display:flex; align-items:center; gap:15px; padding:16px; border-left:4px solid #10B981; background:var(--bg-card);">
+                        <div style="width:44px; height:44px; border-radius:12px; background:rgba(16,185,129,0.12); display:flex; align-items:center; justify-content:center; color:#10B981; font-size:1.3rem;">
+                            <i class="fas fa-calendar-day"></i>
+                        </div>
+                        <div>
+                            <div id="kpiKundaliToday" style="font-size:1.45rem; font-weight:800; color:var(--text-main);">0</div>
+                            <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Today's Consultations</div>
+                        </div>
+                    </div>
+                    <div class="admin-card" style="display:flex; align-items:center; gap:15px; padding:16px; border-left:4px solid #F59E0B; background:var(--bg-card);">
+                        <div style="width:44px; height:44px; border-radius:12px; background:rgba(245,158,11,0.12); display:flex; align-items:center; justify-content:center; color:#F59E0B; font-size:1.3rem;">
+                            <i class="fas fa-download"></i>
+                        </div>
+                        <div>
+                            <div id="kpiKundaliDownloadReady" style="font-size:1.25rem; font-weight:800; color:#059669;">Ready</div>
+                            <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Bulk Export Mode</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Comprehensive Multi-Tier Filter Controls Card -->
+                <div class="admin-card" style="padding:18px; margin-bottom:20px; background:var(--bg-card); border-radius:14px; border:1px solid var(--border-soft);">
+                    <div style="display:flex; flex-direction:column; gap:15px;">
+                        
+                        <!-- Tier 1: Search Client / Phone / District -->
+                        <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+                            <div style="position:relative; flex:1; min-width:260px;">
+                                <i class="fas fa-search" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--text-muted);"></i>
+                                <input type="text" id="kundaliSearchInput" placeholder="Search Client Name, Mobile Number, or District/City..." 
+                                       oninput="debounceKundaliSearch()" 
+                                       style="width:100%; padding:10px 14px 10px 40px; background:var(--bg-main); border:1px solid var(--border-soft); border-radius:10px; color:var(--text-main); font-size:0.9rem;">
+                            </div>
+                            <div style="display:flex; gap:8px;">
+                                <button class="btn-admin" onclick="resetKundaliFilters()" style="width:auto; padding:9px 16px; margin:0; background:rgba(255,255,255,0.08); color:var(--text-main); border:1px solid var(--border-soft); font-size:0.85rem;">
+                                    <i class="fas fa-undo"></i> Reset
+                                </button>
+                                <button class="btn-admin" onclick="exportKundaliCsv()" style="width:auto; padding:9px 18px; margin:0; background:#059669; color:white; font-size:0.85rem; display:inline-flex; align-items:center; gap:8px;">
+                                    <i class="fas fa-download"></i> Download Filtered CSV (<span id="btnExportCountBadge">0</span>)
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Tier 2: Consultation Date Range Filters (Today, Yesterday, 7 Days, 30 Days, Custom) -->
+                        <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:space-between; border-top:1px solid var(--border-soft); padding-top:12px;">
+                            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                                <span style="font-size:0.8rem; font-weight:700; color:var(--text-muted); margin-right:4px;"><i class="fas fa-calendar-alt"></i> CONSULTATION DATE:</span>
+                                <button class="kundali-date-pill active" onclick="setKundaliDateFilter('all', this)">All Time</button>
+                                <button class="kundali-date-pill" onclick="setKundaliDateFilter('today', this)">Today</button>
+                                <button class="kundali-date-pill" onclick="setKundaliDateFilter('yesterday', this)">Yesterday</button>
+                                <button class="kundali-date-pill" onclick="setKundaliDateFilter('7days', this)">Last Week (7 Days)</button>
+                                <button class="kundali-date-pill" onclick="setKundaliDateFilter('30days', this)">Last Month (30 Days)</button>
+                            </div>
+                            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                                <span style="font-size:0.8rem; font-weight:600; color:var(--text-muted);">Custom:</span>
+                                <input type="date" id="kundaliCustomStartDate" style="padding:6px 10px; background:var(--bg-main); border:1px solid var(--border-soft); border-radius:8px; color:var(--text-main); font-size:0.82rem;">
+                                <span style="color:var(--text-muted); font-size:0.82rem;">to</span>
+                                <input type="date" id="kundaliCustomEndDate" style="padding:6px 10px; background:var(--bg-main); border:1px solid var(--border-soft); border-radius:8px; color:var(--text-main); font-size:0.82rem;">
+                                <button class="btn-admin" onclick="applyCustomDateKundali()" style="width:auto; padding:6px 14px; margin:0; background:var(--secondary); color:white; font-size:0.82rem;">
+                                    Apply Range
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Tier 3: Special Birth Details Filter (DOB Day, Month, Year Breakdowns) -->
+                        <div style="border-top:1px solid var(--border-soft); padding-top:14px; background:rgba(139,92,246,0.03); border-radius:10px; padding:12px 14px;">
+                            <div style="font-size:0.82rem; font-weight:800; color:#8B5CF6; margin-bottom:10px; display:flex; align-items:center; gap:8px;">
+                                <i class="fas fa-birthday-cake"></i> SPECIAL BIRTH DATE FILTER (பிறந்த தேதி / மாதம் / வருடம் வடிகட்டி)
+                            </div>
+                            <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+                                <!-- Birth Day -->
+                                <div style="display:flex; align-items:center; gap:6px;">
+                                    <label style="font-size:0.8rem; font-weight:700; color:var(--text-main);">Birth Day (தேதி):</label>
+                                    <select id="kundaliFilterDay" onchange="applyDobFiltersKundali()" style="padding:7px 10px; background:var(--bg-main); border:1px solid var(--border-soft); border-radius:8px; color:var(--text-main); font-size:0.85rem; font-weight:bold;">
+                                        <option value="">All Days (அனைத்து தேதிகளும்)</option>
+                                        <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option>
+                                        <option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option>
+                                        <option value="11">11</option><option value="12">12</option><option value="13">13 (எ.கா: 13-ஆம் தேதி)</option><option value="14">14</option><option value="15">15</option>
+                                        <option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option>
+                                        <option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option>
+                                        <option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option>
+                                        <option value="31">31</option>
+                                    </select>
+                                </div>
+
+                                <!-- Birth Month -->
+                                <div style="display:flex; align-items:center; gap:6px;">
+                                    <label style="font-size:0.8rem; font-weight:700; color:var(--text-main);">Birth Month (மாதம்):</label>
+                                    <select id="kundaliFilterMonth" onchange="applyDobFiltersKundali()" style="padding:7px 10px; background:var(--bg-main); border:1px solid var(--border-soft); border-radius:8px; color:var(--text-main); font-size:0.85rem; font-weight:bold;">
+                                        <option value="">All Months (அனைத்து மாதங்களும்)</option>
+                                        <option value="1">01 - January (ஜனவரி)</option>
+                                        <option value="2">02 - February (பிப்ரவரி)</option>
+                                        <option value="3">03 - March (மார்ச்)</option>
+                                        <option value="4">04 - April (ஏப்ரல்)</option>
+                                        <option value="5">05 - May (மே)</option>
+                                        <option value="6">06 - June (ஜூன்)</option>
+                                        <option value="7">07 - July (07-ஆம் மாதம்)</option>
+                                        <option value="8">08 - August (ஆகஸ்ட்)</option>
+                                        <option value="9">09 - September (செப்டம்பர்)</option>
+                                        <option value="10">10 - October (அக்டோபர்)</option>
+                                        <option value="11">11 - November (நவம்பர்)</option>
+                                        <option value="12">12 - December (டிசம்பர்)</option>
+                                    </select>
+                                </div>
+
+                                <!-- Birth Year -->
+                                <div style="display:flex; align-items:center; gap:6px;">
+                                    <label style="font-size:0.8rem; font-weight:700; color:var(--text-main);">Birth Year (வருடம்):</label>
+                                    <input type="number" id="kundaliFilterYear" placeholder="e.g. 1998" min="1920" max="2026"
+                                           oninput="applyDobFiltersKundali()"
+                                           style="width:110px; padding:7px 10px; background:var(--bg-main); border:1px solid var(--border-soft); border-radius:8px; color:var(--text-main); font-size:0.85rem; font-weight:bold;">
+                                </div>
+
+                                <button class="btn-admin" onclick="applyDobFiltersKundali()" style="width:auto; padding:7px 16px; margin:0; background:#8B5CF6; color:white; font-size:0.82rem;">
+                                    <i class="fas fa-check"></i> Filter DOB
+                                </button>
+                                
+                                <span id="dobFilterBadgeDesc" style="font-size:0.8rem; color:#8B5CF6; font-weight:600;"></span>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Kundali Data Table Card -->
+                <div class="admin-card" style="padding:0; overflow:hidden; border-radius:14px; border:1px solid var(--border-soft);">
+                    <div style="overflow-x:auto;">
+                        <table style="width:100%; border-collapse:collapse; min-width:900px;">
+                            <thead>
+                                <tr style="background:var(--bg-card-secondary, #F8FAFC); border-bottom:1px solid var(--border-soft); text-align:left;">
+                                    <th style="padding:14px 16px; font-size:0.78rem; text-transform:uppercase; color:var(--text-muted); font-weight:700; width:50px;">#</th>
+                                    <th style="padding:14px 16px; font-size:0.78rem; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Client Details</th>
+                                    <th style="padding:14px 16px; font-size:0.78rem; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Date of Birth (DOB)</th>
+                                    <th style="padding:14px 16px; font-size:0.78rem; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Time of Birth (TOB)</th>
+                                    <th style="padding:14px 16px; font-size:0.78rem; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Birth District / Place</th>
+                                    <th style="padding:14px 16px; font-size:0.78rem; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Consultation Info</th>
+                                    <th style="padding:14px 16px; font-size:0.78rem; text-transform:uppercase; color:var(--text-muted); font-weight:700; text-align:center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="kundaliTableBody">
+                                <tr><td colspan="7" style="padding:30px; text-align:center;"><div class="loader"></div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Pagination Strip -->
+                <div class="admin-pagination-container" style="margin-top:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <div id="kundaliPaginationInfo" style="font-size:0.9rem; color:var(--text-muted);">Showing 0 to 0 of 0 Kundali Records</div>
+                    <div style="display:flex; gap:10px;">
+                        <button id="kundaliPrevBtn" onclick="changeKundaliPage(-1)" class="btn-admin" style="width:auto; padding:8px 16px; margin:0;" disabled>Prev</button>
+                        <span id="kundaliCurrentPageBadge" style="padding:8px 12px; font-size:0.88rem; font-weight:bold; color:var(--text-main); display:flex; align-items:center;">Page 1</span>
+                        <button id="kundaliNextBtn" onclick="changeKundaliPage(1)" class="btn-admin" style="width:auto; padding:8px 16px; margin:0;" disabled>Next</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Tab 3: Payouts/Astrologers -->
             <div id="admin-sect-payouts" class="admin-tab-section">
+
                 <h2 style="margin-bottom:20px;"><i class="fas fa-user-astronaut"></i> Astrologer Management</h2>
                 
                 <!-- Search Box for Astrologer Management -->
@@ -4115,6 +4451,87 @@ body {
             </div>
         </div>
 
+        <!-- Modal: Add / Edit Recharge Package -->
+        <div id="modal-recharge-package" class="admin-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); z-index:10000; overflow-y:auto; padding:20px;">
+            <div class="admin-card" style="max-width:560px; margin:40px auto; background: var(--bg-card); position:relative; box-shadow: 0 0 35px rgba(0,0,0,0.5); border-radius:16px;">
+                <span onclick="closeModal('modal-recharge-package')" style="position:absolute; right:20px; top:20px; font-size:1.8rem; cursor:pointer; color:var(--text-muted);">&times;</span>
+                <h3 id="rechargeModalTitle" style="font-family: var(--font-heading); color: var(--primary); margin:0 0 20px 0; display:flex; align-items:center; gap:10px;">
+                    <i class="fas fa-tags" style="color:#F59E0B;"></i> <span id="rechargeModalTitleText">Create Recharge Package</span>
+                </h3>
+                
+                <input type="hidden" id="pkgEditId" value="">
+                
+                <div style="display:flex; flex-direction:column; gap:16px;">
+                    <div class="grid-2">
+                        <div>
+                            <label class="app-label" style="font-size:0.82rem; font-weight:700; color:var(--text-main); margin-bottom:6px; display:block;">Recharge Amount (₹) *</label>
+                            <input type="number" id="pkgAmount" class="app-input" placeholder="e.g. 50, 100, 500" min="1" step="1" required style="width:100%; margin:0;">
+                            <small style="color:var(--text-muted); font-size:0.75rem;">Exact amount client pays (e.g. ₹20, ₹50, ₹100)</small>
+                        </div>
+                        <div>
+                            <label class="app-label" style="font-size:0.82rem; font-weight:700; color:var(--text-main); margin-bottom:6px; display:block;">Bonus / Extra (%)</label>
+                            <input type="number" id="pkgExtraPct" class="app-input" placeholder="0" min="0" max="100" step="1" value="0" style="width:100%; margin:0;">
+                            <small style="color:var(--text-muted); font-size:0.75rem;">Extra percentage credit added (e.g. 10%)</small>
+                        </div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div>
+                            <label class="app-label" style="font-size:0.82rem; font-weight:700; color:var(--text-main); margin-bottom:6px; display:block;">Badge / Highlight Tag</label>
+                            <input type="text" id="pkgBadge" class="app-input" placeholder="e.g. Popular, Best Value, 10% Extra" style="width:100%; margin:0;">
+                            <small style="color:var(--text-muted); font-size:0.75rem;">Eye-catching label displayed on the pack</small>
+                        </div>
+                        <div>
+                            <label class="app-label" style="font-size:0.82rem; font-weight:700; color:var(--text-main); margin-bottom:6px; display:block;">Display Order</label>
+                            <input type="number" id="pkgOrder" class="app-input" placeholder="0" min="0" value="0" style="width:100%; margin:0;">
+                            <small style="color:var(--text-muted); font-size:0.75rem;">Sorting priority (0 = first)</small>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="app-label" style="font-size:0.82rem; font-weight:700; color:var(--text-main); margin-bottom:6px; display:block;">Package Description</label>
+                        <input type="text" id="pkgDesc" class="app-input" placeholder="e.g. Standard consultation recharge pack" style="width:100%; margin:0;">
+                    </div>
+
+                    <div style="display:flex; align-items:center; gap:12px; padding:12px 14px; background:rgba(255,255,255,0.03); border:1px solid var(--border-soft); border-radius:10px;">
+                        <input type="checkbox" id="pkgIsActive" checked style="width:20px; height:20px; accent-color:#10B981; cursor:pointer;">
+                        <div>
+                            <label for="pkgIsActive" style="font-size:0.9rem; font-weight:700; color:var(--text-main); cursor:pointer;">Active / Visible in App & Web</label>
+                            <div style="font-size:0.75rem; color:var(--text-muted);">When unchecked, this recharge package will be hidden from users.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top:25px; display:flex; gap:12px; justify-content:flex-end;">
+                    <button class="btn-admin" style="background:var(--border-soft); color:var(--text-muted); width:auto; padding:10px 20px; margin:0;" onclick="closeModal('modal-recharge-package')">Cancel</button>
+                    <button class="cosmic-btn" style="width:auto; padding:10px 24px; margin:0; background:#10B981;" onclick="saveRechargePackage()"><i class="fas fa-save"></i> Save Package</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: Kundali Record Full Details -->
+        <div id="modal-kundali-detail" class="admin-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); z-index:10000; overflow-y:auto; padding:20px;">
+            <div class="admin-card" style="max-width:700px; margin:30px auto; background: var(--bg-card); position:relative; box-shadow: 0 0 35px rgba(0,0,0,0.5); border-radius:16px;">
+                <span onclick="closeModal('modal-kundali-detail')" style="position:absolute; right:20px; top:20px; font-size:1.8rem; cursor:pointer; color:var(--text-muted);">&times;</span>
+                <h3 style="font-family: var(--font-heading); color: #8B5CF6; margin:0 0 20px 0; display:flex; align-items:center; gap:10px;">
+                    <i class="fas fa-star-and-crescent"></i> <span>Kundali Consultation Record</span>
+                </h3>
+                
+                <div id="kundaliDetailContent" style="display:flex; flex-direction:column; gap:18px;">
+                    <!-- Injected dynamically by viewKundaliDetail -->
+                </div>
+
+                <div style="margin-top:25px; display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-soft); padding-top:15px;">
+                    <button id="btnDeleteKundaliFromModal" class="btn-admin" style="background:rgba(239,68,68,0.1); color:#EF4444; border:1px solid rgba(239,68,68,0.3); width:auto; padding:9px 18px; margin:0;">
+                        <i class="fas fa-trash-alt"></i> Delete Record
+                    </button>
+                    <button class="btn-admin" style="background:var(--border-soft); color:var(--text-main); width:auto; padding:9px 20px; margin:0;" onclick="closeModal('modal-kundali-detail')">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Puja Booking Details Drawer Modal -->
         <div id="pujaDetailsDrawer" class="admin-drawer-overlay" style="display: none;" onclick="if(event.target === this) closePujaDetails()">
             <div class="admin-drawer">
@@ -4311,9 +4728,12 @@ body {
             </div>
             <div class="nav-subcategory-list">
                 <div class="admin-nav-item" onclick="navAdmin('users', event)"><i class="fas fa-users"></i><span>Users <small id="legacy-nav-count-users" style="color:#EF4444; font-weight:bold;"></small></span></div>
+                <div class="admin-nav-item" onclick="navAdmin('kundali', event)"><i class="fas fa-star-and-crescent" style="color:#8B5CF6;"></i><span>Kundali Details</span></div>
                 <div class="admin-nav-item" onclick="navAdmin('payments', event)"><i class="fas fa-receipt" style="color:#10B981;"></i><span>Recharges <small id="legacy-nav-count-payments" style="color:#10B981; font-weight:bold;"></small></span></div>
+                <div class="admin-nav-item" onclick="navAdmin('recharge-packages', event)"><i class="fas fa-tags" style="color:#F59E0B;"></i><span>Recharge Packs</span></div>
                 <div class="admin-nav-item" onclick="navAdmin('notifications', event)"><i class="fas fa-bell"></i><span>Notifications <small id="legacy-nav-count-notifs" style="color:#EF4444; font-weight:bold;"></small></span></div>
             </div>
+
 
             <div class="nav-category-header open" onclick="toggleNavCategory(this)">
                 <span>App Layouts</span>
@@ -5726,7 +6146,9 @@ body {
             'feedback': 'Customer Feedback & Reviews',
             'history': 'Communication Session Logs',
             'referrals': 'Referrals & Bonus Program',
-            'rasi-icons': 'Zodiac Rasi Icons'
+            'rasi-icons': 'Zodiac Rasi Icons',
+            'kundali': 'Kundali Details & Consultation Birth Records',
+            'recharge-packages': 'Wallet Recharge Packages & Amounts'
         };
 
         window.navAdmin = (id, ev) => {
@@ -5754,6 +6176,12 @@ body {
             const contentArea = document.querySelector('.admin-content-area');
             if (contentArea) contentArea.scrollTo({ top: 0, behavior: 'smooth' });
 
+            if (id === 'kundali') {
+                if (typeof loadAdminKundali === 'function') loadAdminKundali(1);
+            }
+            if (id === 'recharge-packages') {
+                if (typeof loadAdminRechargePackages === 'function') loadAdminRechargePackages();
+            }
             if (id === 'puja-bookings') {
                 if (typeof loadPujaBookings === 'function') loadPujaBookings(1);
                 if (typeof fetchPujaSummary === 'function') fetchPujaSummary();
@@ -5774,6 +6202,7 @@ body {
             if (id === 'payments') {
                 if (typeof loadAdminPayments === 'function') loadAdminPayments(1);
             }
+
             if (id === 'earnings') {
                 if (typeof fetchAdminStats === 'function') fetchAdminStats();
             }
@@ -8407,6 +8836,607 @@ body {
                 }
             } catch (err) {
                 alert("Failed to save Rasi icons");
+            }
+        };
+
+        // =========================================================================
+        // RECHARGE PACKAGES MANAGEMENT (Item 3)
+        // =========================================================================
+        let adminPackagesCache = [];
+
+        window.loadAdminRechargePackages = async function() {
+            const tableBody = document.getElementById('rechargePackagesTableBody');
+            if (tableBody) {
+                tableBody.innerHTML = '<tr><td colspan="7" style="padding:30px; text-align:center;"><div class="loader"></div></td></tr>';
+            }
+
+            try {
+                const res = await fetch('/api/admin/recharge-packages');
+                const data = await res.json();
+
+                if (!data.ok) {
+                    throw new Error(data.error || 'Failed to fetch packages');
+                }
+
+                adminPackagesCache = data.packages || [];
+                renderRechargePackagesTable(adminPackagesCache);
+                updateRechargePackageKpis(adminPackagesCache);
+            } catch (err) {
+                console.error('Error loading recharge packages:', err);
+                if (tableBody) {
+                    tableBody.innerHTML = `<tr><td colspan="7" style="padding:20px; text-align:center; color:#EF4444;"><i class="fas fa-exclamation-triangle"></i> Error loading packages: ${err.message}</td></tr>`;
+                }
+            }
+        };
+
+        function updateRechargePackageKpis(packages) {
+            const total = packages.length;
+            const active = packages.filter(p => p.isActive).length;
+            const disabled = total - active;
+
+            const elTotal = document.getElementById('pkgKpiTotal');
+            const elActive = document.getElementById('pkgKpiActive');
+            const elDisabled = document.getElementById('pkgKpiDisabled');
+            const elRange = document.getElementById('pkgKpiRange');
+
+            if (elTotal) elTotal.textContent = total;
+            if (elActive) elActive.textContent = active;
+            if (elDisabled) elDisabled.textContent = disabled;
+
+            if (elRange) {
+                if (packages.length > 0) {
+                    const amounts = packages.map(p => Number(p.amount)).sort((a,b) => a - b);
+                    elRange.textContent = `₹${amounts[0]} - ₹${amounts[amounts.length - 1]}`;
+                } else {
+                    elRange.textContent = '₹0';
+                }
+            }
+        }
+
+        function renderRechargePackagesTable(packages) {
+            const tableBody = document.getElementById('rechargePackagesTableBody');
+            if (!tableBody) return;
+
+            if (!packages || packages.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="padding:40px; text-align:center; color:var(--text-muted);">
+                            <i class="fas fa-box-open" style="font-size:2rem; margin-bottom:10px; display:block; opacity:0.5;"></i>
+                            No recharge packages configured yet. Click <strong>+ Create New Package</strong> to add one.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tableBody.innerHTML = packages.map((pkg, idx) => {
+                const isAct = !!pkg.isActive;
+                const bonusText = pkg.extraPercentage > 0 
+                    ? `<span style="color:#10B981; font-weight:700;">+${pkg.extraPercentage}% Extra</span> <small style="color:var(--text-muted);">(₹${Math.round(pkg.amount * (1 + pkg.extraPercentage / 100))})</small>` 
+                    : '<span style="color:var(--text-muted);">-</span>';
+                const badgeHtml = pkg.badge 
+                    ? `<span style="background:rgba(245,158,11,0.15); color:#F59E0B; border:1px solid rgba(245,158,11,0.3); padding:3px 10px; border-radius:12px; font-size:0.75rem; font-weight:700;"><i class="fas fa-tag"></i> ${pkg.badge}</span>` 
+                    : '<span style="color:var(--text-muted); font-size:0.8rem;">-</span>';
+                const statusBadge = isAct
+                    ? `<span style="background:rgba(16,185,129,0.12); color:#10B981; border:1px solid rgba(16,185,129,0.3); padding:4px 10px; border-radius:12px; font-size:0.75rem; font-weight:700; display:inline-flex; align-items:center; gap:5px;"><i class="fas fa-check-circle"></i> Active</span>`
+                    : `<span style="background:rgba(107,114,128,0.12); color:#9CA3AF; border:1px solid rgba(107,114,128,0.3); padding:4px 10px; border-radius:12px; font-size:0.75rem; font-weight:700; display:inline-flex; align-items:center; gap:5px;"><i class="fas fa-ban"></i> Disabled</span>`;
+
+                return `
+                    <tr style="border-bottom:1px solid var(--border-soft); transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
+                        <td style="padding:14px 16px; font-weight:700; color:var(--text-muted); font-size:0.85rem;">#${pkg.order ?? idx}</td>
+                        <td style="padding:14px 16px;">
+                            <span style="font-size:1.15rem; font-weight:800; color:var(--text-main);">₹${pkg.amount}</span>
+                        </td>
+                        <td style="padding:14px 16px; font-size:0.85rem;">
+                            ${bonusText}
+                        </td>
+                        <td style="padding:14px 16px;">
+                            ${badgeHtml}
+                        </td>
+                        <td style="padding:14px 16px; font-size:0.85rem; color:var(--text-muted);">
+                            ${pkg.description || 'Standard Pack'}
+                        </td>
+                        <td style="padding:14px 16px; text-align:center;">
+                            ${statusBadge}
+                        </td>
+                        <td style="padding:14px 16px; text-align:center;">
+                            <div style="display:inline-flex; gap:8px; align-items:center;">
+                                <button class="btn-admin" onclick="openEditPackageModal('${pkg.packageId || pkg.id || pkg._id}')" title="Edit Package" style="width:auto; padding:6px 12px; margin:0; font-size:0.78rem; background:rgba(59,130,246,0.1); color:#3B82F6; border:1px solid rgba(59,130,246,0.25);">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                                <button class="btn-admin" onclick="togglePackageStatus('${pkg.packageId || pkg.id || pkg._id}', ${!isAct})" title="${isAct ? 'Disable Package' : 'Enable Package'}" style="width:auto; padding:6px 12px; margin:0; font-size:0.78rem; background:${isAct ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)'}; color:${isAct ? '#EF4444' : '#10B981'}; border:1px solid ${isAct ? 'rgba(239,68,68,0.25)' : 'rgba(16,185,129,0.25)'};">
+                                    <i class="fas fa-${isAct ? 'ban' : 'check'}"></i> ${isAct ? 'Disable' : 'Enable'}
+                                </button>
+                                <button class="btn-admin" onclick="deletePackage('${pkg.packageId || pkg.id || pkg._id}', ${pkg.amount})" title="Delete Package" style="width:auto; padding:6px 10px; margin:0; font-size:0.78rem; background:rgba(239,68,68,0.08); color:#EF4444; border:none;">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        window.openAddPackageModal = function() {
+            document.getElementById('pkgEditId').value = '';
+            document.getElementById('rechargeModalTitleText').textContent = 'Create Recharge Package';
+            document.getElementById('pkgAmount').value = '';
+            document.getElementById('pkgExtraPct').value = '0';
+            document.getElementById('pkgBadge').value = '';
+            document.getElementById('pkgDesc').value = '';
+            document.getElementById('pkgOrder').value = (adminPackagesCache.length + 1) * 10;
+            document.getElementById('pkgIsActive').checked = true;
+
+            const modal = document.getElementById('modal-recharge-package');
+            if (modal) {
+                modal.style.display = 'block';
+                modal.classList.remove('hidden');
+            }
+        };
+
+        window.openEditPackageModal = function(id) {
+            const pkg = adminPackagesCache.find(p => (p.packageId == id || p.id == id || p._id == id));
+            if (!pkg) {
+                alert('Package not found');
+                return;
+            }
+
+            document.getElementById('pkgEditId').value = pkg.packageId || pkg.id || pkg._id;
+            document.getElementById('rechargeModalTitleText').textContent = `Edit Recharge Package (₹${pkg.amount})`;
+            document.getElementById('pkgAmount').value = pkg.amount;
+            document.getElementById('pkgExtraPct').value = pkg.extraPercentage || 0;
+            document.getElementById('pkgBadge').value = pkg.badge || '';
+            document.getElementById('pkgDesc').value = pkg.description || '';
+            document.getElementById('pkgOrder').value = pkg.order ?? 0;
+            document.getElementById('pkgIsActive').checked = !!pkg.isActive;
+
+            const modal = document.getElementById('modal-recharge-package');
+            if (modal) {
+                modal.style.display = 'block';
+                modal.classList.remove('hidden');
+            }
+        };
+
+        window.saveRechargePackage = async function() {
+            const editId = document.getElementById('pkgEditId').value.trim();
+            const amount = parseFloat(document.getElementById('pkgAmount').value);
+            const extraPercentage = parseFloat(document.getElementById('pkgExtraPct').value) || 0;
+            const badge = document.getElementById('pkgBadge').value.trim();
+            const description = document.getElementById('pkgDesc').value.trim();
+            const order = parseInt(document.getElementById('pkgOrder').value) || 0;
+            const isActive = document.getElementById('pkgIsActive').checked;
+
+            if (!amount || isNaN(amount) || amount <= 0) {
+                alert('Please enter a valid recharge amount greater than ₹0.');
+                return;
+            }
+
+            const payload = {
+                amount,
+                extraPercentage,
+                badge,
+                description,
+                order,
+                isActive
+            };
+
+            try {
+                const url = editId ? `/api/admin/recharge-packages/${editId}` : '/api/admin/recharge-packages';
+                const method = editId ? 'PUT' : 'POST';
+
+                const res = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+                if (!data.ok) {
+                    throw new Error(data.error || 'Failed to save package');
+                }
+
+                closeModal('modal-recharge-package');
+                loadAdminRechargePackages();
+            } catch (err) {
+                console.error('Error saving package:', err);
+                alert('Failed to save package: ' + err.message);
+            }
+        };
+
+        window.togglePackageStatus = async function(id, newStatus) {
+            try {
+                const res = await fetch(`/api/admin/recharge-packages/${id}/toggle`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ isActive: newStatus })
+                });
+                const data = await res.json();
+                if (!data.ok) throw new Error(data.error || 'Failed to update status');
+                loadAdminRechargePackages();
+            } catch (err) {
+                alert('Error updating status: ' + err.message);
+            }
+        };
+
+        window.deletePackage = async function(id, amount) {
+            if (!confirm(`Are you sure you want to remove the ₹${amount} recharge package?`)) {
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/admin/recharge-packages/${id}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (!data.ok) throw new Error(data.error || 'Failed to delete package');
+                loadAdminRechargePackages();
+            } catch (err) {
+                alert('Error deleting package: ' + err.message);
+            }
+        };
+
+
+        // =========================================================================
+        // KUNDALI DETAILS & CONSULTATION HOROSCOPE RECORDS (Item 4)
+        // =========================================================================
+        let kundaliRecordsCache = [];
+        let kundaliCurrentPage = 1;
+        let kundaliPageLimit = 15;
+        let kundaliTotalRecords = 0;
+        let kundaliActiveDateRange = 'all';
+        let kundaliDebounceTimer = null;
+
+        window.loadAdminKundali = async function(page = 1) {
+            kundaliCurrentPage = Math.max(1, parseInt(page) || 1);
+            const tableBody = document.getElementById('kundaliTableBody');
+            if (tableBody) {
+                tableBody.innerHTML = '<tr><td colspan="7" style="padding:30px; text-align:center;"><div class="loader"></div></td></tr>';
+            }
+
+            const searchVal = document.getElementById('kundaliSearchInput') ? document.getElementById('kundaliSearchInput').value.trim() : '';
+            const dayVal = document.getElementById('kundaliFilterDay') ? document.getElementById('kundaliFilterDay').value : '';
+            const monthVal = document.getElementById('kundaliFilterMonth') ? document.getElementById('kundaliFilterMonth').value : '';
+            const yearVal = document.getElementById('kundaliFilterYear') ? document.getElementById('kundaliFilterYear').value.trim() : '';
+            const customStart = document.getElementById('kundaliCustomStartDate') ? document.getElementById('kundaliCustomStartDate').value : '';
+            const customEnd = document.getElementById('kundaliCustomEndDate') ? document.getElementById('kundaliCustomEndDate').value : '';
+
+            const params = new URLSearchParams({
+                page: kundaliCurrentPage,
+                limit: kundaliPageLimit,
+                dateRange: kundaliActiveDateRange
+            });
+
+            if (searchVal) params.append('search', searchVal);
+            if (dayVal) params.append('birthDay', dayVal);
+            if (monthVal) params.append('birthMonth', monthVal);
+            if (yearVal) params.append('birthYear', yearVal);
+            if (kundaliActiveDateRange === 'custom') {
+                if (customStart) params.append('startDate', customStart);
+                if (customEnd) params.append('endDate', customEnd);
+            }
+
+            try {
+                const res = await fetch(`/api/admin/kundali?${params.toString()}`);
+                const data = await res.json();
+
+                if (!data.ok) throw new Error(data.error || 'Failed to fetch kundali records');
+
+                kundaliRecordsCache = data.records || [];
+                kundaliTotalRecords = data.total || 0;
+
+                renderKundaliTable(kundaliRecordsCache);
+                updateKundaliKpis(data.summary, kundaliTotalRecords);
+                updateKundaliPagination(kundaliCurrentPage, data.pages || 1, kundaliTotalRecords);
+            } catch (err) {
+                console.error('Error loading kundali records:', err);
+                if (tableBody) {
+                    tableBody.innerHTML = `<tr><td colspan="7" style="padding:20px; text-align:center; color:#EF4444;"><i class="fas fa-exclamation-triangle"></i> Error loading Kundali records: ${err.message}</td></tr>`;
+                }
+            }
+        };
+
+        function updateKundaliKpis(summary, filteredCount) {
+            const elTotal = document.getElementById('kpiKundaliTotal');
+            const elFiltered = document.getElementById('kpiKundaliFiltered');
+            const elToday = document.getElementById('kpiKundaliToday');
+            const btnBadge = document.getElementById('btnExportCountBadge');
+
+            if (summary) {
+                if (elTotal) elTotal.textContent = summary.totalCount ?? 0;
+                if (elToday) elToday.textContent = summary.todayCount ?? 0;
+            }
+            if (elFiltered) elFiltered.textContent = filteredCount;
+            if (btnBadge) btnBadge.textContent = filteredCount;
+        }
+
+        function renderKundaliTable(records) {
+            const tableBody = document.getElementById('kundaliTableBody');
+            if (!tableBody) return;
+
+            if (!records || records.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="padding:40px; text-align:center; color:var(--text-muted);">
+                            <i class="fas fa-search" style="font-size:2rem; margin-bottom:10px; display:block; opacity:0.5;"></i>
+                            No Kundali intake records match the current filters.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            const startIndex = (kundaliCurrentPage - 1) * kundaliPageLimit;
+
+            tableBody.innerHTML = records.map((rec, idx) => {
+                const globalIndex = startIndex + idx + 1;
+                const recId = rec.recordId || rec.id || rec._id;
+                const timeStr = rec.tobFormatted || rec.tob || '-';
+                const dobStr = rec.dob || '-';
+                const pobStr = rec.pob || '-';
+                const phoneStr = rec.clientPhone ? `<a href="tel:${rec.clientPhone}" style="color:var(--primary); text-decoration:none;"><i class="fas fa-phone-alt" style="font-size:0.75rem;"></i> ${rec.clientPhone}</a>` : '<span style="color:var(--text-muted);">No Phone</span>';
+                
+                const cDate = rec.consultationDate ? new Date(rec.consultationDate).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '-';
+                const astro = rec.astrologerName || 'Assigned Astrologer';
+                const cType = rec.consultationType ? `<span style="font-size:0.72rem; padding:2px 8px; border-radius:10px; background:rgba(59,130,246,0.12); color:#3B82F6; font-weight:700; text-transform:uppercase;">${rec.consultationType}</span>` : '';
+
+                // Day / Month badge breakdown
+                const dobBreakdown = (rec.birthDay && rec.birthMonth)
+                    ? `<div style="font-size:0.75rem; color:#8B5CF6; margin-top:2px; font-weight:600;"><i class="fas fa-birthday-cake" style="font-size:0.7rem;"></i> Day ${rec.birthDay} | Month ${rec.birthMonth}</div>`
+                    : '';
+
+                return `
+                    <tr style="border-bottom:1px solid var(--border-soft); transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
+                        <td style="padding:14px 16px; font-weight:700; color:var(--text-muted); font-size:0.85rem;">${globalIndex}</td>
+                        <td style="padding:14px 16px;">
+                            <div style="font-weight:700; color:var(--text-main); font-size:0.95rem;">${rec.clientName || 'Client'}</div>
+                            <div style="font-size:0.8rem; margin-top:2px;">${phoneStr}</div>
+                            ${rec.gender ? `<span style="font-size:0.72rem; color:var(--text-muted); text-transform:capitalize;">(${rec.gender})</span>` : ''}
+                        </td>
+                        <td style="padding:14px 16px;">
+                            <div style="font-weight:700; color:var(--text-main); font-size:0.9rem;">${dobStr}</div>
+                            ${dobBreakdown}
+                        </td>
+                        <td style="padding:14px 16px;">
+                            <div style="font-size:0.9rem; font-weight:600; color:var(--text-main);">${timeStr}</div>
+                        </td>
+                        <td style="padding:14px 16px;">
+                            <div style="font-size:0.9rem; color:var(--text-main); font-weight:600;">
+                                <i class="fas fa-map-marker-alt" style="color:#EF4444; font-size:0.8rem; margin-right:4px;"></i>${pobStr}
+                            </div>
+                        </td>
+                        <td style="padding:14px 16px;">
+                            <div style="font-size:0.82rem; color:var(--text-muted);">${cDate}</div>
+                            <div style="font-weight:600; font-size:0.85rem; color:var(--text-main); margin-top:2px;">${astro}</div>
+                            <div style="margin-top:3px;">${cType}</div>
+                        </td>
+                        <td style="padding:14px 16px; text-align:center;">
+                            <div style="display:inline-flex; gap:6px; align-items:center;">
+                                <button class="btn-admin" onclick="viewKundaliDetail('${recId}')" title="View Full Intake Details" style="width:auto; padding:6px 12px; margin:0; font-size:0.78rem; background:rgba(139,92,246,0.12); color:#8B5CF6; border:1px solid rgba(139,92,246,0.3);">
+                                    <i class="fas fa-eye"></i> Details
+                                </button>
+                                <button class="btn-admin" onclick="deleteKundali('${recId}', false)" title="Delete Record" style="width:auto; padding:6px 10px; margin:0; font-size:0.78rem; background:rgba(239,68,68,0.08); color:#EF4444; border:none;">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function updateKundaliPagination(currentPage, totalPages, totalRecords) {
+            const start = totalRecords === 0 ? 0 : (currentPage - 1) * kundaliPageLimit + 1;
+            const end = Math.min(currentPage * kundaliPageLimit, totalRecords);
+
+            const elInfo = document.getElementById('kundaliPaginationInfo');
+            const elBadge = document.getElementById('kundaliCurrentPageBadge');
+            const btnPrev = document.getElementById('kundaliPrevBtn');
+            const btnNext = document.getElementById('kundaliNextBtn');
+
+            if (elInfo) elInfo.textContent = `Showing ${start} to ${end} of ${totalRecords} Kundali Records`;
+            if (elBadge) elBadge.textContent = `Page ${currentPage} of ${totalPages || 1}`;
+
+            if (btnPrev) btnPrev.disabled = (currentPage <= 1);
+            if (btnNext) btnNext.disabled = (currentPage >= totalPages || totalPages === 0);
+        }
+
+        window.changeKundaliPage = function(delta) {
+            loadAdminKundali(kundaliCurrentPage + delta);
+        };
+
+        window.debounceKundaliSearch = function() {
+            clearTimeout(kundaliDebounceTimer);
+            kundaliDebounceTimer = setTimeout(() => {
+                loadAdminKundali(1);
+            }, 300);
+        };
+
+        window.setKundaliDateFilter = function(range, btn) {
+            document.querySelectorAll('.kundali-date-pill').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+
+            kundaliActiveDateRange = range;
+            if (range !== 'custom') {
+                const s = document.getElementById('kundaliCustomStartDate');
+                const e = document.getElementById('kundaliCustomEndDate');
+                if (s) s.value = '';
+                if (e) e.value = '';
+            }
+            loadAdminKundali(1);
+        };
+
+        window.applyCustomDateKundali = function() {
+            const s = document.getElementById('kundaliCustomStartDate') ? document.getElementById('kundaliCustomStartDate').value : '';
+            const e = document.getElementById('kundaliCustomEndDate') ? document.getElementById('kundaliCustomEndDate').value : '';
+
+            if (!s && !e) {
+                alert('Please pick a start or end date for custom range.');
+                return;
+            }
+
+            document.querySelectorAll('.kundali-date-pill').forEach(b => b.classList.remove('active'));
+            kundaliActiveDateRange = 'custom';
+            loadAdminKundali(1);
+        };
+
+        window.applyDobFiltersKundali = function() {
+            const day = document.getElementById('kundaliFilterDay') ? document.getElementById('kundaliFilterDay').value : '';
+            const month = document.getElementById('kundaliFilterMonth') ? document.getElementById('kundaliFilterMonth').value : '';
+            const year = document.getElementById('kundaliFilterYear') ? document.getElementById('kundaliFilterYear').value.trim() : '';
+
+            const badgeDesc = document.getElementById('dobFilterBadgeDesc');
+            const parts = [];
+            if (day) parts.push(`Day ${day}`);
+            if (month) parts.push(`Month ${month}`);
+            if (year) parts.push(`Year ${year}`);
+
+            if (badgeDesc) {
+                badgeDesc.textContent = parts.length > 0 ? `Active: ${parts.join(' | ')}` : '';
+            }
+
+            loadAdminKundali(1);
+        };
+
+        window.resetKundaliFilters = function() {
+            const sInput = document.getElementById('kundaliSearchInput');
+            if (sInput) sInput.value = '';
+
+            const fDay = document.getElementById('kundaliFilterDay');
+            if (fDay) fDay.value = '';
+
+            const fMonth = document.getElementById('kundaliFilterMonth');
+            if (fMonth) fMonth.value = '';
+
+            const fYear = document.getElementById('kundaliFilterYear');
+            if (fYear) fYear.value = '';
+
+            const cStart = document.getElementById('kundaliCustomStartDate');
+            if (cStart) cStart.value = '';
+
+            const cEnd = document.getElementById('kundaliCustomEndDate');
+            if (cEnd) cEnd.value = '';
+
+            const bDesc = document.getElementById('dobFilterBadgeDesc');
+            if (bDesc) bDesc.textContent = '';
+
+            document.querySelectorAll('.kundali-date-pill').forEach((btn, idx) => {
+                if (idx === 0) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+
+            kundaliActiveDateRange = 'all';
+            loadAdminKundali(1);
+        };
+
+        window.exportKundaliCsv = function() {
+            const searchVal = document.getElementById('kundaliSearchInput') ? document.getElementById('kundaliSearchInput').value.trim() : '';
+            const dayVal = document.getElementById('kundaliFilterDay') ? document.getElementById('kundaliFilterDay').value : '';
+            const monthVal = document.getElementById('kundaliFilterMonth') ? document.getElementById('kundaliFilterMonth').value : '';
+            const yearVal = document.getElementById('kundaliFilterYear') ? document.getElementById('kundaliFilterYear').value.trim() : '';
+            const customStart = document.getElementById('kundaliCustomStartDate') ? document.getElementById('kundaliCustomStartDate').value : '';
+            const customEnd = document.getElementById('kundaliCustomEndDate') ? document.getElementById('kundaliCustomEndDate').value : '';
+
+            const params = new URLSearchParams({
+                dateRange: kundaliActiveDateRange
+            });
+
+            if (searchVal) params.append('search', searchVal);
+            if (dayVal) params.append('birthDay', dayVal);
+            if (monthVal) params.append('birthMonth', monthVal);
+            if (yearVal) params.append('birthYear', yearVal);
+            if (kundaliActiveDateRange === 'custom') {
+                if (customStart) params.append('startDate', customStart);
+                if (customEnd) params.append('endDate', customEnd);
+            }
+
+            const exportUrl = `/api/admin/kundali/export?${params.toString()}`;
+            window.location.href = exportUrl;
+        };
+
+        window.viewKundaliDetail = function(id) {
+            const rec = kundaliRecordsCache.find(r => (r.recordId == id || r.id == id || r._id == id));
+            if (!rec) {
+                alert('Record details not available');
+                return;
+            }
+
+            const cDate = rec.consultationDate ? new Date(rec.consultationDate).toLocaleString('en-IN') : '-';
+            const content = document.getElementById('kundaliDetailContent');
+            if (content) {
+                content.innerHTML = `
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:15px;">
+                        
+                        <!-- Client Profile Card -->
+                        <div class="admin-card" style="padding:16px; background:rgba(255,255,255,0.03); border:1px solid var(--border-soft); border-radius:12px;">
+                            <div style="font-size:0.85rem; font-weight:800; color:var(--primary); margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+                                <i class="fas fa-user"></i> Client Information
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:8px; font-size:0.88rem;">
+                                <div><span style="color:var(--text-muted);">Name:</span> <strong style="color:var(--text-main); font-size:1rem;">${rec.clientName || 'Client'}</strong></div>
+                                <div><span style="color:var(--text-muted);">Mobile:</span> <strong style="color:var(--text-main);">${rec.clientPhone || 'N/A'}</strong></div>
+                                <div><span style="color:var(--text-muted);">Gender:</span> <strong style="color:var(--text-main); text-transform:capitalize;">${rec.gender || 'Not specified'}</strong></div>
+                                <div><span style="color:var(--text-muted);">Marital Status:</span> <strong style="color:var(--text-main); text-transform:capitalize;">${rec.marital || 'Not specified'}</strong></div>
+                                <div><span style="color:var(--text-muted);">Occupation:</span> <strong style="color:var(--text-main);">${rec.occupation || 'Not specified'}</strong></div>
+                            </div>
+                        </div>
+
+                        <!-- Birth Details Card -->
+                        <div class="admin-card" style="padding:16px; background:rgba(139,92,246,0.04); border:1px solid rgba(139,92,246,0.2); border-radius:12px;">
+                            <div style="font-size:0.85rem; font-weight:800; color:#8B5CF6; margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+                                <i class="fas fa-birthday-cake"></i> Horoscope / Birth Details
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:8px; font-size:0.88rem;">
+                                <div><span style="color:var(--text-muted);">Date of Birth (DOB):</span> <strong style="color:var(--text-main);">${rec.dob || '-'}</strong></div>
+                                <div><span style="color:var(--text-muted);">Day / Month / Year:</span> <strong style="color:#8B5CF6;">Day ${rec.birthDay || '-'} / Month ${rec.birthMonth || '-'} / Year ${rec.birthYear || '-'}</strong></div>
+                                <div><span style="color:var(--text-muted);">Time of Birth (TOB):</span> <strong style="color:var(--text-main);">${rec.tobFormatted || rec.tob || '-'}</strong></div>
+                                <div><span style="color:var(--text-muted);">Birth District / Place:</span> <strong style="color:var(--text-main);">${rec.pob || '-'}</strong></div>
+                                ${rec.latitude ? `<div><span style="color:var(--text-muted);">Coordinates:</span> <strong style="color:var(--text-main); font-size:0.8rem;">${rec.latitude}, ${rec.longitude}</strong></div>` : ''}
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Consultation Metadata Card -->
+                    <div class="admin-card" style="padding:16px; background:rgba(255,255,255,0.03); border:1px solid var(--border-soft); border-radius:12px;">
+                        <div style="font-size:0.85rem; font-weight:800; color:var(--text-main); margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+                            <i class="fas fa-headset"></i> Consultation Metadata
+                        </div>
+                        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:10px; font-size:0.85rem;">
+                            <div><span style="color:var(--text-muted);">Consultation Date:</span> <div style="font-weight:700; color:var(--text-main);">${cDate}</div></div>
+                            <div><span style="color:var(--text-muted);">Astrologer:</span> <div style="font-weight:700; color:var(--text-main);">${rec.astrologerName || 'Astrologer'}</div></div>
+                            <div><span style="color:var(--text-muted);">Type:</span> <div style="font-weight:700; color:var(--text-main); text-transform:uppercase;">${rec.consultationType || 'Call / Chat'}</div></div>
+                            <div><span style="color:var(--text-muted);">Discussion Topic:</span> <div style="font-weight:700; color:var(--text-main);">${rec.topic || 'General Astrology'}</div></div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const delBtn = document.getElementById('btnDeleteKundaliFromModal');
+            if (delBtn) {
+                delBtn.onclick = () => deleteKundali(id, true);
+            }
+
+            const modal = document.getElementById('modal-kundali-detail');
+            if (modal) {
+                modal.style.display = 'block';
+                modal.classList.remove('hidden');
+            }
+        };
+
+        window.deleteKundali = async function(id, isModal = false) {
+            if (!confirm('Are you sure you want to permanently delete this Kundali consultation record?')) {
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/admin/kundali/${id}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (!data.ok) throw new Error(data.error || 'Failed to delete record');
+
+                if (isModal) {
+                    closeModal('modal-kundali-detail');
+                }
+                loadAdminKundali(kundaliCurrentPage);
+            } catch (err) {
+                alert('Error deleting record: ' + err.message);
             }
         };
 
