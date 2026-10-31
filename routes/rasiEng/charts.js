@@ -348,6 +348,7 @@ router.post('/full', async (req, res) => {
             const dasaTamil = TAMIL_PLANET_NAMES[curM.lord] || curM.lord;
             const bhuktiTamil = curB ? (TAMIL_PLANET_NAMES[curB.lord] || curB.lord) : '';
             const dasaStarLordTamil = TAMIL_PLANET_NAMES[dasaStarLord] || dasaStarLord;
+            const dashaStarLordTamil = dasaStarLordTamil;
             const bhuktiStarLordTamil = TAMIL_PLANET_NAMES[bhuktiStarLord] || bhuktiStarLord;
 
             currentDashaInfo = {
