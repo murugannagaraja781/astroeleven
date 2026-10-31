@@ -530,7 +530,8 @@ fun AstrologerDashboardScreen(
                         Toast.makeText(context, "Rates updated successfully!", Toast.LENGTH_SHORT).show()
                         refreshBalanceAndHistory()
                     } else {
-                        Toast.makeText(context, "Failed to update rates", Toast.LENGTH_SHORT).show()
+                        val errMsg = response.body()?.get("error")?.asString ?: "Failed to update rates"
+                        Toast.makeText(context, errMsg, Toast.LENGTH_LONG).show()
                     }
                 }
             } catch (e: Exception) {
@@ -542,11 +543,64 @@ fun AstrologerDashboardScreen(
         }
     }
 
+    var showSuperAdminPermissionAlert by remember { mutableStateOf(false) }
+
+    if (showSuperAdminPermissionAlert) {
+        AlertDialog(
+            onDismissRequest = { showSuperAdminPermissionAlert = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Warning,
+                    contentDescription = "Alert",
+                    tint = Color(0xFFDC2626),
+                    modifier = Modifier.size(36.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = "அனுமதி தேவை / Permission Required",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 17.sp,
+                    color = Color(0xFFDC2626)
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "₹50-க்கு மேல் கட்டணம் நிர்ணயிக்க சூப்பர் அட்மினிடம் அனுமதி பெற வேண்டும்.",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = Color(0xFF1F2937),
+                        lineHeight = 20.sp
+                    )
+                    Text(
+                        text = "Setting rates above ₹50/min (for Chat, Audio Call, or Video Call) requires Super Admin approval.\n\nPlease contact Super Admin to configure higher consultation rates for your profile.",
+                        fontSize = 13.sp,
+                        color = Color(0xFF4B5563),
+                        lineHeight = 18.sp
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showSuperAdminPermissionAlert = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF7A00))
+                ) {
+                    Text("சரி (OK)", fontWeight = FontWeight.Bold)
+                }
+            }
+        )
+    }
 
     if (showAddRateDialog) {
         var chatRateInput by remember { mutableStateOf(chatRate) }
         var callRateInput by remember { mutableStateOf(callRate) }
         var videoRateInput by remember { mutableStateOf(videoRate) }
+
+        val cVal = chatRateInput.toIntOrNull() ?: 0
+        val aVal = callRateInput.toIntOrNull() ?: 0
+        val vVal = videoRateInput.toIntOrNull() ?: 0
+        val hasOverLimit = cVal > 50 || aVal > 50 || vVal > 50
 
         AlertDialog(
             onDismissRequest = { showAddRateDialog = false },
@@ -565,6 +619,32 @@ fun AstrologerDashboardScreen(
                         fontSize = 12.sp,
                         color = Color.Gray
                     )
+
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF3C7)),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = Color(0xFFD97706),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                "அதிகபட்ச வரம்பு ₹50/நிமிடம். ₹50-க்கு மேல் கட்டணம் நிர்ணயிக்க சூப்பர் அட்மினிடம் அனுமதி பெற வேண்டும்.",
+                                fontSize = 11.sp,
+                                color = Color(0xFF92400E),
+                                fontWeight = FontWeight.Medium,
+                                lineHeight = 15.sp
+                            )
+                        }
+                    }
                     
                     OutlinedTextField(
                         value = chatRateInput,
@@ -572,6 +652,12 @@ fun AstrologerDashboardScreen(
                         label = { Text("Chat Rate (₹/min)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
+                        isError = cVal > 50,
+                        supportingText = {
+                            if (cVal > 50) {
+                                Text("₹50-க்கு மேல் Super Admin அனுமதி தேவை", color = Color(0xFFDC2626), fontSize = 11.sp)
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -581,6 +667,12 @@ fun AstrologerDashboardScreen(
                         label = { Text("Call Rate (₹/min)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
+                        isError = aVal > 50,
+                        supportingText = {
+                            if (aVal > 50) {
+                                Text("₹50-க்கு மேல் Super Admin அனுமதி தேவை", color = Color(0xFFDC2626), fontSize = 11.sp)
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -590,6 +682,12 @@ fun AstrologerDashboardScreen(
                         label = { Text("Video Call Rate (₹/min)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
+                        isError = vVal > 50,
+                        supportingText = {
+                            if (vVal > 50) {
+                                Text("₹50-க்கு மேல் Super Admin அனுமதி தேவை", color = Color(0xFFDC2626), fontSize = 11.sp)
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -600,8 +698,13 @@ fun AstrologerDashboardScreen(
                         val cRate = chatRateInput.toIntOrNull() ?: 15
                         val aRate = callRateInput.toIntOrNull() ?: 15
                         val vRate = videoRateInput.toIntOrNull() ?: 20
-                        updateAstroRatesOnServer(cRate, aRate, vRate)
-                        showAddRateDialog = false
+
+                        if (cRate > 50 || aRate > 50 || vRate > 50) {
+                            showSuperAdminPermissionAlert = true
+                        } else {
+                            updateAstroRatesOnServer(cRate, aRate, vRate)
+                            showAddRateDialog = false
+                        }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF7A00))
                 ) {

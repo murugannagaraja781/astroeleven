@@ -1314,4 +1314,56 @@ exports.deleteKundaliRecord = async (req, res) => {
     }
 };
 
+exports.updateAstrologerRates = async (req, res) => {
+    try {
+        const { userId, chatPrice, callPrice, videoPrice, price } = req.body;
+        if (!userId) return res.status(400).json({ ok: false, error: 'User ID is required' });
+
+        const user = await User.findOne({ userId });
+        if (!user) return res.status(404).json({ ok: false, error: 'Astrologer not found' });
+        if (user.role !== 'astrologer') return res.status(400).json({ ok: false, error: 'User is not an astrologer' });
+
+        const cPrice = chatPrice !== undefined && chatPrice !== '' ? parseFloat(chatPrice) : user.chatPrice;
+        const aPrice = callPrice !== undefined && callPrice !== '' ? parseFloat(callPrice) : user.callPrice;
+        const vPrice = videoPrice !== undefined && videoPrice !== '' ? parseFloat(videoPrice) : user.videoPrice;
+        const bPrice = price !== undefined && price !== '' ? parseFloat(price) : (cPrice || user.price);
+
+        if (!isNaN(cPrice) && cPrice >= 0) user.chatPrice = cPrice;
+        if (!isNaN(aPrice) && aPrice >= 0) user.callPrice = aPrice;
+        if (!isNaN(vPrice) && vPrice >= 0) user.videoPrice = vPrice;
+        if (!isNaN(bPrice) && bPrice >= 0) {
+            user.price = bPrice;
+            user.ratePerMinute = bPrice;
+        }
+
+        await user.save();
+
+        const io = req.app.get('io');
+        const SERVER_URL = req.app.get('SERVER_URL');
+        const { broadcastAstroUpdate } = require('../services/astrologer.service');
+        if (broadcastAstroUpdate) {
+            broadcastAstroUpdate(io, SERVER_URL);
+        }
+
+        console.log(`[Admin] Updated consultation rates for ${user.name} (${user.userId}): Chat=₹${user.chatPrice}, Call=₹${user.callPrice}, Video=₹${user.videoPrice}`);
+
+        res.json({
+            ok: true,
+            message: 'Rates updated successfully by Super Admin',
+            rates: {
+                userId: user.userId,
+                price: user.price,
+                chatPrice: user.chatPrice,
+                callPrice: user.callPrice,
+                videoPrice: user.videoPrice,
+                ratePerMinute: user.ratePerMinute
+            }
+        });
+    } catch (err) {
+        console.error('[AdminController] Error in updateAstrologerRates:', err);
+        res.status(500).json({ ok: false, error: err.message });
+    }
+};
+
+
 

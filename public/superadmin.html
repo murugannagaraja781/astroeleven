@@ -4535,12 +4535,38 @@ body {
                 </div>
 
                 <div id="astroFields" style="margin-top:20px; padding-top:20px; border-top:1px solid var(--border-soft);">
-                    <h4 style="color:var(--primary); margin-bottom:15px;">Astrologer Information</h4>
+                    <h4 style="color:var(--primary); margin-bottom:15px; display:flex; align-items:center; gap:8px;">
+                        <i class="fas fa-tags" style="color:var(--primary);"></i> Consultation Rates & Astrologer Information
+                    </h4>
+
+                    <div style="background:rgba(212,175,55,0.08); border:1px solid rgba(212,175,55,0.25); border-radius:10px; padding:10px 14px; margin-bottom:15px;">
+                        <div style="font-size:0.8rem; color:var(--text-main); font-weight:600;">
+                            <i class="fas fa-info-circle" style="color:#D97706;"></i> Super Admin Rate Control
+                        </div>
+                        <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">
+                            Astrologers can only set up to ₹50/min on their mobile app. As Super Admin, you can set any custom rate (e.g. ₹60, ₹100, ₹200) without limits.
+                        </div>
+                    </div>
                     
-                    <div class="grid-3">
+                    <div class="grid-3" style="gap:10px;">
                         <div>
-                            <label class="app-label">Base Price</label>
-                            <input type="number" id="editPrice" class="app-input">
+                            <label class="app-label"><i class="fas fa-comments" style="color:#B45309;"></i> Chat Rate (₹/min)</label>
+                            <input type="number" id="editChatPrice" class="app-input" min="0" placeholder="Chat Rate">
+                        </div>
+                        <div>
+                            <label class="app-label"><i class="fas fa-phone-alt" style="color:#1D4ED8;"></i> Call Rate (₹/min)</label>
+                            <input type="number" id="editCallPrice" class="app-input" min="0" placeholder="Call Rate">
+                        </div>
+                        <div>
+                            <label class="app-label"><i class="fas fa-video" style="color:#6D28D9;"></i> Video Rate (₹/min)</label>
+                            <input type="number" id="editVideoPrice" class="app-input" min="0" placeholder="Video Rate">
+                        </div>
+                    </div>
+
+                    <div class="grid-3" style="margin-top:12px; gap:10px;">
+                        <div>
+                            <label class="app-label">Base / Fallback (₹)</label>
+                            <input type="number" id="editPrice" class="app-input" min="0">
                         </div>
                         <div>
                             <label class="app-label">Experience (Years)</label>
@@ -4605,6 +4631,56 @@ body {
                 <div style="margin-top:30px; display:flex; gap:15px;">
                     <button class="cosmic-btn" style="flex:1;" onclick="saveUserEdit()"><i class="fas fa-save"></i> Save Changes</button>
                     <button class="btn-admin" style="background:var(--border-soft); color:var(--text-muted);" onclick="closeModal('modal-edit-user')">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: Set Astrologer Rates -->
+        <div id="modal-edit-astro-rates" class="admin-modal" style="display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.65); backdrop-filter:blur(4px);">
+            <div class="admin-card" style="max-width:520px; margin:60px auto; background:var(--bg-card); position:relative; box-shadow:0 12px 40px rgba(0,0,0,0.4); border-radius:18px; padding:25px; border:1px solid var(--border-soft);">
+                <span onclick="closeModal('modal-edit-astro-rates')" style="position:absolute; right:20px; top:18px; font-size:1.8rem; cursor:pointer; color:var(--text-muted);">&times;</span>
+                <h3 style="font-family:var(--font-heading); color:var(--primary); margin:0 0 4px 0; font-size:1.25rem; display:flex; align-items:center; gap:8px;">
+                    <i class="fas fa-tags" style="color:#0284C7;"></i> Set Astrologer Consultation Rates
+                </h3>
+                <div id="rateModalAstroSubtitle" style="color:var(--text-muted); font-size:0.85rem; margin-bottom:16px;">
+                    Configure per-minute consultation rates for this astrologer.
+                </div>
+
+                <input type="hidden" id="rateModalUserId">
+
+                <div style="background:rgba(2,132,199,0.06); border:1px solid rgba(2,132,199,0.2); border-radius:12px; padding:12px 14px; margin-bottom:18px; display:flex; align-items:center; gap:10px;">
+                    <i class="fas fa-shield-alt" style="color:#0284C7; font-size:1.3rem;"></i>
+                    <div style="font-size:0.82rem; color:var(--text-main); line-height:1.4;">
+                        <strong>Super Admin Privilege:</strong> You can set any rate for this astrologer (e.g. ₹60, ₹100, ₹250). Astrologers can only set up to ₹50 on their own in the mobile app.
+                    </div>
+                </div>
+
+                <div style="display:flex; flex-direction:column; gap:14px;">
+                    <div>
+                        <label class="app-label" style="display:flex; align-items:center; gap:6px;">
+                            <i class="fas fa-comments" style="color:#B45309;"></i> Chat Rate (₹/min)
+                        </label>
+                        <input type="number" id="rateModalChatPrice" class="app-input" min="0" placeholder="e.g. 15 or 60" style="font-size:1.05rem; font-weight:600;">
+                    </div>
+                    <div>
+                        <label class="app-label" style="display:flex; align-items:center; gap:6px;">
+                            <i class="fas fa-phone-alt" style="color:#1D4ED8;"></i> Call Rate (₹/min)
+                        </label>
+                        <input type="number" id="rateModalCallPrice" class="app-input" min="0" placeholder="e.g. 15 or 60" style="font-size:1.05rem; font-weight:600;">
+                    </div>
+                    <div>
+                        <label class="app-label" style="display:flex; align-items:center; gap:6px;">
+                            <i class="fas fa-video" style="color:#6D28D9;"></i> Video Call Rate (₹/min)
+                        </label>
+                        <input type="number" id="rateModalVideoPrice" class="app-input" min="0" placeholder="e.g. 20 or 75" style="font-size:1.05rem; font-weight:600;">
+                    </div>
+                </div>
+
+                <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:22px;">
+                    <button class="btn-admin" style="background:var(--bg-main); color:var(--text-muted); border:1px solid var(--border-soft);" onclick="closeModal('modal-edit-astro-rates')">Cancel</button>
+                    <button class="btn-admin" style="background:#0284C7; color:white; font-weight:700; padding:10px 22px;" onclick="saveAstroRatesFromModal()">
+                        <i class="fas fa-save"></i> Save Rates
+                    </button>
                 </div>
             </div>
         </div>
@@ -6249,9 +6325,11 @@ body {
                 <i class="fas fa-calendar-alt" style="font-size:0.7rem; color:#9CA3AF;"></i> Joined: ${formatJoinedDate(u.createdAt || u.created_at)}
               </div>
               ${isAstro ? `
-                <div style="font-size:0.75rem; color:#6B7280; margin-top:3px; display:flex; align-items:center; gap:8px;">
+                <div style="font-size:0.75rem; color:#6B7280; margin-top:3px; display:flex; align-items:center; flex-wrap:wrap; gap:6px;">
                   <span>${statusBadge}</span>
-                  ${u.ratePerMinute || u.price ? `<span>&bull; ₹${u.ratePerMinute || u.price}/min</span>` : ''}
+                  <span style="background:rgba(212,175,55,0.14); color:#B45309; padding:2px 6px; border-radius:4px; font-weight:700;" title="Chat Rate">💬 ₹${u.chatPrice || u.price || 15}/m</span>
+                  <span style="background:rgba(59,130,246,0.14); color:#1D4ED8; padding:2px 6px; border-radius:4px; font-weight:700;" title="Audio Call Rate">📞 ₹${u.callPrice || u.price || 15}/m</span>
+                  <span style="background:rgba(168,85,247,0.14); color:#6D28D9; padding:2px 6px; border-radius:4px; font-weight:700;" title="Video Call Rate">📹 ₹${u.videoPrice || 20}/m</span>
                   ${u.approvalStatus ? `<span style="text-transform:capitalize; color:${u.approvalStatus === 'approved' ? '#059669' : '#D97706'}; font-weight:600;">&bull; ${u.approvalStatus}</span>` : ''}
                 </div>` : ''}
             </div>
@@ -6265,6 +6343,7 @@ body {
             </div>
           </div>
           <div class="admin-actions">
+            ${isAstro ? `<button class="btn-admin" style="background: #0284C7; color: white;" onclick="openAstroRatesModal('${userId}')" title="Set Chat, Call & Video Rates"><i class="fas fa-tags"></i> Set Rates</button>` : ''}
             ${isAstro ? `<button class="btn-admin" style="background: #4F46E5; color: white;" onclick="showPerformance('${userId}')"><i class="fas fa-chart-line"></i> Stats</button>` : ''}
             <button class="btn-admin btn-edit" style="background: #D4AF37; color: #000;" onclick="editUser('${userId}')"><i class="fas fa-edit"></i> Edit</button>
             <button class="btn-admin btn-wallet" style="background: #10B981; color: white;" onclick="adminWallet('${userId}')"><i class="fas fa-plus"></i> Wallet</button>
@@ -7660,6 +7739,9 @@ body {
             document.getElementById('astroFields').style.display = isAstro ? 'block' : 'none';
             
             if (isAstro) {
+                document.getElementById('editChatPrice').value = u.chatPrice !== undefined ? u.chatPrice : (u.price || 15);
+                document.getElementById('editCallPrice').value = u.callPrice !== undefined ? u.callPrice : (u.price || 15);
+                document.getElementById('editVideoPrice').value = u.videoPrice !== undefined ? u.videoPrice : 20;
                 document.getElementById('editPrice').value = u.price || 0;
                 document.getElementById('editExp').value = u.experience || u.astrologyExperience || 0;
                 document.getElementById('editProfession').value = u.profession || '';
@@ -7675,6 +7757,77 @@ body {
             }
             
             document.getElementById('modal-edit-user').style.display = 'block';
+        };
+
+        window.openAstroRatesModal = (uid) => {
+            const u = adminUsersCache.find(x => x.userId === uid);
+            if (!u) return;
+
+            document.getElementById('rateModalUserId').value = u.userId;
+            const subtitle = document.getElementById('rateModalAstroSubtitle');
+            if (subtitle) {
+                subtitle.innerHTML = `Setting consultation rates for <strong>${u.name || 'Astrologer'}</strong> (${u.phone || u.userId})`;
+            }
+
+            document.getElementById('rateModalChatPrice').value = u.chatPrice !== undefined ? u.chatPrice : (u.price || 15);
+            document.getElementById('rateModalCallPrice').value = u.callPrice !== undefined ? u.callPrice : (u.price || 15);
+            document.getElementById('rateModalVideoPrice').value = u.videoPrice !== undefined ? u.videoPrice : 20;
+
+            document.getElementById('modal-edit-astro-rates').style.display = 'block';
+        };
+
+        window.saveAstroRatesFromModal = async () => {
+            const userId = document.getElementById('rateModalUserId').value;
+            const chatPrice = parseFloat(document.getElementById('rateModalChatPrice').value) || 0;
+            const callPrice = parseFloat(document.getElementById('rateModalCallPrice').value) || 0;
+            const videoPrice = parseFloat(document.getElementById('rateModalVideoPrice').value) || 0;
+
+            if (chatPrice < 0 || callPrice < 0 || videoPrice < 0) {
+                alert('Please enter valid positive rate values');
+                return;
+            }
+
+            const payload = {
+                userId,
+                chatPrice,
+                callPrice,
+                videoPrice,
+                price: chatPrice,
+                adminUserId: state.me?.userId
+            };
+
+            let saved = false;
+            socket.emit('admin-update-astro-rates', payload, (res) => {
+                if (res && res.ok) {
+                    saved = true;
+                    alert('Consultation rates updated successfully!');
+                    closeModal('modal-edit-astro-rates');
+                    fetchAllUsers();
+                } else if (!saved && res?.error) {
+                    alert('Error: ' + res.error);
+                }
+            });
+
+            // REST fallback if socket response delayed
+            setTimeout(async () => {
+                if (!saved) {
+                    try {
+                        const res = await fetch('/api/admin/astrologers/update-rates', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        }).then(r => r.json());
+                        if (res && res.ok) {
+                            saved = true;
+                            alert('Consultation rates updated successfully!');
+                            closeModal('modal-edit-astro-rates');
+                            fetchAllUsers();
+                        }
+                    } catch (e) {
+                        console.error('REST fallback update-rates error:', e);
+                    }
+                }
+            }, 1000);
         };
 
         window.closeModal = (id) => {
@@ -7694,8 +7847,12 @@ body {
             };
             
             if (isAstro) {
-                updates.price = parseInt(document.getElementById('editPrice').value);
-                updates.experience = parseInt(document.getElementById('editExp').value);
+                updates.chatPrice = parseFloat(document.getElementById('editChatPrice').value) || 0;
+                updates.callPrice = parseFloat(document.getElementById('editCallPrice').value) || 0;
+                updates.videoPrice = parseFloat(document.getElementById('editVideoPrice').value) || 0;
+                updates.price = parseFloat(document.getElementById('editPrice').value) || updates.chatPrice || 0;
+                updates.ratePerMinute = updates.price;
+                updates.experience = parseInt(document.getElementById('editExp').value) || 0;
                 updates.astrologyExperience = updates.experience;
                 updates.profession = document.getElementById('editProfession').value;
                 updates.skills = document.getElementById('editSkills').value.split(',').map(s => s.trim()).filter(s => s);

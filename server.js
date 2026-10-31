@@ -2722,6 +2722,17 @@ io.on('connection', (socket) => {
           console.log(`[${sessionId}] Tick: ${session.elapsedBillableSeconds}s, TotalDed: ${session.totalDeducted}`);
         }
 
+        // Phase 3.5: Check if client wallet dropped below 1
+        if (session.clientId) {
+          const clientUser = await User.findOne({ userId: session.clientId });
+          const clientBal = clientUser ? Number(clientUser.walletBalance || 0) : 0;
+          if (clientBal < 1) {
+            console.log(`[Ticker] Client wallet balance ₹${clientBal} is below 1. Cutting call ${sessionId}.`);
+            forceEndSession(sessionId, 'insufficient_balance');
+            continue;
+          }
+        }
+
         // Phase 4: Check Slab Upgrade
         if (session.pairMonthId) {
           const totalSeconds = (session.initialPairSeconds || 0) + session.elapsedBillableSeconds;
@@ -2741,8 +2752,8 @@ io.on('connection', (socket) => {
           const nextMinuteIndex = (session.lastBilledMinute || 1) + 1;
           console.log(`Session ${sessionId}: Minute ${nextMinuteIndex} entered at ${session.elapsedBillableSeconds}s. Charging.`);
           const billRes = await billingService.processBillingCharge(sessionId, 60, nextMinuteIndex, 'slab');
-          if (!billRes || !billRes.success) {
-            console.log(`[Ticker] Insufficient balance for session ${sessionId} at min ${nextMinuteIndex}. Terminating.`);
+          if (!billRes || !billRes.success || (billRes.remainingBalance !== undefined && billRes.remainingBalance < 1)) {
+            console.log(`[Ticker] Insufficient balance (< 1) for session ${sessionId} at min ${nextMinuteIndex}. Terminating.`);
             forceEndSession(sessionId, 'insufficient_balance');
             continue;
           }
@@ -3000,7 +3011,25 @@ io.on('connection', (socket) => {
       if (updates.realName) user.realName = updates.realName;
       if (updates.email) user.email = updates.email;
       if (updates.image) user.image = updates.image;
-      if (updates.price !== undefined) user.price = parseInt(updates.price);
+      if (updates.price !== undefined && updates.price !== '') {
+        const p = parseFloat(updates.price);
+        if (!isNaN(p)) {
+          user.price = p;
+          user.ratePerMinute = p;
+        }
+      }
+      if (updates.chatPrice !== undefined && updates.chatPrice !== '') {
+        const cp = parseFloat(updates.chatPrice);
+        if (!isNaN(cp) && cp >= 0) user.chatPrice = cp;
+      }
+      if (updates.callPrice !== undefined && updates.callPrice !== '') {
+        const ap = parseFloat(updates.callPrice);
+        if (!isNaN(ap) && ap >= 0) user.callPrice = ap;
+      }
+      if (updates.videoPrice !== undefined && updates.videoPrice !== '') {
+        const vp = parseFloat(updates.videoPrice);
+        if (!isNaN(vp) && vp >= 0) user.videoPrice = vp;
+      }
       if (updates.experience !== undefined) user.experience = parseInt(updates.experience);
       if (updates.astrologyExperience !== undefined) user.astrologyExperience = updates.astrologyExperience;
       if (updates.profession) user.profession = updates.profession;
@@ -3037,6 +3066,70 @@ io.on('connection', (socket) => {
     } catch (e) {
       console.error(e);
       cb({ ok: false, error: 'Update Failed' });
+    }
+  });
+
+  // --- Admin: Update Astrologer Consultation Rates ---
+  socket.on('admin-update-astro-rates', async (data, cb) => {
+    if (!await checkAdmin(socket.id, data?.adminUserId)) return cb({ ok: false, error: 'Unauthorized' });
+    try {
+      const { userId, chatPrice, callPrice, videoPrice, price } = data;
+      const user = await User.findOne({ userId });
+      if (!user) return cb({ ok: false, error: 'Astrologer not found' });
+      if (user.role !== 'astrologer') return cb({ ok: false, error: 'User is not an astrologer' });
+
+      if (chatPrice !== undefined && chatPrice !== '') {
+        const cp = parseFloat(chatPrice);
+        if (!isNaN(cp) && cp >= 0) user.chatPrice = cp;
+      }
+      if (callPrice !== undefined && callPrice !== '') {
+        const ap = parseFloat(callPrice);
+        if (!isNaN(ap) && ap >= 0) user.callPrice = ap;
+      }
+      if (videoPrice !== undefined && videoPrice !== '') {
+        const vp = parseFloat(videoPrice);
+        if (!isNaN(vp) && vp >= 0) user.videoPrice = vp;
+      }
+      if (price !== undefined && price !== '') {
+        const p = parseFloat(price);
+        if (!isNaN(p) && p >= 0) {
+          user.price = p;
+          user.ratePerMinute = p;
+        }
+      } else if (chatPrice !== undefined && chatPrice !== '') {
+        const cp = parseFloat(chatPrice);
+        if (!isNaN(cp) && cp >= 0) {
+          user.price = cp;
+          user.ratePerMinute = cp;
+        }
+      }
+
+      await user.save();
+      console.log(`[Admin] Updated rates via socket for ${user.name}: Chat=₹${user.chatPrice}, Call=₹${user.callPrice}, Video=₹${user.videoPrice}`);
+      await broadcastAstroUpdate();
+
+      // Notify the specific astrologer if connected
+      const sId = userSockets.get(user.userId);
+      if (sId) {
+        const formattedUser = user.toObject ? user.toObject() : user;
+        formattedUser.image = formatImageUrl(formattedUser.image, formattedUser.name);
+        io.to(sId).emit('my-profile-updated', formattedUser);
+      }
+
+      cb({
+        ok: true,
+        user: {
+          userId: user.userId,
+          price: user.price,
+          chatPrice: user.chatPrice,
+          callPrice: user.callPrice,
+          videoPrice: user.videoPrice,
+          ratePerMinute: user.ratePerMinute
+        }
+      });
+    } catch (err) {
+      console.error('[Admin] Error in admin-update-astro-rates:', err);
+      cb({ ok: false, error: err.message || 'Failed to update rates' });
     }
   });
 

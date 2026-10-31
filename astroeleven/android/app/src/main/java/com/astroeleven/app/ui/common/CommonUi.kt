@@ -7,7 +7,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -27,11 +29,13 @@ fun ModernSummaryDialog(
     amount: Double,
     isAstrologer: Boolean,
     onDismiss: () -> Unit,
-    onSubmitReview: ((Int, String) -> Unit)? = null
+    onSubmitReview: ((Int, String) -> Unit)? = null,
+    onRecharge: (() -> Unit)? = null
 ) {
     var rating by remember { mutableStateOf(5) }
     var comment by remember { mutableStateOf("") }
     var isSubmitted by remember { mutableStateOf(false) }
+    val isLowBal = title == "Low Balance"
 
     Dialog(onDismissRequest = { if (isSubmitted || isAstrologer) onDismiss() }) {
         Card(
@@ -44,29 +48,46 @@ fun ModernSummaryDialog(
                 modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Success Icon with Glow
+                // Icon with Glow
                 Box(
                     modifier = Modifier
                         .size(80.dp)
-                        .background(Color(0xFF4CAF50).copy(alpha = 0.1f), CircleShape),
+                        .background(
+                            if (isLowBal) Color(0xFFEF4444).copy(alpha = 0.12f)
+                            else Color(0xFF4CAF50).copy(alpha = 0.1f),
+                            CircleShape
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        Icons.Default.CheckCircle,
+                        if (isLowBal) Icons.Default.Warning else Icons.Default.CheckCircle,
                         contentDescription = null,
-                        tint = Color(0xFF4CAF50),
-                        modifier = Modifier.size(56.dp)
+                        tint = if (isLowBal) Color(0xFFDC2626) else Color(0xFF4CAF50),
+                        modifier = Modifier.size(52.dp)
                     )
                 }
                 
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(16.dp))
                 
                 Text(
-                    text = title,
+                    text = if (isLowBal) "குறைந்த இருப்பு (Low Balance)" else title,
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.ExtraBold,
-                    color = Color(0xFF2D3436)
+                    color = if (isLowBal) Color(0xFFDC2626) else Color(0xFF2D3436),
+                    textAlign = TextAlign.Center
                 )
+
+                if (isLowBal && !isAstrologer) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = "உங்கள் வாலட் இருப்பு ₹1-க்கும் குறைவாக உள்ளதால் அழைப்பு துண்டிக்கப்பட்டது. தொடர்ந்து பேச ரீசார்ஜ் செய்யவும்.",
+                        fontSize = 12.sp,
+                        color = Color(0xFF7F1D1D),
+                        textAlign = TextAlign.Center,
+                        fontWeight = FontWeight.Medium,
+                        lineHeight = 16.sp
+                    )
+                }
                 
                 Spacer(Modifier.height(16.dp))
                 
@@ -139,7 +160,24 @@ fun ModernSummaryDialog(
                     )
                 }
                 
-                Spacer(Modifier.height(32.dp))
+                if (!isAstrologer && onRecharge != null) {
+                    Spacer(Modifier.height(16.dp))
+                    Button(
+                        onClick = {
+                            onDismiss()
+                            onRecharge()
+                        },
+                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981))
+                    ) {
+                        Icon(Icons.Default.MonetizationOn, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("ரீசார்ஜ் செய்க (RECHARGE NOW)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                }
+                
+                Spacer(Modifier.height(16.dp))
                 
                 val buttonText = if (!isAstrologer && !isSubmitted) "SUBMIT REVIEW & EXIT" else "DONE"
                 

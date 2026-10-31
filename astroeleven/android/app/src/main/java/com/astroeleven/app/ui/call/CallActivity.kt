@@ -1,11 +1,13 @@
 package com.astroeleven.app.ui.call
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.Toast
+import com.astroeleven.app.ui.wallet.WalletActivity
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -117,6 +119,7 @@ class CallActivity : ComponentActivity() {
     // Summary State
     data class SimpleSummary(val duration: Int, val amount: Double, val reason: String)
     private var callSummary by mutableStateOf<SimpleSummary?>(null)
+    private var showLowBalanceDialogState by mutableStateOf(false)
 
     private var isWebRTCInitialized = false
     private val pendingIceCandidates = LinkedList<IceCandidate>()
@@ -352,7 +355,18 @@ class CallActivity : ComponentActivity() {
                         clientBirthData = clientBirthData,
                         summary = callSummary,
                         onDismissSummary = { finish() },
-                        onReview = { rating, comment -> submitReview(rating, comment) }
+                        onReview = { rating, comment -> submitReview(rating, comment) },
+                        showLowBalanceDialog = showLowBalanceDialogState,
+                        onDismissLowBalanceDialog = {
+                            showLowBalanceDialogState = false
+                            finish()
+                        },
+                        onRecharge = {
+                            showLowBalanceDialogState = false
+                            val intent = Intent(this@CallActivity, WalletActivity::class.java)
+                            startActivity(intent)
+                            finish()
+                        }
                     )
                 }
             }
@@ -1095,7 +1109,20 @@ class CallActivity : ComponentActivity() {
 
         SocketManager.onBillingStarted { info ->
             runOnUiThread {
-                Log.d(TAG, "Billing started event received. Initiator: $isInitiator")
+                Log.d(TAG, "Billing started event received. Initiator: $isInitiator, balance: ${info.clientBalance}")
+                val myRole = tokenManager.getUserSession()?.role
+                if (myRole == "client" && info.clientBalance < 1.0) {
+                    Log.w(TAG, "Client balance below 1.0 on billing start (₹${info.clientBalance}). Cutting call.")
+                    isCallTerminated = true
+                    ActiveChatSessionManager.clearActiveSession(this@CallActivity)
+                    stopBackgroundService()
+                    timerHandler.removeCallbacks(timerRunnable)
+                    isBillingActive = false
+                    SocketManager.endSession(sessionId)
+                    SocketManager.cancelCall(sessionId, partnerId)
+                    showLowBalanceDialogState = true
+                    return@runOnUiThread
+                }
                 isBillingActive = true
                 // Offer is now created in startCallLimit() immediately, not here.
                 // If offer hasn't been created yet (edge case), create it now as fallback
@@ -1108,6 +1135,31 @@ class CallActivity : ComponentActivity() {
             }
         }
 
+        SocketManager.getSocket()?.on("wallet-update") { args ->
+            try {
+                val data = args.getOrNull(0) as? JSONObject ?: return@on
+                val bal = data.optDouble("balance", 100.0)
+                val myRole = tokenManager.getUserSession()?.role
+                if (myRole == "client" && bal < 1.0) {
+                    runOnUiThread {
+                        if (!isCallTerminated) {
+                            Log.w(TAG, "Wallet balance dropped below 1.0 (₹$bal). Cutting call immediately.")
+                            isCallTerminated = true
+                            ActiveChatSessionManager.clearActiveSession(this@CallActivity)
+                            stopBackgroundService()
+                            timerHandler.removeCallbacks(timerRunnable)
+                            isBillingActive = false
+                            SocketManager.endSession(sessionId)
+                            SocketManager.cancelCall(sessionId, partnerId)
+                            showLowBalanceDialogState = true
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error handling wallet-update in CallActivity", e)
+            }
+        }
+
         SocketManager.onSessionEndedWithSummary { reason, deducted, earned, duration ->
             runOnUiThread {
                 isCallTerminated = true
@@ -1115,7 +1167,12 @@ class CallActivity : ComponentActivity() {
                 stopBackgroundService()
                 timerHandler.removeCallbacks(timerRunnable)
                 isBillingActive = false
-                val amount = if (tokenManager.getUserSession()?.role == "astrologer") earned else deducted
+                val myRole = tokenManager.getUserSession()?.role
+                val amount = if (myRole == "astrologer") earned else deducted
+                val isLowBal = reason.contains("insufficient", ignoreCase = true) || reason.contains("balance", ignoreCase = true)
+                if (myRole == "client" && isLowBal) {
+                    showLowBalanceDialogState = true
+                }
                 callSummary = SimpleSummary(duration, amount, reason)
             }
         }
@@ -1340,6 +1397,7 @@ class CallActivity : ComponentActivity() {
         SocketManager.off("session-ended")
         SocketManager.off("billing-started")
         SocketManager.off("client-birth-chart")
+        SocketManager.getSocket()?.off("wallet-update")
         SocketManager.getSocket()?.off(io.socket.client.Socket.EVENT_DISCONNECT)
         try {
             if (proximityWakeLock?.isHeld == true) proximityWakeLock?.release()
@@ -1525,20 +1583,76 @@ fun CallScreen(
     clientBirthData: JSONObject? = null,
     summary: CallActivity.SimpleSummary? = null,
     onDismissSummary: () -> Unit = {},
-    onReview: (Int, String) -> Unit = { _, _ -> }
+    onReview: (Int, String) -> Unit = { _, _ -> },
+    showLowBalanceDialog: Boolean = false,
+    onDismissLowBalanceDialog: () -> Unit = {},
+    onRecharge: () -> Unit = {}
 ) {
     val colors = com.astroeleven.app.ui.theme.CosmicAppTheme.colors
     val context = LocalContext.current
     
+    // Low Balance Alert Dialog
+    if (showLowBalanceDialog) {
+        AlertDialog(
+            onDismissRequest = onDismissLowBalanceDialog,
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = "Alert",
+                        tint = Color(0xFFEF4444),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "குறைந்த இருப்பு (Low Balance)",
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFEF4444),
+                        fontSize = 18.sp
+                    )
+                }
+            },
+            text = {
+                Text(
+                    text = "உங்கள் வாலட் இருப்பு ₹1-க்கும் குறைவாக உள்ளதால் அழைப்பு துண்டிக்கப்பட்டது.\n\nஆலோசனையைத் தொடர தயவுசெய்து உங்கள் வாலட்டை ரீசார்ஜ் செய்யவும்.\n(Your wallet balance dropped below ₹1. Call ended. Please recharge to continue.)",
+                    fontSize = 14.sp,
+                    color = CosmicAppTheme.colors.textPrimary,
+                    lineHeight = 20.sp
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = onRecharge,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("ரீசார்ஜ் செய்க (Recharge Now)", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = onDismissLowBalanceDialog,
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("முடி (Close)", color = CosmicAppTheme.colors.textSecondary)
+                }
+            },
+            containerColor = CosmicAppTheme.colors.cardBg,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
+
     // Modern Summary Overlay
     if (summary != null) {
+        val isLowBal = summary.reason.contains("insufficient", ignoreCase = true) || summary.reason.contains("balance", ignoreCase = true)
         ModernSummaryDialog(
-            title = if (summary.reason == "insufficient_funds") "Low Balance" else "Call Summary",
+            title = if (isLowBal) "குறைந்த இருப்பு (Low Balance)" else "Call Summary",
             duration = summary.duration,
             amount = summary.amount,
             isAstrologer = role == "astrologer",
             onDismiss = onDismissSummary,
-            onSubmitReview = onReview
+            onSubmitReview = onReview,
+            onRecharge = onRecharge
         )
     }
 

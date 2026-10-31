@@ -15,6 +15,7 @@ router.post('/process-deletion', adminController.processDeletion);
 router.post('/update-balance', adminController.updateBalance);
 router.get('/astrologers/pending', adminController.getPendingAstrologers);
 router.post('/astrologers/approve', adminController.approveAstrologer);
+router.post('/astrologers/update-rates', adminController.updateAstrologerRates);
 router.get('/astrologer-performance/:astrologerId', adminController.getAstrologerPerformance);
 router.get('/astrologers-performance', adminController.getAllAstrologersPerformance);
 router.get('/config', adminController.getConfig);

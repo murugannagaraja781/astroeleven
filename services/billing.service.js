@@ -229,8 +229,10 @@ async function endSessionRecord(sessionId, broadcastAstroUpdate, endReason = 'en
 
     console.log(`[Billing][endSessionRecord] sessionId=${sessionId}, reason=${s.endReason || endReason}, billableSeconds=${billableSeconds}, totalDeducted=${s.totalDeducted || 0}, totalEarned=${s.totalEarned || 0}`);
 
+    const isInsufficient = (s.endReason === 'insufficient_balance' || endReason === 'insufficient_balance' || s.endReason === 'insufficient_funds' || endReason === 'insufficient_funds');
+
     // If session was connected/active but never billed minute 1, charge minute 1 minimum (unless ended due to insufficient_balance or restart recovery)
-    if (billableSeconds > 0 && (!s.lastBilledMinute || s.lastBilledMinute < 1) && s.endReason !== 'insufficient_balance' && !isRestartRecovery) {
+    if (billableSeconds > 0 && (!s.lastBilledMinute || s.lastBilledMinute < 1) && !isInsufficient && !isRestartRecovery) {
         const res = await processBillingCharge(sessionId, billableSeconds, 1, 'early_exit');
         if (res?.success) {
             s.lastBilledMinute = 1;
@@ -239,7 +241,7 @@ async function endSessionRecord(sessionId, broadcastAstroUpdate, endReason = 'en
                 s.totalEarned = (s.totalEarned || 0) + (res.astroShare || 0);
             }
         }
-    } else if (billableSeconds > 60 && s.endReason !== 'insufficient_balance' && !isRestartRecovery) {
+    } else if (billableSeconds > 60 && !isInsufficient && !isRestartRecovery) {
         // Ensure any subsequent entered minute that wasn't billed by ticker gets billed
         const lastBilled = s.lastBilledMinute || 1;
         const totalMinutesDue = Math.ceil(billableSeconds / 60);
@@ -295,17 +297,37 @@ async function endSessionRecord(sessionId, broadcastAstroUpdate, endReason = 'en
     }
 
     const finalReason = s.endReason || endReason || 'ended';
+    let clientWalletBal = null;
+    if (s.clientId) {
+        try {
+            const clientDoc = await User.findOne({ userId: s.clientId }).select('walletBalance');
+            if (clientDoc) {
+                clientWalletBal = Number(clientDoc.walletBalance || 0);
+            }
+        } catch (e) {
+            console.error('[BillingService] Failed to fetch final client wallet balance:', e);
+        }
+    }
+
     const payload = {
+        sessionId,
         reason: finalReason,
         summary: {
             deducted: s.totalDeducted || 0,
             earned: s.totalEarned || 0,
-            duration: billableSeconds
+            duration: billableSeconds,
+            remainingBalance: clientWalletBal !== null ? clientWalletBal : undefined,
+            reason: finalReason
         }
     };
 
     if (io) {
-        if (s.clientId) io.to(s.clientId).emit('session-ended', payload);
+        if (s.clientId) {
+            io.to(s.clientId).emit('session-ended', payload);
+            if (clientWalletBal !== null) {
+                io.to(s.clientId).emit('wallet-update', { balance: clientWalletBal });
+            }
+        }
         if (s.astrologerId) io.to(s.astrologerId).emit('session-ended', payload);
         if (s.users && Array.isArray(s.users)) {
             s.users.forEach(u => io.to(u).emit('session-ended', payload));

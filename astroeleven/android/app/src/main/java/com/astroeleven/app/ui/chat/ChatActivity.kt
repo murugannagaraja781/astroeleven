@@ -815,12 +815,18 @@ fun ChatScreen(
             // Modern Summary Overlay
             val summary by viewModel.sessionSummary.observeAsState()
             if (summary != null) {
+                val isLowBal = summary!!.reason.contains("insufficient", ignoreCase = true) || summary!!.reason.contains("balance", ignoreCase = true)
                 ModernSummaryDialog(
-                    title = "Chat Summary",
+                    title = if (isLowBal) "குறைந்த இருப்பு (Low Balance)" else "Chat Summary",
                     duration = summary!!.duration,
                     amount = if (isAstrologer) summary!!.earned else summary!!.deducted,
                     isAstrologer = isAstrologer,
-                    onDismiss = { onSessionFinished() }
+                    onDismiss = { onSessionFinished() },
+                    onRecharge = {
+                        val intent = Intent(context, com.astroeleven.app.ui.wallet.WalletActivity::class.java)
+                        context.startActivity(intent)
+                        (context as? android.app.Activity)?.finish()
+                    }
                 )
             }
             

@@ -164,12 +164,21 @@ module.exports = (io, socket, SERVER_URL, broadcastAstroUpdate) => {
 
             const requiredFirstMin = billingService.getRateForSession(toUser, type);
 
-            if (fromUser && fromUser.role === 'client' && (fromUser.walletBalance || 0) < requiredFirstMin) {
-                console.warn(`[CallHandler][request-session] Insufficient balance for ${fromUserId}. Balance: ${fromUser.walletBalance}, Required: ${requiredFirstMin}`);
-                return typeof cb === 'function' && cb({
-                    ok: false,
-                    error: `Insufficient balance. Minimum ₹${requiredFirstMin} required for 1 minute consultation.`
-                });
+            if (fromUser && fromUser.role === 'client') {
+                if ((fromUser.walletBalance || 0) < 1) {
+                    console.warn(`[CallHandler][request-session] Wallet balance below 1 for ${fromUserId}. Balance: ${fromUser.walletBalance}`);
+                    return typeof cb === 'function' && cb({
+                        ok: false,
+                        error: 'குறைந்த இருப்பு! உங்கள் வாலட் இருப்பு ₹1-க்கும் குறைவாக உள்ளது. அழைப்பைத் தொடங்க ரீசார்ஜ் செய்யவும்.'
+                    });
+                }
+                if ((fromUser.walletBalance || 0) < requiredFirstMin) {
+                    console.warn(`[CallHandler][request-session] Insufficient balance for ${fromUserId}. Balance: ${fromUser.walletBalance}, Required: ${requiredFirstMin}`);
+                    return typeof cb === 'function' && cb({
+                        ok: false,
+                        error: `Insufficient balance. Minimum ₹${requiredFirstMin} required for 1 minute consultation.`
+                    });
+                }
             }
 
             // Enrich and save birthData/intakeDetails
@@ -655,9 +664,20 @@ module.exports = (io, socket, SERVER_URL, broadcastAstroUpdate) => {
                         return;
                     }
 
+                    if (billRes.remainingBalance !== undefined && billRes.remainingBalance < 1) {
+                        console.warn(`[CallHandler][session-connect] Remaining balance after minute 1 is < 1 (₹${billRes.remainingBalance}). Ending session ${sessionId}.`);
+                        billingService.endSessionRecord(sessionId, broadcastAstroUpdate, 'insufficient_balance');
+                        return;
+                    }
+
                     const freshClient = await User.findOne({ userId: session.clientId });
                     const freshAstro = await User.findOne({ userId: session.astrologerId });
                     const clientBalance = freshClient ? Number(freshClient.walletBalance || 0) : 0;
+                    if (clientBalance < 1) {
+                        console.warn(`[CallHandler][session-connect] Client balance is < 1 (₹${clientBalance}). Ending session ${sessionId}.`);
+                        billingService.endSessionRecord(sessionId, broadcastAstroUpdate, 'insufficient_balance');
+                        return;
+                    }
                     const ratePerMinute = billingService.getRateForSession(freshAstro, session.type);
                     const availableMinutes = ratePerMinute > 0 ? (Math.floor(clientBalance / ratePerMinute) + 1) : 1; // 1 min already paid + remaining
 

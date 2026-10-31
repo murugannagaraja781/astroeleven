@@ -407,3 +407,63 @@ A clean build of Debug APK was compiled successfully after:
 * **Debug APK File Path:** `astroeleven/android/app/build/outputs/apk/debug/app-debug.apk` (copied to root `app-debug.apk` & `public/astroeleven.apk`)
 * **Size:** ~120 MB (120,038,796 bytes)
 * **Status:** Build Successful
+
+---
+
+## [2026-10-31] - Release APK Build - Version 1.0.7 (Version Code 43)
+
+A signed release APK build was compiled successfully:
+- Application ID: `com.astroeleven.app`
+- Version Code: `43`
+- Version Name: `"1.0.7"`
+- Target SDK: 36, Min SDK: 24
+- Signed with release keystore (`astrocust.jks`, V1, V2, V3, V4 enabled)
+- Proguard / R8 minified with 16KB page alignment support
+
+* **Date & Time:** October 31, 2026 - 10:35 AM (IST)
+* **Release APK File Path:** `astroeleven/android/app/build/outputs/apk/release/app-release.apk`
+* **Size:** ~68 MB (71,225,616 bytes)
+* **Status:** Build Successful
+
+---
+
+## [2026-10-31] - Release APK Build - Version 1.0.8 (Version Code 44) - Rate Limit ₹50 & Super Admin Controls
+
+A signed release APK build was compiled successfully:
+- Application ID: `com.astroeleven.app`
+- Version Code: `44`
+- Version Name: `"1.0.8"`
+- Features & Fixes:
+  1. Astrologer Dashboard Rate Setting Safeguard: Direct rates capped at ₹50/min. Any rate entered > ₹50 shows a permission alert dialog directing the astrologer to obtain Super Admin approval.
+  2. Super Admin Dashboard Rate Control: Super Admin can set custom Chat, Audio Call, and Video Call rates without limit for any astrologer via dedicated "Set Rates" modal and edit form.
+  3. Real-time rate sync & server-side validation.
+- Signed with release keystore (`astrocust.jks`, V1, V2, V3, V4 enabled)
+- Proguard / R8 minified with 16KB page alignment support
+
+* **Date & Time:** October 31, 2026 - 04:02 PM (IST)
+* **Release APK File Path:** `astroeleven/android/app/build/outputs/apk/release/app-release.apk` (copied to root `app-release.apk` & `public/astroeleven.apk`)
+* **Size:** ~68 MB (71,225,616 bytes)
+* **Status:** Build Successful
+
+---
+
+## [2026-10-31] - Release APK Build - Version 1.0.9 (Version Code 45) - Low Balance (< ₹1) Call Termination, Alert & Recharge Flow
+
+A signed release APK build was compiled successfully:
+- Application ID: `com.astroeleven.app`
+- Version Code: `45`
+- Version Name: `"1.0.9"`
+- Features & Fixes:
+  1. Low Balance Call Cut: If client wallet balance drops below ₹1 during active call, connection, or ticker billing, call is cut immediately (`insufficient_balance`).
+  2. Low Balance Alert Dialog: Custom alert dialog displayed informing the client that the call was disconnected because the balance dropped below ₹1.
+  3. One-Click Recharge Flow: Clicking "ரீசார்ஜ் செய்க (Recharge Now)" on the alert or summary dialog directly launches `WalletActivity`.
+  4. Real-time Socket Event: Listens to `wallet-update` to terminate WebRTC media stream and display low balance alert instantly.
+- Signed with release keystore (`astrocust.jks`, V1, V2, V3, V4 enabled)
+- Proguard / R8 minified with 16KB page alignment support
+
+* **Date & Time:** October 31, 2026 - 06:00 PM (IST)
+* **Release APK File Path:** [astroeleven/android/app/build/outputs/apk/release/app-release.apk](file:///Users/wohozo/Documents/astroeleven/astroeleven/android/app/build/outputs/apk/release/app-release.apk) (copied to [app-release.apk](file:///Users/wohozo/Documents/astroeleven/app-release.apk) & [public/astroeleven.apk](file:///Users/wohozo/Documents/astroeleven/public/astroeleven.apk))
+* **Size:** ~68 MB (71,226,380 bytes)
+* **Status:** Build Successful
+
+

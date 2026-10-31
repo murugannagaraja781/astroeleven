@@ -143,7 +143,7 @@ exports.toggleService = async (req, res) => {
 };
 
 exports.updateRate = async (req, res) => {
-    const { userId, price, chatPrice, callPrice, videoPrice } = req.body;
+    const { userId, price, chatPrice, callPrice, videoPrice, isAdminOverride } = req.body;
     if (!userId) return res.json({ ok: false, error: 'Missing userId' });
     const io = req.app.get('io');
     const SERVER_URL = req.app.get('SERVER_URL');
@@ -151,6 +151,24 @@ exports.updateRate = async (req, res) => {
     try {
         const user = await User.findOne({ userId });
         if (user) {
+            // Astrologers cannot set rates > 50 on their own without Super Admin permission
+            if (!isAdminOverride) {
+                const isOverLimit = (r) => {
+                    if (r !== undefined && r !== null && r !== '') {
+                        const parsed = parseFloat(r);
+                        return !isNaN(parsed) && parsed > 50;
+                    }
+                    return false;
+                };
+
+                if (isOverLimit(price) || isOverLimit(chatPrice) || isOverLimit(callPrice) || isOverLimit(videoPrice)) {
+                    return res.json({
+                        ok: false,
+                        error: '₹50-க்கு மேல் கட்டணம் நிர்ணயிக்க சூப்பர் அட்மினிடம் அனுமதி பெற வேண்டும் (Rates above ₹50/min require Super Admin permission).'
+                    });
+                }
+            }
+
             if (price !== undefined) {
                 const val = parseFloat(price);
                 if (!isNaN(val) && val >= 0) {
