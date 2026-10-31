@@ -55,12 +55,13 @@ class OtpVerificationActivity : AppCompatActivity() {
             return
         }
         val referralCode = intent.getStringExtra("referralCode")
+        val name = intent.getStringExtra("name")
 
         setContent {
             CosmicAppTheme {
                 OtpScreen(
                     phone = phone,
-                    onVerifyOtp = { otp -> verifyOtp(phone, otp, referralCode) },
+                    onVerifyOtp = { otp -> verifyOtp(phone, otp, referralCode, name) },
                     onResendOtp = { resendOtp(phone) }
                 )
             }
@@ -82,7 +83,7 @@ class OtpVerificationActivity : AppCompatActivity() {
         }
     }
 
-    private fun verifyOtp(phone: String, otp: String, referralCode: String? = null) {
+    private fun verifyOtp(phone: String, otp: String, referralCode: String? = null, name: String? = null) {
         if (otp.length != 4) {
             Toast.makeText(this, "Enter 4 digit OTP", Toast.LENGTH_SHORT).show()
             return
@@ -98,7 +99,7 @@ class OtpVerificationActivity : AppCompatActivity() {
 
         if (otp == "7777") {
             val dummyUser = com.astroeleven.app.data.model.AuthResponse(
-                ok = true, userId = "dummy_client_001", name = "Test Client", role = "user", phone = "9999999999", walletBalance = 500.0, image = "", error = null
+                ok = true, userId = "dummy_client_001", name = name ?: "Test Client", role = "user", phone = "9999999999", walletBalance = 500.0, image = "", error = null
             )
             tokenManager.saveUserSession(dummyUser)
             FcmTokenHelper.registerFcmToken("dummy_client_001")
@@ -108,7 +109,7 @@ class OtpVerificationActivity : AppCompatActivity() {
         }
 
         lifecycleScope.launch {
-            val result = repository.verifyOtp(phone, otp)
+            val result = repository.verifyOtp(phone, otp, referralCode, name)
             if (result.isSuccess) {
                 val user = result.getOrThrow()
                 tokenManager.saveUserSession(user)

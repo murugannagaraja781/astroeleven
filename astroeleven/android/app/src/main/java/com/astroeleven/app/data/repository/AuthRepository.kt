@@ -26,9 +26,9 @@ class AuthRepository {
         }
     }
 
-    suspend fun verifyOtp(phone: String, otp: String, referralCode: String? = null): Result<AuthResponse> {
+    suspend fun verifyOtp(phone: String, otp: String, referralCode: String? = null, name: String? = null): Result<AuthResponse> {
         return try {
-            val response = ApiClient.api.verifyOtp(VerifyOtpRequest(phone, otp, referralCode))
+            val response = ApiClient.api.verifyOtp(VerifyOtpRequest(phone, otp, referralCode, name))
             if (response.isSuccessful && response.body()?.ok == true) {
                 Result.success(response.body()!!)
             } else {

@@ -2309,8 +2309,9 @@ fun HomeTopBar(
                         ),
                         color = Color(0xFFB3262A) // Astro Crimson
                     )
+                    val cleanName = if (!userName.isNullOrBlank() && !userName.startsWith("User_")) userName else if (isTamil) "பயனர்" else "User"
                     Text(
-                        text = if (isTamil) "Hi நான்" else "Hi $userName",
+                        text = "Hi $cleanName",
                         style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
                         color = Color(0xFF2B2516), // Dark bronze for high contrast
                         maxLines = 1,

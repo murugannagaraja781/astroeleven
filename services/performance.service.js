@@ -3,162 +3,312 @@ const pool = mongoose.pool;
 const User = require('../models/User');
 
 /**
- * Astrologer Performance Service (MySQL Edition)
- * Tracks work depth, earnings, and engagement metrics
+ * Astrologer Performance & Income Monitoring Service
+ * Tracks 12 Core Astrological Performance & Financial Metrics:
+ * 1. Astrologer Name
+ * 2. Total Number of Clients (Unique Clients)
+ * 3. Daily Completed Calls
+ * 4. Daily Completed Chats
+ * 5. Total Call Duration (minutes)
+ * 6. Total Chat Duration (minutes)
+ * 7. Total Consultation Earnings (Total Charged)
+ * 8. Astrologer Commission Amount (Total Earned)
+ * 9. Platform Revenue (Consultation Earnings - Commission)
+ * 10. Daily Earnings (Today's Commission)
+ * 11. Weekly Earnings (Last 7 Days Commission)
+ * 12. Monthly Earnings (Last 30 Days Commission)
  */
 
-const getAstrologerPerformance = async (astrologerId, days = 30) => {
+function getTimeBoundaries(days) {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const weekStart = todayStart - (6 * 24 * 60 * 60 * 1000);
+    const monthStart = todayStart - (29 * 24 * 60 * 60 * 1000);
+
+    let periodStart = 0;
+    const strDays = String(days).toLowerCase();
+    if (strDays === '1' || strDays === 'today' || strDays === 'daily') {
+        periodStart = todayStart;
+    } else if (strDays === '7' || strDays === 'week' || strDays === 'weekly') {
+        periodStart = weekStart;
+    } else if (strDays === '30' || strDays === 'month' || strDays === 'monthly') {
+        periodStart = monthStart;
+    } else if (strDays === 'all' || strDays === '0') {
+        periodStart = 0;
+    } else {
+        const num = parseInt(days);
+        if (!isNaN(num) && num > 0) {
+            periodStart = Date.now() - (num * 24 * 60 * 60 * 1000);
+        }
+    }
+
+    return { todayStart, weekStart, monthStart, periodStart };
+}
+
+const getAllAstrologersPerformance = async (days = '30') => {
     try {
-        const startTimeLimit = Date.now() - (days * 24 * 60 * 60 * 1000);
+        const { todayStart, weekStart, monthStart, periodStart } = getTimeBoundaries(days);
 
-        // 1. Core Session Metrics SQL
-        const sessionSql = `
+        // Fetch all registered astrologers
+        const astros = await User.find({ role: 'astrologer' }, 'userId name phone image ratePerMinute').lean();
+        const astroMap = new Map();
+        astros.forEach(a => astroMap.set(a.userId, a));
+
+        const astroIds = Array.from(astroMap.keys());
+        if (astroIds.length === 0) {
+            return { ok: true, list: [], summary: { totalAstros: 0, totalConsultationRevenue: 0, totalPlatformRevenue: 0, totalCommission: 0 } };
+        }
+
+        // Comprehensive 12-Metric Aggregation SQL Query
+        const sql = `
             SELECT 
-                IFNULL(SUM(CASE WHEN duration >= 1000 THEN duration / 60000 ELSE duration / 60 END), 0) AS totalMinutes,
-                IFNULL(AVG(CASE WHEN duration >= 1000 THEN duration / 60000 ELSE duration / 60 END), 0) AS avgMinutes,
-                IFNULL(SUM(totalEarned), 0) AS totalEarned,
-                IFNULL(SUM(totalCharged), 0) AS totalCharged,
-                COUNT(*) AS sessionCount,
-                SUM(CASE WHEN type = 'unlimited' THEN 1 ELSE 0 END) AS unlimitedCount,
-                SUM(CASE WHEN type != 'unlimited' THEN 1 ELSE 0 END) AS slabCount
-            FROM sessions
-            WHERE astrologerId = ? AND status = 'ended' AND startTime >= ?
-        `;
-        const [sessionRows] = await pool.execute(sessionSql, [astrologerId, startTimeLimit]);
-        const overview = sessionRows[0] || {
-            totalMinutes: 0,
-            avgMinutes: 0,
-            totalEarned: 0,
-            totalCharged: 0,
-            sessionCount: 0,
-            unlimitedCount: 0,
-            slabCount: 0
-        };
-
-        // Ensure numbers
-        overview.totalMinutes = Number(overview.totalMinutes);
-        overview.avgMinutes = Number(overview.avgMinutes);
-        overview.totalEarned = Number(overview.totalEarned);
-        overview.totalCharged = Number(overview.totalCharged);
-        overview.sessionCount = Number(overview.sessionCount);
-        overview.unlimitedCount = Number(overview.unlimitedCount);
-        overview.slabCount = Number(overview.slabCount);
-
-        // 2. Retention Rate (Repeat Clients) SQL
-        const retentionSql = `
-            SELECT 
+                astrologerId,
                 COUNT(DISTINCT clientId) AS totalUniqueClients,
-                SUM(CASE WHEN sessionCount > 1 THEN 1 ELSE 0 END) AS repeatClients
-            FROM (
-                SELECT clientId, COUNT(*) AS sessionCount
-                FROM sessions
-                WHERE astrologerId = ? AND status = 'ended' AND startTime >= ?
-                GROUP BY clientId
-            ) AS client_sessions
-        `;
-        const [retentionRows] = await pool.execute(retentionSql, [astrologerId, startTimeLimit]);
-        const retention = retentionRows[0] || { totalUniqueClients: 0, repeatClients: 0 };
-        retention.totalUniqueClients = Number(retention.totalUniqueClients);
-        retention.repeatClients = Number(retention.repeatClients);
-
-        // 3. Visibility / Response Rate SQL
-        const visibilitySql = `
-            SELECT status AS _id, COUNT(*) AS count
+                -- Daily Completed Calls & Chats (Today)
+                SUM(CASE WHEN startTime >= ? AND type != 'chat' THEN 1 ELSE 0 END) AS dailyCompletedCalls,
+                SUM(CASE WHEN startTime >= ? AND type = 'chat' THEN 1 ELSE 0 END) AS dailyCompletedChats,
+                -- Calls & Chats in the Filtered Period
+                SUM(CASE WHEN type != 'chat' THEN 1 ELSE 0 END) AS periodCompletedCalls,
+                SUM(CASE WHEN type = 'chat' THEN 1 ELSE 0 END) AS periodCompletedChats,
+                COUNT(*) AS periodTotalSessions,
+                -- Durations in Minutes (Converted from seconds / milliseconds safely)
+                IFNULL(SUM(CASE WHEN type != 'chat' THEN (CASE WHEN duration >= 1000 THEN duration / 60000 ELSE duration / 60 END) ELSE 0 END), 0) AS totalCallDurationMins,
+                IFNULL(SUM(CASE WHEN type = 'chat' THEN (CASE WHEN duration >= 1000 THEN duration / 60000 ELSE duration / 60 END) ELSE 0 END), 0) AS totalChatDurationMins,
+                IFNULL(SUM(CASE WHEN duration >= 1000 THEN duration / 60000 ELSE duration / 60 END), 0) AS totalDurationMins,
+                -- Consultation Revenue, Commission, and Platform Revenue
+                IFNULL(SUM(totalCharged), 0) AS totalConsultationEarnings,
+                IFNULL(SUM(totalEarned), 0) AS astrologerCommissionAmount,
+                IFNULL(SUM(totalCharged - totalEarned), 0) AS platformRevenue,
+                -- Daily, Weekly, Monthly Breakdown Earnings
+                IFNULL(SUM(CASE WHEN startTime >= ? THEN totalEarned ELSE 0 END), 0) AS dailyEarnings,
+                IFNULL(SUM(CASE WHEN startTime >= ? THEN totalEarned ELSE 0 END), 0) AS weeklyEarnings,
+                IFNULL(SUM(CASE WHEN startTime >= ? THEN totalEarned ELSE 0 END), 0) AS monthlyEarnings
             FROM sessions
-            WHERE astrologerId = ? AND startTime >= ?
-            GROUP BY status
+            WHERE status = 'ended' AND startTime >= ?
+            GROUP BY astrologerId
+            ORDER BY totalConsultationEarnings DESC
         `;
-        const [visibilityRows] = await pool.execute(visibilitySql, [astrologerId, startTimeLimit]);
-        
-        const visibilityMap = {};
-        let totalRequests = 0;
-        visibilityRows.forEach(s => {
-            visibilityMap[s._id] = Number(s.count);
-            totalRequests += Number(s.count);
+
+        const [rows] = await pool.execute(sql, [todayStart, todayStart, todayStart, weekStart, monthStart, periodStart]);
+
+        let totalRevenueSum = 0;
+        let totalCommissionSum = 0;
+        let totalPlatformSum = 0;
+        let totalMinutesSum = 0;
+
+        const list = rows.map((r, idx) => {
+            const astro = astroMap.get(r.astrologerId) || {};
+            const rev = Number(r.totalConsultationEarnings || 0);
+            const comm = Number(r.astrologerCommissionAmount || 0);
+            const plat = Number(r.platformRevenue || 0);
+            const mins = Number(r.totalDurationMins || 0);
+
+            totalRevenueSum += rev;
+            totalCommissionSum += comm;
+            totalPlatformSum += plat;
+            totalMinutesSum += mins;
+
+            return {
+                rank: idx + 1,
+                astrologerId: r.astrologerId,
+                name: astro.name || 'Astrologer',
+                phone: astro.phone || 'N/A',
+                image: astro.image || '',
+                ratePerMinute: astro.ratePerMinute || 0,
+                // 12 Core Metrics
+                totalClients: Number(r.totalUniqueClients || 0),
+                dailyCompletedCalls: Number(r.dailyCompletedCalls || 0),
+                dailyCompletedChats: Number(r.dailyCompletedChats || 0),
+                periodCompletedCalls: Number(r.periodCompletedCalls || 0),
+                periodCompletedChats: Number(r.periodCompletedChats || 0),
+                totalCallDurationMins: Number(r.totalCallDurationMins || 0).toFixed(1),
+                totalChatDurationMins: Number(r.totalChatDurationMins || 0).toFixed(1),
+                totalDurationMins: mins.toFixed(1),
+                totalConsultationEarnings: rev.toFixed(2),
+                astrologerCommissionAmount: comm.toFixed(2),
+                platformRevenue: plat.toFixed(2),
+                dailyEarnings: Number(r.dailyEarnings || 0).toFixed(2),
+                weeklyEarnings: Number(r.weeklyEarnings || 0).toFixed(2),
+                monthlyEarnings: Number(r.monthlyEarnings || 0).toFixed(2),
+                sessionCount: Number(r.periodTotalSessions || 0)
+            };
         });
 
-        // Calculate final percentages
-        const retentionRate = retention.totalUniqueClients > 0 
-            ? ((retention.repeatClients / retention.totalUniqueClients) * 100).toFixed(1) 
-            : 0;
-
-        const responseRate = totalRequests > 0 
-            ? (((visibilityMap['ended'] || 0) / totalRequests) * 100).toFixed(1) 
-            : 0;
+        // Add astrologers with 0 sessions if needed so admin sees all active astrologers
+        astroIds.forEach(id => {
+            if (!list.some(item => item.astrologerId === id)) {
+                const astro = astroMap.get(id) || {};
+                list.push({
+                    rank: list.length + 1,
+                    astrologerId: id,
+                    name: astro.name || 'Astrologer',
+                    phone: astro.phone || 'N/A',
+                    image: astro.image || '',
+                    ratePerMinute: astro.ratePerMinute || 0,
+                    totalClients: 0,
+                    dailyCompletedCalls: 0,
+                    dailyCompletedChats: 0,
+                    periodCompletedCalls: 0,
+                    periodCompletedChats: 0,
+                    totalCallDurationMins: '0.0',
+                    totalChatDurationMins: '0.0',
+                    totalDurationMins: '0.0',
+                    totalConsultationEarnings: '0.00',
+                    astrologerCommissionAmount: '0.00',
+                    platformRevenue: '0.00',
+                    dailyEarnings: '0.00',
+                    weeklyEarnings: '0.00',
+                    monthlyEarnings: '0.00',
+                    sessionCount: 0
+                });
+            }
+        });
 
         return {
             ok: true,
-            astrologerId,
-            periodDays: days,
-            metrics: {
-                workDepth: {
-                    avgSessionDuration: overview.avgMinutes.toFixed(1),
-                    totalMinutes: overview.totalMinutes.toFixed(0),
-                    retentionRate: retentionRate + "%",
-                    responseRate: responseRate + "%",
-                    sessionCount: overview.sessionCount
-                },
-                earnings: {
-                    totalPayout: overview.totalEarned.toFixed(2),
-                    totalRevenue: overview.totalCharged.toFixed(2),
-                    adminShare: (overview.totalCharged - overview.totalEarned).toFixed(2),
-                    slabEarnings: (overview.totalEarned * (overview.slabCount / (overview.sessionCount || 1))).toFixed(2),
-                    unlimitedEarnings: (overview.totalEarned * (overview.unlimitedCount / (overview.sessionCount || 1))).toFixed(2)
-                },
-                callBreakdown: visibilityMap
+            period: days,
+            list,
+            summary: {
+                totalAstros: list.length,
+                totalConsultationRevenue: totalRevenueSum.toFixed(2),
+                totalPlatformRevenue: totalPlatformSum.toFixed(2),
+                totalCommission: totalCommissionSum.toFixed(2),
+                totalMinutes: totalMinutesSum.toFixed(1)
             }
         };
-
     } catch (error) {
-        console.error("[PerformanceService] Error:", error);
+        console.error('[PerformanceService] All Astros Error:', error);
         return { ok: false, error: error.message };
     }
 };
 
-const getAllAstrologersPerformance = async (days = 30) => {
+const getAstrologerPerformance = async (astrologerId, days = '30') => {
     try {
-        const startTimeLimit = Date.now() - (days * 24 * 60 * 60 * 1000);
-        
-        // Find all astrologers
-        const astros = await User.find({ role: 'astrologer' }, 'userId name image');
-        const astroIds = astros.map(a => a.userId);
+        const { todayStart, weekStart, monthStart, periodStart } = getTimeBoundaries(days);
 
-        if (astroIds.length === 0) {
-            return { ok: true, list: [] };
+        const astro = await User.findOne({ userId: astrologerId }, 'userId name phone image ratePerMinute email').lean();
+        if (!astro) {
+            return { ok: false, error: 'Astrologer not found' };
         }
 
-        // Use parameterized IN query
-        const resultsSql = `
+        // 1. Metric Aggregations
+        const sql = `
             SELECT 
-                astrologerId AS _id,
-                IFNULL(SUM(CASE WHEN duration >= 1000 THEN duration / 60000 ELSE duration / 60 END), 0) AS totalMinutes,
-                IFNULL(SUM(totalEarned), 0) AS totalEarned,
-                COUNT(*) AS sessionCount,
-                COUNT(DISTINCT clientId) AS uniqueClientsCount
+                COUNT(DISTINCT clientId) AS totalUniqueClients,
+                SUM(CASE WHEN startTime >= ? AND type != 'chat' THEN 1 ELSE 0 END) AS dailyCompletedCalls,
+                SUM(CASE WHEN startTime >= ? AND type = 'chat' THEN 1 ELSE 0 END) AS dailyCompletedChats,
+                SUM(CASE WHEN type != 'chat' THEN 1 ELSE 0 END) AS totalCalls,
+                SUM(CASE WHEN type = 'chat' THEN 1 ELSE 0 END) AS totalChats,
+                COUNT(*) AS totalSessions,
+                IFNULL(SUM(CASE WHEN type != 'chat' THEN (CASE WHEN duration >= 1000 THEN duration / 60000 ELSE duration / 60 END) ELSE 0 END), 0) AS totalCallDurationMins,
+                IFNULL(SUM(CASE WHEN type = 'chat' THEN (CASE WHEN duration >= 1000 THEN duration / 60000 ELSE duration / 60 END) ELSE 0 END), 0) AS totalChatDurationMins,
+                IFNULL(SUM(CASE WHEN duration >= 1000 THEN duration / 60000 ELSE duration / 60 END), 0) AS totalDurationMins,
+                IFNULL(SUM(totalCharged), 0) AS totalConsultationEarnings,
+                IFNULL(SUM(totalEarned), 0) AS astrologerCommissionAmount,
+                IFNULL(SUM(totalCharged - totalEarned), 0) AS platformRevenue,
+                IFNULL(SUM(CASE WHEN startTime >= ? THEN totalEarned ELSE 0 END), 0) AS dailyEarnings,
+                IFNULL(SUM(CASE WHEN startTime >= ? THEN totalEarned ELSE 0 END), 0) AS weeklyEarnings,
+                IFNULL(SUM(CASE WHEN startTime >= ? THEN totalEarned ELSE 0 END), 0) AS monthlyEarnings
             FROM sessions
-            WHERE astrologerId IN (${astroIds.map(() => '?').join(', ')}) AND status = 'ended' AND startTime >= ?
-            GROUP BY astrologerId
-            ORDER BY totalEarned DESC
+            WHERE astrologerId = ? AND status = 'ended' AND startTime >= ?
         `;
-        const [results] = await pool.execute(resultsSql, [...astroIds, startTimeLimit]);
 
-        const performanceData = results.map(r => {
-            const user = astros.find(a => a.userId === r._id);
+        const [metricRows] = await pool.execute(sql, [todayStart, todayStart, todayStart, weekStart, monthStart, astrologerId, periodStart]);
+        const m = metricRows[0] || {};
+
+        // 2. Status Breakdown (for response rate chart)
+        const [visRows] = await pool.execute(
+            `SELECT status AS _id, COUNT(*) AS count FROM sessions WHERE astrologerId = ? AND startTime >= ? GROUP BY status`,
+            [astrologerId, periodStart]
+        );
+        const callBreakdown = {};
+        let totalReqs = 0;
+        visRows.forEach(r => {
+            callBreakdown[r._id] = Number(r.count);
+            totalReqs += Number(r.count);
+        });
+
+        // 3. Recent 15 Consultations with Client details
+        const recentSql = `
+            SELECT sessionId, clientId, type, duration, startTime, endTime, totalCharged, totalEarned
+            FROM sessions
+            WHERE astrologerId = ? AND status = 'ended'
+            ORDER BY startTime DESC
+            LIMIT 15
+        `;
+        const [recentRows] = await pool.execute(recentSql, [astrologerId]);
+
+        // Enrich client names
+        const clientIds = [...new Set(recentRows.map(r => r.clientId).filter(Boolean))];
+        let clientMap = new Map();
+        if (clientIds.length > 0) {
+            const clients = await User.find({ userId: { $in: clientIds } }, 'userId name phone').lean();
+            clients.forEach(c => clientMap.set(c.userId, c));
+        }
+
+        const recentSessions = recentRows.map(s => {
+            const client = clientMap.get(s.clientId) || {};
+            const mins = s.duration ? (s.duration >= 1000 ? s.duration / 60000 : s.duration / 60) : 0;
             return {
-                userId: r._id,
-                name: user ? user.name : 'Unknown',
-                image: user ? user.image : '',
-                totalMinutes: Number(r.totalMinutes).toFixed(1),
-                totalEarned: Number(r.totalEarned).toFixed(2),
-                sessionCount: Number(r.sessionCount),
-                clientCount: Number(r.uniqueClientsCount)
+                sessionId: s.sessionId,
+                clientName: client.name || 'Client',
+                clientPhone: client.phone || 'N/A',
+                type: s.type || 'call',
+                durationMinutes: mins.toFixed(1),
+                totalCharged: Number(s.totalCharged || 0).toFixed(2),
+                totalEarned: Number(s.totalEarned || 0).toFixed(2),
+                date: s.startTime ? new Date(s.startTime).toLocaleString('en-IN') : ''
             };
         });
 
-        return { ok: true, list: performanceData };
+        const totalChargedNum = Number(m.totalConsultationEarnings || 0);
+        const totalEarnedNum = Number(m.astrologerCommissionAmount || 0);
+        const platformRevenueNum = Number(m.platformRevenue || 0);
 
+        return {
+            ok: true,
+            astrologer: {
+                userId: astro.userId,
+                name: astro.name,
+                phone: astro.phone,
+                email: astro.email,
+                image: astro.image,
+                ratePerMinute: astro.ratePerMinute
+            },
+            period: days,
+            metrics: {
+                astrologerName: astro.name,
+                totalClients: Number(m.totalUniqueClients || 0),
+                dailyCompletedCalls: Number(m.dailyCompletedCalls || 0),
+                dailyCompletedChats: Number(m.dailyCompletedChats || 0),
+                totalCalls: Number(m.totalCalls || 0),
+                totalChats: Number(m.totalChats || 0),
+                totalSessions: Number(m.totalSessions || 0),
+                totalCallDurationMins: Number(m.totalCallDurationMins || 0).toFixed(1),
+                totalChatDurationMins: Number(m.totalChatDurationMins || 0).toFixed(1),
+                totalDurationMins: Number(m.totalDurationMins || 0).toFixed(1),
+                totalConsultationEarnings: totalChargedNum.toFixed(2),
+                astrologerCommissionAmount: totalEarnedNum.toFixed(2),
+                platformRevenue: platformRevenueNum.toFixed(2),
+                dailyEarnings: Number(m.dailyEarnings || 0).toFixed(2),
+                weeklyEarnings: Number(m.weeklyEarnings || 0).toFixed(2),
+                monthlyEarnings: Number(m.monthlyEarnings || 0).toFixed(2),
+                workDepth: {
+                    avgSessionDuration: m.totalSessions ? (Number(m.totalDurationMins || 0) / Number(m.totalSessions)).toFixed(1) : '0.0',
+                    totalMinutes: Number(m.totalDurationMins || 0).toFixed(0),
+                    responseRate: totalReqs > 0 ? (((callBreakdown['ended'] || 0) / totalReqs) * 100).toFixed(1) + '%' : '0%'
+                },
+                earnings: {
+                    totalPayout: totalEarnedNum.toFixed(2),
+                    totalRevenue: totalChargedNum.toFixed(2),
+                    adminShare: platformRevenueNum.toFixed(2)
+                },
+                callBreakdown
+            },
+            recentSessions
+        };
     } catch (error) {
-        console.error("[PerformanceService] All Astros Error:", error);
+        console.error('[PerformanceService] Single Astro Error:', error);
         return { ok: false, error: error.message };
     }
 };

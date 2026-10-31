@@ -300,7 +300,7 @@ exports.verifyOtp = async (req, res) => {
                 if (needsSave) await user.save();
             }
         } else if (!user) {
-            const { referralCode: codeApplied } = req.body;
+            const { referralCode: codeApplied, name: inputName, clientName } = req.body;
             let referredBy = null;
             let initialBalance = 0; // Standard bonus (Disabled - set to 0)
 
@@ -313,17 +313,29 @@ exports.verifyOtp = async (req, res) => {
             }
 
             const userId = crypto.randomUUID();
-            const name = `User_${crypto.randomBytes(2).toString('hex')}`;
+            const chosenName = (inputName || clientName || '').trim() || `User_${crypto.randomBytes(2).toString('hex')}`;
             user = await User.create({
-                userId, phone, name, role: 'client',
+                userId, phone, name: chosenName, role: 'client',
                 walletBalance: initialBalance,
                 referredBy: referredBy,
-                referralCode: await generateUniqueReferralCode(name),
+                referralCode: await generateUniqueReferralCode(chosenName),
                 isNewUser: true
             });
-        } else if (!user.referralCode) {
-            user.referralCode = await generateUniqueReferralCode(user.name);
-            await user.save();
+        } else {
+            const { name: inputName, clientName } = req.body;
+            const chosenName = (inputName || clientName || '').trim();
+            let needsSave = false;
+            if (chosenName && (user.name.startsWith('User_') || user.name === 'Client' || user.name.trim() !== chosenName)) {
+                user.name = chosenName;
+                needsSave = true;
+            }
+            if (!user.referralCode) {
+                user.referralCode = await generateUniqueReferralCode(user.name);
+                needsSave = true;
+            }
+            if (needsSave) {
+                await user.save();
+            }
         }
 
         res.json({

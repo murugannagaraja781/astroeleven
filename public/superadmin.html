@@ -3222,19 +3222,80 @@ body {
                 </div>
             </div>
 
-            <!-- Tab Performance: Leaderboard -->
+            <!-- Tab Performance: Leaderboard & Income Monitoring -->
             <div id="admin-sect-performance" class="admin-tab-section">
-                <h2 style="margin-bottom:20px;"><i class="fas fa-medal" style="color:#FFD700;"></i> Astrologer Performance Leaderboard</h2>
-                <div class="admin-card" style="padding:0; overflow:hidden;">
-                    <table style="width:100%; border-collapse:collapse; color:var(--text-main);">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:20px;">
+                    <div>
+                        <h2 style="margin:0 0 6px 0;"><i class="fas fa-medal" style="color:#FFD700;"></i> Astrologer Performance & Income Monitoring Dashboard</h2>
+                        <div style="color:var(--text-muted); font-size:0.85rem;">Track individual astrologer consultations, daily/weekly/monthly earnings, commission & platform revenue</div>
+                    </div>
+                    <!-- Period Filter Tabs -->
+                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                        <span style="font-size:0.8rem; font-weight:700; color:var(--text-muted);"><i class="fas fa-filter"></i> PERIOD:</span>
+                        <button class="kundali-date-pill" id="perfPillToday" onclick="setPerfPeriod('today', this)">Today (Daily)</button>
+                        <button class="kundali-date-pill" id="perfPillWeek" onclick="setPerfPeriod('7', this)">Last 7 Days (Weekly)</button>
+                        <button class="kundali-date-pill active" id="perfPillMonth" onclick="setPerfPeriod('30', this)">Last 30 Days (Monthly)</button>
+                        <button class="kundali-date-pill" id="perfPillAll" onclick="setPerfPeriod('all', this)">All Time</button>
+                        <button class="btn-admin" onclick="loadPerformanceLeaderboard()" style="background:var(--primary); color:white; width:auto; padding:6px 14px; margin:0; display:inline-flex; align-items:center; gap:6px; font-size:0.82rem;">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <!-- KPI Metric Strip -->
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap:15px; margin-bottom:22px;">
+                    <div class="admin-card" style="padding:16px; border-left:4px solid #F59E0B; background:var(--bg-card); display:flex; align-items:center; gap:14px;">
+                        <div style="width:44px; height:44px; border-radius:12px; background:rgba(245,158,11,0.12); display:flex; align-items:center; justify-content:center; color:#F59E0B; font-size:1.3rem;">
+                            <i class="fas fa-coins"></i>
+                        </div>
+                        <div>
+                            <div id="perfKpiConsultationRevenue" style="font-size:1.35rem; font-weight:800; color:var(--text-main);">₹0.00</div>
+                            <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Total Consultation Earnings</div>
+                        </div>
+                    </div>
+                    <div class="admin-card" style="padding:16px; border-left:4px solid #10B981; background:var(--bg-card); display:flex; align-items:center; gap:14px;">
+                        <div style="width:44px; height:44px; border-radius:12px; background:rgba(16,185,129,0.12); display:flex; align-items:center; justify-content:center; color:#10B981; font-size:1.3rem;">
+                            <i class="fas fa-hand-holding-usd"></i>
+                        </div>
+                        <div>
+                            <div id="perfKpiCommission" style="font-size:1.35rem; font-weight:800; color:#10B981;">₹0.00</div>
+                            <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Astrologer Commission</div>
+                        </div>
+                    </div>
+                    <div class="admin-card" style="padding:16px; border-left:4px solid #3B82F6; background:var(--bg-card); display:flex; align-items:center; gap:14px;">
+                        <div style="width:44px; height:44px; border-radius:12px; background:rgba(59,130,246,0.12); display:flex; align-items:center; justify-content:center; color:#3B82F6; font-size:1.3rem;">
+                            <i class="fas fa-building"></i>
+                        </div>
+                        <div>
+                            <div id="perfKpiPlatformRev" style="font-size:1.35rem; font-weight:800; color:#3B82F6;">₹0.00</div>
+                            <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Platform Revenue</div>
+                        </div>
+                    </div>
+                    <div class="admin-card" style="padding:16px; border-left:4px solid #8B5CF6; background:var(--bg-card); display:flex; align-items:center; gap:14px;">
+                        <div style="width:44px; height:44px; border-radius:12px; background:rgba(139,92,246,0.12); display:flex; align-items:center; justify-content:center; color:#8B5CF6; font-size:1.3rem;">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div>
+                            <div id="perfKpiMinutes" style="font-size:1.35rem; font-weight:800; color:var(--text-main);">0m</div>
+                            <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Total Duration (Mins)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="admin-card" style="padding:0; overflow-x:auto;">
+                    <table style="width:100%; border-collapse:collapse; color:var(--text-main); min-width:980px;">
                         <thead>
-                            <tr style="background:rgba(255,255,255,0.05); text-align:left;">
-                                <th style="padding:15px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted);">Rank / Astro</th>
-                                <th style="padding:15px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted); text-align:center;">Sessions</th>
-                                <th style="padding:15px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted); text-align:center;">Minutes</th>
-                                <th style="padding:15px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted); text-align:center;">Unique Clients</th>
-                                <th style="padding:15px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted); text-align:right;">Earnings</th>
-                                <th style="padding:15px; font-size:0.8rem; text-transform:uppercase; color:var(--text-muted); text-align:center;">Action</th>
+                            <tr style="background:rgba(255,255,255,0.05); text-align:left; font-size:0.78rem; text-transform:uppercase; color:var(--text-muted); border-bottom:1px solid var(--border-soft);">
+                                <th style="padding:12px 14px;">Astrologer</th>
+                                <th style="padding:12px 10px; text-align:center;" title="Unique Clients">Clients</th>
+                                <th style="padding:12px 10px; text-align:center;" title="Calls Completed">Calls (Daily/Total)</th>
+                                <th style="padding:12px 10px; text-align:center;" title="Chats Completed">Chats (Daily/Total)</th>
+                                <th style="padding:12px 10px; text-align:center;" title="Duration in minutes">Duration (Call / Chat)</th>
+                                <th style="padding:12px 10px; text-align:right;">Consultation (₹)</th>
+                                <th style="padding:12px 10px; text-align:right;">Commission (₹)</th>
+                                <th style="padding:12px 10px; text-align:right;">Platform (₹)</th>
+                                <th style="padding:12px 10px; text-align:center;">Daily / Weekly / Monthly</th>
+                                <th style="padding:12px 14px; text-align:center;">Action</th>
                             </tr>
                         </thead>
                         <tbody id="performanceLeaderboardBody">
@@ -3779,9 +3840,20 @@ body {
                         <textarea id="fcmBody" class="app-input" placeholder="Message content..."
                             style="margin-bottom:10px; height:100px;"></textarea>
                         
-                        <div style="display:flex; gap:10px; align-items:center; margin-bottom: 20px;">
+                        <div style="display:flex; gap:10px; align-items:center; margin-bottom: 12px;">
                             <input type="text" id="fcmImageUrl" class="app-input" placeholder="Icon/Logo URL (e.g. Astro Eleven Logo)" value="https://astroeleven.com/images/astroeleven_icon.svg" style="margin-bottom:0; flex:1;">
                             <img id="fcmPrev" src="https://astroeleven.com/images/astroeleven_icon.svg" style="width:38px; height:38px; border-radius:6px; background:rgba(255, 204, 0,0.05); border:1px solid var(--border-soft);">
+                        </div>
+
+                        <!-- Optional Custom Redirect Link -->
+                        <div style="margin-bottom: 20px;">
+                            <label style="font-size:0.8rem; font-weight:700; color:var(--text-main); display:block; margin-bottom:4px;">
+                                <i class="fas fa-link" style="color:var(--primary);"></i> Optional Custom Redirect Link (Ecommerce / Campaign URL):
+                            </label>
+                            <input type="url" id="fcmLinkUrl" class="app-input" placeholder="https://example.com/product/123 (Optional - Leave blank to open App)" style="margin-bottom:4px;">
+                            <div style="font-size:0.75rem; color:var(--text-muted); line-height:1.4;">
+                                💡 விருப்பப்பட்டால் link கொடுக்கலாம். கொடுத்தால் வாடிக்கையாளர் கிளிக் செய்தவுடன் அந்த link திறக்கும்; கொடுக்காவிடில் Astro Eleven App வழக்கம்போல் திறக்கும்.
+                            </div>
                         </div>
 
                         <button id="btnSendBulkFcm" class="cosmic-btn" style="width:100%;" onclick="sendOfferFCM()">Send Notification</button>
@@ -4282,57 +4354,96 @@ body {
         </div>
 
         <!-- Edit User Modal -->
-        <!-- Modal: Astrologer Performance -->
+        <!-- Modal: Astrologer Performance Detailed Report -->
         <div id="modal-performance" class="admin-modal" style="display:none; position:fixed; inset:0; background:rgba(255,255,255,0.65); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); z-index:10000; overflow-y:auto; padding:20px;">
-            <div class="admin-modal-content" style="max-width: 800px; background: var(--bg-body); border: 1px solid var(--border-soft); box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                    <h3 style="margin:0; font-family:var(--font-heading); color:var(--primary);"><i class="fas fa-chart-line"></i> Astrologer Performance</h3>
-                    <button class="close-btn" onclick="closeModal('modal-performance')" style="background:none; border:none; color:var(--text-muted); font-size:1.5rem; cursor:pointer;">&times;</button>
+            <div class="admin-modal-content" style="max-width: 900px; background: var(--bg-body); border: 1px solid var(--border-soft); box-shadow: 0 20px 50px rgba(0,0,0,0.5); border-radius:16px; padding:24px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; border-bottom:1px solid var(--border-soft); padding-bottom:14px;">
+                    <div>
+                        <h3 id="perfModalAstroName" style="margin:0 0 4px 0; font-family:var(--font-heading); color:var(--primary); font-size:1.3rem;">
+                            <i class="fas fa-chart-line"></i> Astrologer Performance Report
+                        </h3>
+                        <div id="perfModalAstroSub" style="font-size:0.8rem; color:var(--text-muted);">Comprehensive consultation, duration, commission & platform revenue metrics</div>
+                    </div>
+                    <button class="close-btn" onclick="closeModal('modal-performance')" style="background:none; border:none; color:var(--text-muted); font-size:1.8rem; cursor:pointer;">&times;</button>
                 </div>
 
-                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:15px; margin-bottom:25px;">
-                    <div class="admin-card" style="text-align:center; padding:15px; background:rgba(255, 204, 0,0.03);">
-                        <small style="color:var(--text-muted);">Avg. Duration</small>
-                        <div id="perf-avg-duration" style="font-size:1.4rem; font-weight:bold; color:var(--primary);">0m</div>
+                <!-- 8 Key Metrics Grid -->
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap:12px; margin-bottom:20px;">
+                    <div class="admin-card" style="padding:14px; text-align:center; background:rgba(255,255,255,0.02); border-left:3px solid #8B5CF6;">
+                        <small style="color:var(--text-muted); font-size:0.72rem; text-transform:uppercase; font-weight:700;">Total Unique Clients</small>
+                        <div id="perfModalClients" style="font-size:1.4rem; font-weight:800; color:var(--text-main); margin-top:4px;">0</div>
                     </div>
-                    <div class="admin-card" style="text-align:center; padding:15px; background:rgba(0,255,136,0.03);">
-                        <small style="color:var(--text-muted);">Retention Rate</small>
-                        <div id="perf-retention" style="font-size:1.4rem; font-weight:bold; color:var(--accent);">0%</div>
+                    <div class="admin-card" style="padding:14px; text-align:center; background:rgba(255,255,255,0.02); border-left:3px solid #10B981;">
+                        <small style="color:var(--text-muted); font-size:0.72rem; text-transform:uppercase; font-weight:700;">Daily Calls / Total Calls</small>
+                        <div id="perfModalCalls" style="font-size:1.3rem; font-weight:800; color:#10B981; margin-top:4px;">0 / 0</div>
                     </div>
-                    <div class="admin-card" style="text-align:center; padding:15px; background:rgba(255,255,255,0.03);">
-                        <small style="color:var(--text-muted);">Total Earnings</small>
-                        <div id="perf-earnings" style="font-size:1.4rem; font-weight:bold; color:var(--text-main);">₹0</div>
+                    <div class="admin-card" style="padding:14px; text-align:center; background:rgba(255,255,255,0.02); border-left:3px solid #3B82F6;">
+                        <small style="color:var(--text-muted); font-size:0.72rem; text-transform:uppercase; font-weight:700;">Daily Chats / Total Chats</small>
+                        <div id="perfModalChats" style="font-size:1.3rem; font-weight:800; color:#3B82F6; margin-top:4px;">0 / 0</div>
                     </div>
-                    <div class="admin-card" style="text-align:center; padding:15px; background:rgba(245,158,11,0.03);">
-                        <small style="color:var(--text-muted);">Response Rate</small>
-                        <div id="perf-response" style="font-size:1.4rem; font-weight:bold; color:#FFB300;">0%</div>
+                    <div class="admin-card" style="padding:14px; text-align:center; background:rgba(255,255,255,0.02); border-left:3px solid #F59E0B;">
+                        <small style="color:var(--text-muted); font-size:0.72rem; text-transform:uppercase; font-weight:700;">Duration (Call / Chat)</small>
+                        <div id="perfModalDuration" style="font-size:1.2rem; font-weight:800; color:#F59E0B; margin-top:4px;">0m / 0m</div>
                     </div>
                 </div>
 
-                <div style="display:grid; grid-template-columns: 1fr 1.2fr; gap:20px;">
-                    <div class="admin-card" style="background:rgba(255,255,255,0.02); border:1px solid var(--border-soft);">
-                        <h4 style="margin-top:0; color:var(--primary); border-bottom:1px solid var(--border-soft); padding-bottom:8px;">Earnings Breakdown</h4>
-                        <div style="margin-bottom:12px; display:flex; justify-content:space-between; font-size:0.9rem;">
-                            <span style="color:var(--text-muted);">Slab Earning (L1-L5)</span>
-                            <span id="perf-slab-earning" style="font-weight:bold; color:var(--text-main);">₹0</span>
-                        </div>
-                        <div style="margin-bottom:12px; display:flex; justify-content:space-between; font-size:0.9rem;">
-                            <span style="color:var(--text-muted);">Unlimited Earnings</span>
-                            <span id="perf-unlimited-earning" style="font-weight:bold; color:var(--text-main);">₹0</span>
-                        </div>
-                        <div style="margin-bottom:12px; display:flex; justify-content:space-between; border-top:1px solid var(--border-soft); padding-top:10px; margin-top:10px;">
-                            <span style="color:var(--accent);">Admin Commission (Share)</span>
-                            <span id="perf-admin-share" style="color:var(--accent); font-weight:bold;">₹0</span>
-                        </div>
-                        <div style="margin-top:20px; font-size:0.75rem; color:var(--text-dim); line-height:1.4;">
-                            * Stats are calculated based on completed sessions in the last 30 days.
-                        </div>
+                <!-- Financial Metrics Breakdown -->
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:14px; margin-bottom:22px;">
+                    <div class="admin-card" style="padding:16px; background:rgba(255,204,0,0.04); border:1px solid rgba(255,204,0,0.2);">
+                        <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Total Consultation Earnings</div>
+                        <div id="perfModalTotalRev" style="font-size:1.5rem; font-weight:800; color:var(--text-main); margin:6px 0;">₹0.00</div>
+                        <div style="font-size:0.72rem; color:var(--text-muted);">Gross amount charged to clients</div>
                     </div>
-                    <div class="admin-card" style="background:rgba(255,255,255,0.02); border:1px solid var(--border-soft);">
-                        <h4 style="margin-top:0; color:var(--primary); border-bottom:1px solid var(--border-soft); padding-bottom:8px;">Call Distribution</h4>
-                        <div style="height:210px; position:relative; margin-top:10px;">
-                            <canvas id="perfCallChart"></canvas>
-                        </div>
+                    <div class="admin-card" style="padding:16px; background:rgba(16,185,129,0.04); border:1px solid rgba(16,185,129,0.2);">
+                        <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Astrologer Commission Amount</div>
+                        <div id="perfModalCommission" style="font-size:1.5rem; font-weight:800; color:#10B981; margin:6px 0;">₹0.00</div>
+                        <div style="font-size:0.72rem; color:var(--text-muted);">Payout credited to Astrologer</div>
+                    </div>
+                    <div class="admin-card" style="padding:16px; background:rgba(59,130,246,0.04); border:1px solid rgba(59,130,246,0.2);">
+                        <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Platform Revenue</div>
+                        <div id="perfModalPlatformRev" style="font-size:1.5rem; font-weight:800; color:#3B82F6; margin:6px 0;">₹0.00</div>
+                        <div style="font-size:0.72rem; color:var(--text-muted);">Astro Eleven platform margin</div>
+                    </div>
+                </div>
+
+                <!-- Daily / Weekly / Monthly Earnings Cards Strip -->
+                <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; margin-bottom:24px;">
+                    <div class="admin-card" style="padding:12px; text-align:center; background:rgba(16,185,129,0.08); border:1px solid #10B981; border-radius:10px;">
+                        <div style="font-size:0.72rem; font-weight:700; color:#10B981; text-transform:uppercase;">Daily Earnings (Today)</div>
+                        <div id="perfModalDailyEarn" style="font-size:1.25rem; font-weight:800; color:#10B981; margin-top:2px;">₹0.00</div>
+                    </div>
+                    <div class="admin-card" style="padding:12px; text-align:center; background:rgba(59,130,246,0.08); border:1px solid #3B82F6; border-radius:10px;">
+                        <div style="font-size:0.72rem; font-weight:700; color:#3B82F6; text-transform:uppercase;">Weekly Earnings (7 Days)</div>
+                        <div id="perfModalWeeklyEarn" style="font-size:1.25rem; font-weight:800; color:#3B82F6; margin-top:2px;">₹0.00</div>
+                    </div>
+                    <div class="admin-card" style="padding:12px; text-align:center; background:rgba(245,158,11,0.08); border:1px solid #F59E0B; border-radius:10px;">
+                        <div style="font-size:0.72rem; font-weight:700; color:#F59E0B; text-transform:uppercase;">Monthly Earnings (30 Days)</div>
+                        <div id="perfModalMonthlyEarn" style="font-size:1.25rem; font-weight:800; color:#F59E0B; margin-top:2px;">₹0.00</div>
+                    </div>
+                </div>
+
+                <!-- Recent Consultations Table -->
+                <div class="admin-card" style="padding:0; overflow:hidden; border:1px solid var(--border-soft); border-radius:12px;">
+                    <div style="padding:12px 16px; background:rgba(255,255,255,0.03); border-bottom:1px solid var(--border-soft); font-weight:700; font-size:0.85rem; color:var(--text-main); display:flex; justify-content:space-between; align-items:center;">
+                        <span><i class="fas fa-history" style="color:var(--primary);"></i> Recent Consultation Sessions</span>
+                        <span style="font-size:0.75rem; color:var(--text-muted);">Last 15 Sessions</span>
+                    </div>
+                    <div style="max-height:260px; overflow-y:auto;">
+                        <table style="width:100%; border-collapse:collapse; color:var(--text-main); font-size:0.82rem;">
+                            <thead>
+                                <tr style="background:rgba(255,255,255,0.02); text-align:left; color:var(--text-muted); border-bottom:1px solid var(--border-soft);">
+                                    <th style="padding:8px 12px;">Client</th>
+                                    <th style="padding:8px 12px; text-align:center;">Type</th>
+                                    <th style="padding:8px 12px; text-align:center;">Duration</th>
+                                    <th style="padding:8px 12px; text-align:right;">Charged (₹)</th>
+                                    <th style="padding:8px 12px; text-align:right;">Earned (₹)</th>
+                                    <th style="padding:8px 12px; text-align:right;">Date & Time</th>
+                                </tr>
+                            </thead>
+                            <tbody id="perfModalRecentBody">
+                                <!-- Recent sessions injected here -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -6430,17 +6541,19 @@ body {
             if (!confirm(`Send this notification to ${allUsers ? 'ALL' : userIds.length} users?`)) return;
 
             const btn = document.getElementById('btnSendBulkFcm');
-            const imageUrl = document.getElementById('fcmImageUrl').value;
+            const imageUrl = document.getElementById('fcmImageUrl')?.value || '';
+            const linkUrl = (document.getElementById('fcmLinkUrl')?.value || '').trim();
             btn.disabled = true;
             btn.innerText = 'Sending...';
 
-            socket.emit('send-bulk-fcm', { userIds, title, body, allUsers, imageUrl, adminUserId: state.me?.userId }, (res) => {
+            socket.emit('send-bulk-fcm', { userIds, title, body, allUsers, imageUrl, linkUrl, adminUserId: state.me?.userId }, (res) => {
                 btn.disabled = false;
                 btn.innerText = 'Send Notification';
                 if (res && res.ok) {
                     alert(`Success! Sent: ${res.sentCount}, Failed: ${res.failCount}`);
                     document.getElementById('fcmTitle').value = '';
                     document.getElementById('fcmBody').value = '';
+                    if (document.getElementById('fcmLinkUrl')) document.getElementById('fcmLinkUrl').value = '';
                 } else {
                     alert('Error: ' + (res?.error || 'Failed to send'));
                 }
@@ -7752,89 +7865,148 @@ body {
             });
         };
 
-        let activePerfChart = null;
-        window.showPerformance = async (astrologerId) => {
-            document.getElementById('modal-performance').style.display = 'block';
-            
-            try {
-                const res = await fetch(`/api/admin/astrologer-performance/${astrologerId}`).then(r => r.json());
-                if(res.ok) {
-                    const m = res.metrics;
-                    document.getElementById('perf-avg-duration').innerText = m.workDepth.avgSessionDuration + 'm';
-                    document.getElementById('perf-retention').innerText = m.workDepth.retentionRate;
-                    document.getElementById('perf-earnings').innerText = '₹' + m.earnings.totalPayout;
-                    document.getElementById('perf-response').innerText = m.workDepth.responseRate;
-
-                    document.getElementById('perf-slab-earning').innerText = '₹' + m.earnings.slabEarnings;
-                    document.getElementById('perf-unlimited-earning').innerText = '₹' + m.earnings.unlimitedEarnings;
-                    document.getElementById('perf-admin-share').innerText = '₹' + m.earnings.adminShare;
-
-                    // Render Pie Chart for Call Status
-                    const ctx = document.getElementById('perfCallChart').getContext('2d');
-                    if (activePerfChart) activePerfChart.destroy();
-                    
-                    const labels = Object.keys(m.callBreakdown);
-                    const data = Object.values(m.callBreakdown);
-                    
-                    activePerfChart = new Chart(ctx, {
-                        type: 'doughnut',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                data: data,
-                                backgroundColor: ['#10B981', '#FFB300', '#EF4444', '#3B82F6', '#8B5CF6']
-                            }]
-                        },
-                        options: {
-                            maintainAspectRatio: false,
-                            plugins: { legend: { position: 'bottom', labels: { color: '#2C251D', font: { size: 10 } } } }
-                        }
-                    });
-                }
-            } catch (e) {
-                console.error("Performance Load Error:", e);
-            }
+        let currentPerfPeriod = '30';
+        window.setPerfPeriod = (period, btn) => {
+            currentPerfPeriod = period;
+            document.querySelectorAll('#admin-sect-performance .kundali-date-pill').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            loadPerformanceLeaderboard();
         };
-
 
         window.loadPerformanceLeaderboard = async () => {
             const body = document.getElementById('performanceLeaderboardBody');
-            body.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:50px;"><div class="loader"></div></td></tr>';
+            body.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:50px;"><div class="loader"></div></td></tr>';
             
             try {
-                const res = await fetch('/api/admin/astrologers-performance').then(r => r.json());
+                const res = await fetch(`/api/admin/astrologers-performance?days=${currentPerfPeriod}`).then(r => r.json());
                 if (res.ok && res.list) {
+                    if (res.summary) {
+                        const revEl = document.getElementById('perfKpiConsultationRevenue');
+                        const comEl = document.getElementById('perfKpiCommission');
+                        const platEl = document.getElementById('perfKpiPlatformRev');
+                        const minEl = document.getElementById('perfKpiMinutes');
+                        if (revEl) revEl.innerText = '₹' + (res.summary.totalConsultationRevenue || '0.00');
+                        if (comEl) comEl.innerText = '₹' + (res.summary.totalCommission || '0.00');
+                        if (platEl) platEl.innerText = '₹' + (res.summary.totalPlatformRevenue || '0.00');
+                        if (minEl) minEl.innerText = (res.summary.totalMinutes || '0') + 'm';
+                    }
+
                     if (res.list.length === 0) {
-                        body.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--text-muted);">No data available for this period.</td></tr>';
+                        body.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:30px; color:var(--text-muted);">No astrologer performance records found for this period.</td></tr>';
                         return;
                     }
 
                     body.innerHTML = res.list.map((a, idx) => `
-                        <tr style="border-bottom:1px solid var(--border-soft); transition:all 0.2s; cursor:default;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
-                            <td style="padding:15px; display:flex; align-items:center; gap:12px;">
-                                <span style="font-weight:bold; color:var(--primary); font-size:0.9rem; width:20px;">#${idx + 1}</span>
-                                <img src="${a.image || 'https://ui-avatars.com/api/?name=' + a.name}" style="width:35px; height:35px; border-radius:50%; border:1px solid var(--border-soft);">
+                        <tr style="border-bottom:1px solid var(--border-soft); transition:all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
+                            <td style="padding:12px 14px; display:flex; align-items:center; gap:10px;">
+                                <span style="font-weight:bold; color:var(--primary); font-size:0.85rem; width:22px;">#${idx + 1}</span>
+                                <img src="${a.image || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(a.name)}" style="width:36px; height:36px; border-radius:50%; border:1px solid var(--border-soft); object-fit:cover;">
                                 <div>
-                                    <div style="font-weight:600; font-size:0.9rem;">${a.name}</div>
-                                    <div style="font-size:0.7rem; color:var(--text-dim);">ID: ${(a.userId || '').slice(0, 8)}</div>
+                                    <div style="font-weight:700; font-size:0.88rem; color:var(--text-main);">${a.name}</div>
+                                    <div style="font-size:0.72rem; color:var(--text-muted);"><i class="fas fa-phone-alt" style="font-size:0.65rem;"></i> ${a.phone}</div>
                                 </div>
                             </td>
-                            <td style="padding:15px; text-align:center; font-weight:600;">${a.sessionCount}</td>
-                            <td style="padding:15px; text-align:center; color:var(--accent);">${a.totalMinutes}m</td>
-                            <td style="padding:15px; text-align:center;">${a.clientCount}</td>
-                            <td style="padding:15px; text-align:right; font-weight:bold; color:var(--primary);">₹${a.totalEarned}</td>
-                            <td style="padding:15px; text-align:center;">
-                                <button onclick="showPerformance('${a.userId || ''}')" style="background:rgba(255,255,255,0.05); border:1px solid var(--border-soft); color:var(--text-main); padding:4px 10px; border-radius:4px; font-size:0.75rem; cursor:pointer;">
-                                    <i class="fas fa-eye"></i> View
+                            <td style="padding:12px 10px; text-align:center; font-weight:700; color:var(--text-main);">${a.totalClients}</td>
+                            <td style="padding:12px 10px; text-align:center;">
+                                <span style="color:#10B981; font-weight:bold;">${a.dailyCompletedCalls}</span> / <span style="color:var(--text-muted);">${a.periodCompletedCalls}</span>
+                            </td>
+                            <td style="padding:12px 10px; text-align:center;">
+                                <span style="color:#3B82F6; font-weight:bold;">${a.dailyCompletedChats}</span> / <span style="color:var(--text-muted);">${a.periodCompletedChats}</span>
+                            </td>
+                            <td style="padding:12px 10px; text-align:center; font-size:0.82rem;">
+                                <span style="color:#F59E0B;" title="Call duration">${a.totalCallDurationMins}m</span> / <span style="color:#8B5CF6;" title="Chat duration">${a.totalChatDurationMins}m</span>
+                            </td>
+                            <td style="padding:12px 10px; text-align:right; font-weight:bold; color:var(--text-main);">₹${a.totalConsultationEarnings}</td>
+                            <td style="padding:12px 10px; text-align:right; font-weight:bold; color:#10B981;">₹${a.astrologerCommissionAmount}</td>
+                            <td style="padding:12px 10px; text-align:right; font-weight:bold; color:#3B82F6;">₹${a.platformRevenue}</td>
+                            <td style="padding:12px 10px; text-align:center; font-size:0.78rem;">
+                                <div style="display:flex; justify-content:center; gap:4px; flex-wrap:wrap;">
+                                    <span class="user-pill" style="font-size:0.66rem; background:rgba(16,185,129,0.1); color:#10B981;" title="Today's Earnings">D: ₹${a.dailyEarnings}</span>
+                                    <span class="user-pill" style="font-size:0.66rem; background:rgba(59,130,246,0.1); color:#3B82F6;" title="Last 7 Days">W: ₹${a.weeklyEarnings}</span>
+                                    <span class="user-pill" style="font-size:0.66rem; background:rgba(245,158,11,0.1); color:#F59E0B;" title="Last 30 Days">M: ₹${a.monthlyEarnings}</span>
+                                </div>
+                            </td>
+                            <td style="padding:12px 14px; text-align:center;">
+                                <button onclick="showPerformance('${a.astrologerId}')" class="btn-admin" style="background:rgba(255,255,255,0.06); border:1px solid var(--border-soft); color:var(--text-main); padding:5px 12px; border-radius:6px; font-size:0.75rem; cursor:pointer; width:auto; margin:0; display:inline-flex; align-items:center; gap:5px;">
+                                    <i class="fas fa-eye"></i> Details
                                 </button>
                             </td>
                         </tr>
                     `).join('');
                 } else {
-                    body.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:30px; color:#EF4444;">Error: ${res.error || 'Failed to load'}</td></tr>`;
+                    body.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:30px; color:#EF4444;">Error: ${res.error || 'Failed to load'}</td></tr>`;
                 }
             } catch (e) {
-                body.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:30px; color:#EF4444;">Error connecting to server</td></tr>`;
+                body.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:30px; color:#EF4444;">Error connecting to server</td></tr>`;
+            }
+        };
+
+        window.showPerformance = async (astrologerId) => {
+            const modal = document.getElementById('modal-performance');
+            if (modal) modal.style.display = 'block';
+
+            // Loading state in modal
+            const recentBody = document.getElementById('perfModalRecentBody');
+            if (recentBody) recentBody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px;"><div class="loader"></div></td></tr>';
+
+            try {
+                const res = await fetch(`/api/admin/astrologer-performance/${astrologerId}?days=${currentPerfPeriod}`).then(r => r.json());
+                if (res.ok) {
+                    const astro = res.astrologer || {};
+                    const m = res.metrics || {};
+
+                    const titleEl = document.getElementById('perfModalAstroName');
+                    const subEl = document.getElementById('perfModalAstroSub');
+                    if (titleEl) titleEl.innerHTML = `<i class="fas fa-chart-line"></i> ${astro.name || 'Astrologer'} - Performance Report`;
+                    if (subEl) subEl.innerText = `Phone: ${astro.phone || 'N/A'} | ID: ${(astro.userId || '').slice(0, 10)} | Rate: ₹${astro.ratePerMinute || 0}/min`;
+
+                    // Top 4 Metrics
+                    document.getElementById('perfModalClients').innerText = m.totalClients ?? 0;
+                    document.getElementById('perfModalCalls').innerText = `${m.dailyCompletedCalls ?? 0} / ${m.totalCalls ?? 0}`;
+                    document.getElementById('perfModalChats').innerText = `${m.dailyCompletedChats ?? 0} / ${m.totalChats ?? 0}`;
+                    document.getElementById('perfModalDuration').innerText = `${m.totalCallDurationMins ?? '0.0'}m / ${m.totalChatDurationMins ?? '0.0'}m`;
+
+                    // Financials
+                    document.getElementById('perfModalTotalRev').innerText = '₹' + (m.totalConsultationEarnings || '0.00');
+                    document.getElementById('perfModalCommission').innerText = '₹' + (m.astrologerCommissionAmount || '0.00');
+                    document.getElementById('perfModalPlatformRev').innerText = '₹' + (m.platformRevenue || '0.00');
+
+                    // Daily / Weekly / Monthly
+                    document.getElementById('perfModalDailyEarn').innerText = '₹' + (m.dailyEarnings || '0.00');
+                    document.getElementById('perfModalWeeklyEarn').innerText = '₹' + (m.weeklyEarnings || '0.00');
+                    document.getElementById('perfModalMonthlyEarn').innerText = '₹' + (m.monthlyEarnings || '0.00');
+
+                    // Recent sessions
+                    if (recentBody) {
+                        const sessions = res.recentSessions || [];
+                        if (sessions.length === 0) {
+                            recentBody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px; color:var(--text-muted);">No completed consultations found.</td></tr>';
+                        } else {
+                            recentBody.innerHTML = sessions.map(s => `
+                                <tr style="border-bottom:1px solid var(--border-soft);">
+                                    <td style="padding:8px 12px;">
+                                        <div style="font-weight:600; color:var(--text-main);">${s.clientName}</div>
+                                        <div style="font-size:0.7rem; color:var(--text-muted);">${s.clientPhone}</div>
+                                    </td>
+                                    <td style="padding:8px 12px; text-align:center;">
+                                        <span class="user-pill" style="font-size:0.68rem; background:${s.type === 'chat' ? 'rgba(59,130,246,0.1)' : 'rgba(16,185,129,0.1)'}; color:${s.type === 'chat' ? '#3B82F6' : '#10B981'};">
+                                            ${(s.type || 'CALL').toUpperCase()}
+                                        </span>
+                                    </td>
+                                    <td style="padding:8px 12px; text-align:center; font-weight:600; color:var(--text-main);">${s.durationMinutes}m</td>
+                                    <td style="padding:8px 12px; text-align:right; font-weight:bold; color:var(--text-main);">₹${s.totalCharged}</td>
+                                    <td style="padding:8px 12px; text-align:right; font-weight:bold; color:#10B981;">₹${s.totalEarned}</td>
+                                    <td style="padding:8px 12px; text-align:right; font-size:0.75rem; color:var(--text-muted);">${s.date}</td>
+                                </tr>
+                            `).join('');
+                        }
+                    }
+                } else {
+                    alert('Error loading performance details: ' + (res.error || 'Unknown error'));
+                }
+            } catch (e) {
+                console.error("Performance Load Error:", e);
+                alert('Failed to connect to server');
             }
         };
 

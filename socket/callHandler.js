@@ -198,16 +198,6 @@ module.exports = (io, socket, SERVER_URL, broadcastAstroUpdate) => {
                         } : undefined
                     };
                     await fromUser.save();
-                    saveKundaliRecord({
-                        clientId: fromUser.userId,
-                        clientName: fromUser.name,
-                        clientPhone: fromUser.phone,
-                        birthData: enrichedBirthData || birthData,
-                        astrologerId: toUser ? toUser.userId : toUserId,
-                        astrologerName: toUser ? toUser.name : 'Astrologer',
-                        consultationType: type || 'call',
-                        sessionId: sessionId
-                    });
                 }
             } else if (fromUser && fromUser.role === 'client' && fromUser.birthDetails && fromUser.birthDetails.dob) {
                 // Backend fallback: Reconstruct birthData from saved profile details if not passed via socket payload
@@ -289,6 +279,19 @@ module.exports = (io, socket, SERVER_URL, broadcastAstroUpdate) => {
                 sessionId, fromUserId, toUserId, type, startTime: Date.now(),
                 clientId, astrologerId, status: 'ringing'
             });
+
+            if (enrichedBirthData || birthData) {
+                saveKundaliRecord({
+                    clientId: clientId,
+                    clientName: (fromUser && fromUser.role === 'client' ? fromUser.name : (toUser ? toUser.name : 'Client')),
+                    clientPhone: (fromUser && fromUser.role === 'client' ? fromUser.phone : (toUser ? toUser.phone : '')),
+                    birthData: enrichedBirthData || birthData,
+                    astrologerId: astrologerId,
+                    astrologerName: (toUser && toUser.role === 'astrologer' ? toUser.name : (fromUser ? fromUser.name : 'Astrologer')),
+                    consultationType: type || 'call',
+                    sessionId: sessionId
+                });
+            }
 
             activeSessions.set(sessionId, {
                 type,

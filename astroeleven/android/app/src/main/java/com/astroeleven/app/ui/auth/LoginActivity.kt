@@ -17,6 +17,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -56,6 +57,7 @@ fun LoginScreen() {
     val repository = remember { AuthRepository() }
     val scope = rememberCoroutineScope()
 
+    var clientName by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
     var referralCode by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
@@ -130,6 +132,24 @@ fun LoginScreen() {
                     HorizontalDivider(modifier = Modifier.weight(1f), color = CosmicAppTheme.colors.cardStroke.copy(alpha = 0.3f))
                 }
 
+                // Client Name Input
+                OutlinedTextField(
+                    value = clientName,
+                    onValueChange = { clientName = it },
+                    label = { Text("Your Name (வாடிக்கையாளர் பெயர்)", fontSize = 14.sp) },
+                    placeholder = { Text("Enter your full name", color = CosmicAppTheme.colors.textSecondary.copy(alpha = 0.5f)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(AstroDimens.RadiusMedium),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = CosmicAppTheme.colors.accent,
+                        focusedLabelColor = CosmicAppTheme.colors.accent
+                    ),
+                    leadingIcon = { Icon(Icons.Default.Person, null, tint = CosmicAppTheme.colors.accent) },
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(AstroDimens.Medium))
+
                 // Phone Input with Country Code
                 Surface(
                     modifier = Modifier.fillMaxWidth().height(56.dp),
@@ -189,6 +209,10 @@ fun LoginScreen() {
                 com.astroeleven.app.ui.theme.components.AstroButton(
                     text = "SEND OTP",
                     onClick = {
+                        if (clientName.trim().isEmpty()) {
+                            Toast.makeText(context, "Please enter your name (பெயரை உள்ளிடவும்)", Toast.LENGTH_SHORT).show()
+                            return@AstroButton
+                        }
                         if (phoneNumber.length < 10) {
                             Toast.makeText(context, "Enter 10 digit number", Toast.LENGTH_SHORT).show()
                             return@AstroButton
@@ -201,6 +225,7 @@ fun LoginScreen() {
                                 if (result.isSuccess) {
                                     val intent = Intent(context, OtpVerificationActivity::class.java)
                                     intent.putExtra("phone", fullPhone)
+                                    intent.putExtra("name", clientName.trim())
                                     intent.putExtra("referralCode", referralCode.trim())
                                     
                                     // If we are using the pending referral, we can clear it now that it's being processed

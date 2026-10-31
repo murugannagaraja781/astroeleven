@@ -11,6 +11,8 @@ import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import android.graphics.BitmapFactory
+import android.net.Uri
 import com.astroeleven.app.receiver.ChatActionReceiver
 import com.astroeleven.app.data.api.ApiService
 import com.astroeleven.app.data.local.AppDatabase
@@ -200,9 +202,10 @@ class FCMService : FirebaseMessagingService() {
                 }
                 else -> {
                     // Handle generic data messages or unknown types by showing a simple notification
-                    val title = data["title"] ?: message.notification?.title ?: "astroeleven"
+                    val title = data["title"] ?: message.notification?.title ?: "Astro Eleven"
                     val body = data["body"] ?: message.notification?.body ?: "New Message"
-                    showGenericNotification(title, body)
+                    val linkUrl = data["linkUrl"] ?: data["url"] ?: data["link"]
+                    showGenericNotification(title, body, linkUrl)
                 }
             }
         }
@@ -212,22 +215,49 @@ class FCMService : FirebaseMessagingService() {
             Log.d(TAG, "Message Notification Body: ${it.body}")
             // If we haven't processed it as data already (data payload usually takes precedence for functionality)
             if (message.data.isEmpty()) {
-                 showGenericNotification(it.title ?: "astroeleven", it.body ?: "New Notification")
+                val linkUrl = it.link?.toString()
+                showGenericNotification(it.title ?: "Astro Eleven", it.body ?: "New Notification", linkUrl)
             }
         }
     }
 
-    private fun showGenericNotification(title: String, body: String) {
-        val notification = NotificationCompat.Builder(this, CHAT_CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+    private fun showGenericNotification(title: String, body: String, linkUrl: String? = null) {
+        val intent = if (!linkUrl.isNullOrBlank() && (linkUrl.startsWith("http://") || linkUrl.startsWith("https://"))) {
+            Intent(Intent.ACTION_VIEW, Uri.parse(linkUrl)).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+        } else {
+            Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+        }
+
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            System.currentTimeMillis().toInt(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val largeIcon = try {
+            BitmapFactory.decodeResource(resources, R.mipmap.ic_launcher)
+        } catch (_: Exception) { null }
+
+        val builder = NotificationCompat.Builder(this, CHAT_CHANNEL_ID)
+            .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle(title)
             .setContentText(body)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
-            .build()
+            .setContentIntent(pendingIntent)
+
+        if (largeIcon != null) {
+            builder.setLargeIcon(largeIcon)
+        }
 
         val notificationManager = getSystemService(NotificationManager::class.java)
-        notificationManager.notify(GENERIC_NOTIFICATION_ID, notification)
+        notificationManager.notify((System.currentTimeMillis() % 100000).toInt(), builder.build())
     }
 
     /**

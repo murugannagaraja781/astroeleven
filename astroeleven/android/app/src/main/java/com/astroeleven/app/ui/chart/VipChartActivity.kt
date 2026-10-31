@@ -63,7 +63,7 @@ val signTamil = mapOf(
 val planetTamil = mapOf(
     "Sun" to "சூரியன்", "Moon" to "சந்திரன்", "Mars" to "செவ்வாய்", "Mercury" to "புதன்",
     "Jupiter" to "குரு", "Venus" to "சுக்கிரன்", "Saturn" to "சனி", "Rahu" to "ராகு",
-    "Ketu" to "கேது", "Ascendant" to "லக்னம்"
+    "Ketu" to "கேது", "Ascendant" to "லக்னம்", "Mandi" to "மாந்தி"
 )
 
 val nakshatraTamil = mapOf(
@@ -125,7 +125,7 @@ val nakshatraLordTamil = mapOf(
 val planetAbbrTamil = mapOf(
     "Sun" to "சூரி", "Moon" to "சந்", "Mars" to "செவ்", "Mercury" to "புத",
     "Jupiter" to "குரு", "Venus" to "சுக்", "Saturn" to "சனி", "Rahu" to "ராகு",
-    "Ketu" to "கேது", "Ascendant" to "லக்", "As" to "லக்", "Mandi" to "மாந்"
+    "Ketu" to "கேது", "Ascendant" to "லக்", "As" to "லக்", "Mandi" to "மா"
 )
  
 val dashaLevelTamil = mapOf(
@@ -160,6 +160,39 @@ val rasiClassifications = mapOf(
 )
 
 // --- Updated Data Models ---
+@Keep data class ClientInfo(
+    val name: String = "",
+    val dob: String = "",
+    val tob: String = "",
+    val pob: String = ""
+)
+
+@Keep data class CurrentDashaInfo(
+    val dashaLord: String = "",
+    val dashaLordTamil: String = "",
+    val dashaStarLord: String = "",
+    val dashaStarLordTamil: String = "",
+    val dashaStartDate: String = "",
+    val dashaEndDate: String = "",
+    val dashaDisplay: String = "",
+    val bhuktiLord: String = "",
+    val bhuktiLordTamil: String = "",
+    val bhuktiStarLord: String = "",
+    val bhuktiStarLordTamil: String = "",
+    val bhuktiStartDate: String = "",
+    val bhuktiEndDate: String = "",
+    val bhuktiDisplay: String = ""
+)
+
+@Keep data class LagnaRoles(
+    val lagna: String = "",
+    val lagnaTamil: String = "",
+    val subhar: String = "",
+    val paavar: String = "",
+    val badhaka: String = "",
+    val maraka: String = ""
+)
+
 @Keep data class ChartResponse(val success: Boolean = false, val data: ChartData? = null)
 @Keep data class ChartData(
     val planets: List<Planet> = emptyList(),
@@ -169,7 +202,10 @@ val rasiClassifications = mapOf(
     val transits: List<Transit> = emptyList(),
     val tamilDate: TamilDate? = null,
     val kpSignificators: KPSignificators? = null,
-    val navamsa: NavamsaData? = null
+    val navamsa: NavamsaData? = null,
+    val clientInfo: ClientInfo? = null,
+    val currentDashaInfo: CurrentDashaInfo? = null,
+    val lagnaRoles: LagnaRoles? = null
 )
 
 @Keep data class Planet(
@@ -364,7 +400,214 @@ fun ChartsTab(data: ChartData, birthData: JSONObject) {
         ?: data.houses.ascendantDetails.signName.takeIf { it.isNotBlank() }
         ?: "Aries"
 
+    // Extract client details
+    val clientName = data.clientInfo?.name?.takeIf { it.isNotBlank() }
+        ?: birthData.optString("name", "User")
+
+    val dobFormatted = data.clientInfo?.dob?.takeIf { it.isNotBlank() }
+        ?: run {
+            val d = birthData.optInt("day", 1)
+            val m = birthData.optInt("month", 1)
+            val y = birthData.optInt("year", 1995)
+            String.format("%02d/%02d/%04d", d, m, y)
+        }
+
+    val tobFormatted = data.clientInfo?.tob?.takeIf { it.isNotBlank() }
+        ?: run {
+            val h = birthData.optInt("hour", 12)
+            val min = birthData.optInt("minute", 0)
+            val amPm = if (h >= 12) "PM" else "AM"
+            val h12 = if (h % 12 == 0) 12 else h % 12
+            String.format("%02d:%02d %s", h12, min, amPm)
+        }
+
+    val pob = data.clientInfo?.pob?.takeIf { it.isNotBlank() }
+        ?: birthData.optString("city", birthData.optString("district", birthData.optString("pob", "-"))).ifBlank { "-" }
+
+    // Rasi, Lagna, Nakshatra
+    val moonPlanet = data.planets.find { it.name.equals("Moon", ignoreCase = true) }
+    val rasiName = signTamil[moonPlanet?.signName] ?: moonPlanet?.signName ?: data.panchanga.moonSign ?: "-"
+    val lagnaName = signTamil[currentAscSign] ?: currentAscSign
+    val nakshatraName = nakshatraTamil[moonPlanet?.nakshatra] ?: moonPlanet?.nakshatra ?: data.panchanga.nakshatra?.name ?: "-"
+    val nakshatraPada = moonPlanet?.nakshatraPada?.let { " - பாதம் $it" } ?: ""
+
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
+
+        // 1. Client Details Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8F0)),
+            border = BorderStroke(1.dp, Color(0xFFFFD180)),
+            shape = RoundedCornerShape(10.dp)
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                Text(
+                    text = "ஜாதகர் விவரங்கள்",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF8B2500)
+                )
+                Spacer(Modifier.height(8.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("பெயர்:", fontSize = 12.sp, color = Color.Gray)
+                        Text(clientName, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A1A))
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("பிறந்த தேதி:", fontSize = 12.sp, color = Color.Gray)
+                        Text(dobFormatted, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A1A))
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("பிறந்த நேரம்:", fontSize = 12.sp, color = Color.Gray)
+                        Text(tobFormatted, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A1A))
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("பிறந்த மாவட்டம்:", fontSize = 12.sp, color = Color.Gray)
+                        Text(pob, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A1A1A))
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        // 2. Rasi, Lagna, Nakshatra Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFF3F7FF)),
+            border = BorderStroke(1.dp, Color(0xFFBBDEFB)),
+            shape = RoundedCornerShape(10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("லக்னம்", fontSize = 12.sp, color = Color(0xFF1565C0), fontWeight = FontWeight.Medium)
+                    Text(lagnaName, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0D47A1))
+                }
+                Box(modifier = Modifier.width(1.dp).height(24.dp).background(Color(0xFFBBDEFB)))
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("ராசி", fontSize = 12.sp, color = Color(0xFF1565C0), fontWeight = FontWeight.Medium)
+                    Text(rasiName, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0D47A1))
+                }
+                Box(modifier = Modifier.width(1.dp).height(24.dp).background(Color(0xFFBBDEFB)))
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("நட்சத்திரம்", fontSize = 12.sp, color = Color(0xFF1565C0), fontWeight = FontWeight.Medium)
+                    Text("$nakshatraName$nakshatraPada", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0D47A1))
+                }
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        // 3. Current Dasa & Bhukti Card
+        val dInfo = data.currentDashaInfo
+        if (dInfo != null && (dInfo.dashaLord.isNotBlank() || dInfo.dashaDisplay.isNotBlank())) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF9E6)),
+                border = BorderStroke(1.dp, Color(0xFFFFE082)),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Text(
+                        text = "நடப்பு திசா புத்தி",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFB78103)
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    
+                    val dasaTitle = "${dInfo.dashaLordTamil.ifEmpty { dInfo.dashaLord }} திசை (${dInfo.dashaStartDate} To ${dInfo.dashaEndDate})"
+                    Text(
+                        text = dasaTitle,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF4E342E)
+                    )
+                    if (dInfo.dashaStarLordTamil.isNotBlank() || dInfo.dashaStarLord.isNotBlank()) {
+                        Text(
+                            text = "திசாநாதன் நின்ற நட்சத்திர அதிபதி: ${dInfo.dashaStarLordTamil.ifEmpty { dInfo.dashaStarLord }}",
+                            fontSize = 12.sp,
+                            color = Color(0xFF6D4C41),
+                            modifier = Modifier.padding(start = 4.dp, top = 2.dp)
+                        )
+                    }
+
+                    Spacer(Modifier.height(6.dp))
+
+                    val bhuktiTitle = "${dInfo.bhuktiLordTamil.ifEmpty { dInfo.bhuktiLord }} புத்தி (${dInfo.bhuktiStartDate} To ${dInfo.bhuktiEndDate})"
+                    Text(
+                        text = bhuktiTitle,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF4E342E)
+                    )
+                    if (dInfo.bhuktiStarLordTamil.isNotBlank() || dInfo.bhuktiStarLord.isNotBlank()) {
+                        Text(
+                            text = "புத்திநாதன் நின்ற நட்சத்திர அதிபதி: ${dInfo.bhuktiStarLordTamil.ifEmpty { dInfo.bhuktiStarLord }}",
+                            fontSize = 12.sp,
+                            color = Color(0xFF6D4C41),
+                            modifier = Modifier.padding(start = 4.dp, top = 2.dp)
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+        }
+
+        // 4. Lagna Roles Card (Subhar, Paavar, Badhaka, Maraka)
+        val lRoles = data.lagnaRoles
+        val fallbackClassification = rasiClassifications[currentAscSign]
+        val subhar = lRoles?.subhar?.takeIf { it.isNotBlank() } ?: fallbackClassification?.subhargal ?: "-"
+        val paavar = lRoles?.paavar?.takeIf { it.isNotBlank() } ?: fallbackClassification?.paabargal ?: "-"
+        val badhaka = lRoles?.badhaka?.takeIf { it.isNotBlank() } ?: "-"
+        val maraka = lRoles?.maraka?.takeIf { it.isNotBlank() } ?: fallbackClassification?.maaragar ?: "-"
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFF9FBE7)),
+            border = BorderStroke(1.dp, Color(0xFFDCEDC8)),
+            shape = RoundedCornerShape(10.dp)
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                Text(
+                    text = "லக்ன கிரக நிலைகள் ($lagnaName லக்னம்)",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF33691E)
+                )
+                Spacer(Modifier.height(8.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("லக்ன சுபர்:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32))
+                        Text(subhar, fontSize = 13.sp, color = Color(0xFF1B5E20))
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("லக்ன பாவர்:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC62828))
+                        Text(paavar, fontSize = 13.sp, color = Color(0xFFB71C1C))
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("பாதகாதிபதி:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFE65100))
+                        Text(badhaka, fontSize = 13.sp, color = Color(0xFFBF360C))
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("மாறகாதிபதி:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4A148C))
+                        Text(maraka, fontSize = 13.sp, color = Color(0xFF311B92))
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
 
         Text("ராசி கட்டம் (Rasi)", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF5D1212), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
         Spacer(Modifier.height(16.dp))
@@ -1423,6 +1666,8 @@ private suspend fun fetchFullChart(birthData: JSONObject): ChartData? = withCont
             addProperty("lat", lat)
             addProperty("lng", lng)
             addProperty("timezone", birthData.optDouble("timezone", 5.5))
+            addProperty("name", birthData.optString("name"))
+            addProperty("city", birthData.optString("city", birthData.optString("district", "")))
         }
 
         android.util.Log.d("VipChart", "Fetching chart with payload: $payload")
@@ -1580,6 +1825,51 @@ private suspend fun fetchFullChart(birthData: JSONObject): ChartData? = withCont
                     }
                 }
 
+                // Client Info
+                val clientInfoObj = dataObj.optJSONObject("clientInfo")
+                val clientInfoData = if (clientInfoObj != null) {
+                    ClientInfo(
+                        name = clientInfoObj.optString("name", ""),
+                        dob = clientInfoObj.optString("dob", ""),
+                        tob = clientInfoObj.optString("tob", ""),
+                        pob = clientInfoObj.optString("pob", "")
+                    )
+                } else null
+
+                // Current Dasha Info
+                val dashaInfoObj = dataObj.optJSONObject("currentDashaInfo")
+                val currentDashaData = if (dashaInfoObj != null) {
+                    CurrentDashaInfo(
+                        dashaLord = dashaInfoObj.optString("dashaLord", ""),
+                        dashaLordTamil = dashaInfoObj.optString("dashaLordTamil", ""),
+                        dashaStarLord = dashaInfoObj.optString("dashaStarLord", ""),
+                        dashaStarLordTamil = dashaInfoObj.optString("dashaStarLordTamil", ""),
+                        dashaStartDate = dashaInfoObj.optString("dashaStartDate", ""),
+                        dashaEndDate = dashaInfoObj.optString("dashaEndDate", ""),
+                        dashaDisplay = dashaInfoObj.optString("dashaDisplay", ""),
+                        bhuktiLord = dashaInfoObj.optString("bhuktiLord", ""),
+                        bhuktiLordTamil = dashaInfoObj.optString("bhuktiLordTamil", ""),
+                        bhuktiStarLord = dashaInfoObj.optString("bhuktiStarLord", ""),
+                        bhuktiStarLordTamil = dashaInfoObj.optString("bhuktiStarLordTamil", ""),
+                        bhuktiStartDate = dashaInfoObj.optString("bhuktiStartDate", ""),
+                        bhuktiEndDate = dashaInfoObj.optString("bhuktiEndDate", ""),
+                        bhuktiDisplay = dashaInfoObj.optString("bhuktiDisplay", "")
+                    )
+                } else null
+
+                // Lagna Roles
+                val lagnaRolesObj = dataObj.optJSONObject("lagnaRoles")
+                val lagnaRolesData = if (lagnaRolesObj != null) {
+                    LagnaRoles(
+                        lagna = lagnaRolesObj.optString("lagna", ""),
+                        lagnaTamil = lagnaRolesObj.optString("lagnaTamil", ""),
+                        subhar = lagnaRolesObj.optString("subhar", ""),
+                        paavar = lagnaRolesObj.optString("paavar", ""),
+                        badhaka = lagnaRolesObj.optString("badhaka", ""),
+                        maraka = lagnaRolesObj.optString("maraka", "")
+                    )
+                } else null
+
                 if (planetsList.isNotEmpty()) {
                     android.util.Log.d("VipChart", "Successfully parsed ${planetsList.size} planets via manual fallback!")
                     return@withContext ChartData(
@@ -1589,7 +1879,10 @@ private suspend fun fetchFullChart(birthData: JSONObject): ChartData? = withCont
                         dasha = dashaList,
                         transits = transitsList,
                         tamilDate = tamilDateData,
-                        navamsa = NavamsaData(planets = navamsaPlanets)
+                        navamsa = NavamsaData(planets = navamsaPlanets),
+                        clientInfo = clientInfoData,
+                        currentDashaInfo = currentDashaData,
+                        lagnaRoles = lagnaRolesData
                     )
                 }
             } catch (jsonEx: Exception) {

@@ -240,8 +240,8 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         } else {
-            Log.d(TAG, "User not logged in, going to Guest Dashboard")
-            Intent(this, com.astroeleven.app.ui.guest.GuestDashboardActivity::class.java)
+            Log.d(TAG, "User not logged in, going to LoginActivity")
+            Intent(this, com.astroeleven.app.ui.auth.LoginActivity::class.java)
         }
 
         targetIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP

@@ -2,17 +2,17 @@
 const express = require('express');
 const { DateTime } = require('luxon');
 const { swissEph } = require('../../utils/rasiEng/swisseph');
-const { getPlanetsWithDetails, getHouseCusps } = require('../../utils/rasiEng/calculations');
+const { getPlanetsWithDetails, getHouseCusps, getKPDetails, getPlanetHouse, getNavamsaSign } = require('../../utils/rasiEng/calculations');
 const { getKPSignificators } = require('../../utils/rasiEng/kpCalculations');
-const { getVimshottariDasha } = require('../../utils/rasiEng/dashaCalculations');
+const { getVimshottariDasha, getFullVimshottariDashaTree } = require('../../utils/rasiEng/dashaCalculations');
 const { getPanchanga, getMuhurtas } = require('../../utils/rasiEng/panchangaCalc');
 const { getTamilDate } = require('../../utils/rasiEng/tamilDate');
 
 const router = express.Router();
 
-// Helper function to format longitude as degrees/minutes/secondssssss
+// Helper function to format longitude as degrees/minutes/seconds
 function formatLongitude(longitude) {
-    const degInSign = longitude % 30;
+    const degInSign = (longitude % 30 + 30) % 30;
     const deg = Math.floor(degInSign);
     const minFloat = (degInSign - deg) * 60;
     const min = Math.floor(minFloat);
@@ -20,7 +20,112 @@ function formatLongitude(longitude) {
     return `${deg}° ${min}' ${sec}"`;
 }
 
-// Get complete chart data in one call
+// Tamil names mapping
+const TAMIL_PLANET_NAMES = {
+    'Sun': 'சூரியன்',
+    'Moon': 'சந்திரன்',
+    'Mars': 'செவ்வாய்',
+    'Mercury': 'புதன்',
+    'Jupiter': 'குரு',
+    'Venus': 'சுக்கிரன்',
+    'Saturn': 'சனி',
+    'Rahu': 'ராகு',
+    'Ketu': 'கேது',
+    'Ascendant': 'லக்னம்',
+    'Mandi': 'மாந்தி'
+};
+
+const TAMIL_SIGN_NAMES = {
+    'Aries': 'மேஷம்',
+    'Taurus': 'ரிஷபம்',
+    'Gemini': 'மிதுனம்',
+    'Cancer': 'கடகம்',
+    'Leo': 'சிம்மம்',
+    'Virgo': 'கன்னி',
+    'Libra': 'துலாம்',
+    'Scorpio': 'விருச்சிகம்',
+    'Sagittarius': 'தனுசு',
+    'Capricorn': 'மகரம்',
+    'Aquarius': 'கும்பம்',
+    'Pisces': 'மீனம்'
+};
+
+// Classical Tamil Lagna Subhar / Paavar / Badhaka / Maraka Rules (பராசர முறை)
+const LAGNA_RULES = {
+    0: { // Aries (மேஷம்) - Chara
+        subhar: "சூரியன், குரு",
+        paavar: "புதன், சுக்கிரன், சனி",
+        badhakathipathi: "சனி (11-ஆம் அதிபதி)",
+        marakathipathi: "சுக்கிரன் (2, 7-ஆம் அதிபதி)"
+    },
+    1: { // Taurus (ரிஷபம்) - Sthira
+        subhar: "சனி, புதன்",
+        paavar: "குரு, சந்திரன், சுக்கிரன்",
+        badhakathipathi: "சனி (9-ஆம் அதிபதி)",
+        marakathipathi: "செவ்வாய் (7-ஆம் அதிபதி), குரு"
+    },
+    2: { // Gemini (மிதுனம்) - Ubhaya
+        subhar: "சுக்கிரன்",
+        paavar: "செவ்வாய், குரு, சூரியன்",
+        badhakathipathi: "குரு (7-ஆம் அதிபதி)",
+        marakathipathi: "சந்திரன் (2-ஆம் அதிபதி), குரு (7-ஆம் அதிபதி)"
+    },
+    3: { // Cancer (கடகம்) - Chara
+        subhar: "செவ்வாய், குரு",
+        paavar: "சுக்கிரன், புதன்",
+        badhakathipathi: "சுக்கிரன் (11-ஆம் அதிபதி)",
+        marakathipathi: "சூரியன் (2-ஆம் அதிபதி), சனி (7-ஆம் அதிபதி)"
+    },
+    4: { // Leo (சிம்மம்) - Sthira
+        subhar: "செவ்வாய், குரு",
+        paavar: "சுக்கிரன், புதன்",
+        badhakathipathi: "செவ்வாய் (9-ஆம் அதிபதி)",
+        marakathipathi: "புதன் (2-ஆம் அதிபதி), சனி (7-ஆம் அதிபதி)"
+    },
+    5: { // Virgo (கன்னி) - Ubhaya
+        subhar: "சுக்கிரன்",
+        paavar: "செவ்வாய், குரு, சந்திரன்",
+        badhakathipathi: "குரு (7-ஆம் அதிபதி)",
+        marakathipathi: "சுக்கிரன் (2-ஆம் அதிபதி), குரு (7-ஆம் அதிபதி)"
+    },
+    6: { // Libra (துலாம்) - Chara
+        subhar: "சனி, புதன்",
+        paavar: "குரு, சூரியன், செவ்வாய்",
+        badhakathipathi: "சூரியன் (11-ஆம் அதிபதி)",
+        marakathipathi: "செவ்வாய் (2, 7-ஆம் அதிபதி)"
+    },
+    7: { // Scorpio (விருச்சிகம்) - Sthira
+        subhar: "குரு, சந்திரன்",
+        paavar: "புதன், சுக்கிரன்",
+        badhakathipathi: "சந்திரன் (9-ஆம் அதிபதி)",
+        marakathipathi: "சுக்கிரன் (7-ஆம் அதிபதி), புதன்"
+    },
+    8: { // Sagittarius (தனுசு) - Ubhaya
+        subhar: "சூரியன், செவ்வாய்",
+        paavar: "சுக்கிரன், புதன்",
+        badhakathipathi: "புதன் (7-ஆம் அதிபதி)",
+        marakathipathi: "சனி (2-ஆம் அதிபதி), புதன் (7-ஆம் அதிபதி)"
+    },
+    9: { // Capricorn (மகரம்) - Chara
+        subhar: "சுக்கிரன், புதன்",
+        paavar: "செவ்வாய், குரு, சந்திரன்",
+        badhakathipathi: "செவ்வாய் (11-ஆம் அதிபதி)",
+        marakathipathi: "சனி (2-ஆம் அதிபதி), சந்திரன் (7-ஆம் அதிபதி)"
+    },
+    10: { // Aquarius (கும்பம்) - Sthira
+        subhar: "சுக்கிரன்",
+        paavar: "குரு, சந்திரன், செவ்வாய்",
+        badhakathipathi: "சுக்கிரன் (9-ஆம் அதிபதி)",
+        marakathipathi: "குரு (2-ஆம் அதிபதி), சூரியன் (7-ஆம் அதிபதி)"
+    },
+    11: { // Pisces (மீனம்) - Ubhaya
+        subhar: "சந்திரன், செவ்வாய்",
+        paavar: "சுக்கிரன், புதன், சூரியன்",
+        badhakathipathi: "புதன் (7-ஆம் அதிபதி)",
+        marakathipathi: "செவ்வாய் (2-ஆம் அதிபதி), புதன் (7-ஆம் அதிபதி)"
+    }
+};
+
 // Get complete chart data in one call
 router.post('/full', async (req, res) => {
     try {
@@ -30,7 +135,10 @@ router.post('/full', async (req, res) => {
             lat = 13.0827,
             lng = 80.2707,
             timezone = 5.5,
-            ayanamsa = 'Lahiri'
+            ayanamsa = 'Lahiri',
+            name = '',
+            pob = '',
+            city = ''
         } = req.body;
 
         const offsetHours = Math.floor(Math.abs(timezone));
@@ -74,23 +182,80 @@ router.post('/full', async (req, res) => {
             };
         });
 
-        // 10. Mandi/Gulika (Simple approximation: based on weekday and sunrise/sunset)
-        // Ensure signIndex and all required properties exist so mobile parsers do not fail
-        const mandiSignIndex = (planets[0] && typeof planets[0].signIndex === 'number') ? planets[0].signIndex : 0;
-        const mandiSignName = (planets[0] && planets[0].signName) ? planets[0].signName : "Aries";
+        // 10. Classical Tamil Mandi / Gulika Calculation
+        let mandiSignIndex = 0;
+        let mandiSignName = "Aries";
+        let mandiLon = 0;
+        let mandiNakName = "Ashwini";
+        let mandiNakPada = 1;
+        let mandiKp = { signLord: "Mars", starLord: "Ketu", subLord: "Ketu" };
+        let mandiHouse = 1;
+
+        try {
+            const sunriseJd = swissEph.getSunrise(jd, lat, lng);
+            const sunsetJd = swissEph.getSunset(jd, lat, lng);
+            const dateInfo = swissEph.revjul(jd);
+            const jsDate = new Date(dateInfo.year, dateInfo.month - 1, dateInfo.day);
+            let varaIndex = jsDate.getDay(); // 0: Sun, 1: Mon, ... 6: Sat
+
+            const dayParts = [6, 5, 4, 3, 2, 1, 0];
+            const nightParts = [4, 3, 2, 1, 0, 6, 5];
+
+            let mandiJd = jd;
+            if (jd < sunriseJd) {
+                // Birth before sunrise belongs to previous day's astrological vara
+                varaIndex = (varaIndex + 6) % 7;
+                const prevSunsetJd = swissEph.getSunset(jd - 1, lat, lng);
+                const nightDuration = sunriseJd - prevSunsetJd;
+                const partIndex = nightParts[varaIndex];
+                mandiJd = prevSunsetJd + (partIndex * (nightDuration / 8));
+            } else if (jd >= sunriseJd && jd < sunsetJd) {
+                // Day birth
+                const dayDuration = sunsetJd - sunriseJd;
+                const partIndex = dayParts[varaIndex];
+                mandiJd = sunriseJd + (partIndex * (dayDuration / 8));
+            } else {
+                // Night birth after sunset
+                const nextSunriseJd = swissEph.getSunrise(jd + 1, lat, lng);
+                const nightDuration = nextSunriseJd - sunsetJd;
+                const partIndex = nightParts[varaIndex];
+                mandiJd = sunsetJd + (partIndex * (nightDuration / 8));
+            }
+
+            const mandiHouses = swissEph.getHouses(mandiJd, lat, lng, 'Placidus', ayanamsa);
+            mandiLon = mandiHouses.ascendant;
+            const mandiSign = swissEph.getSign(mandiLon);
+            const mandiNak = swissEph.getNakshatra(mandiLon);
+            mandiKp = getKPDetails(mandiLon);
+            mandiHouse = getPlanetHouse(mandiLon, houses.cusps);
+
+            mandiSignIndex = mandiSign.index;
+            mandiSignName = mandiSign.name;
+            mandiNakName = mandiNak.name;
+            mandiNakPada = mandiNak.pada;
+        } catch (mandiErr) {
+            console.error('[Charts] Mandi calculation fallback:', mandiErr.message);
+            mandiSignIndex = (planets[0] && typeof planets[0].signIndex === 'number') ? planets[0].signIndex : 0;
+            mandiSignName = (planets[0] && planets[0].signName) ? planets[0].signName : "Aries";
+        }
+
         planets.push({
             name: "Mandi",
+            tamilName: "மாந்தி",
+            symbol: "மா",
+            longitude: mandiLon,
             signName: mandiSignName,
             signIndex: mandiSignIndex,
-            house: 1,
-            nakshatra: "Ashwini",
-            nakshatraPada: 1,
+            house: mandiHouse,
+            nakshatra: mandiNakName,
+            nakshatraName: mandiNakName,
+            nakshatraPada: mandiNakPada,
             isRetrograde: false,
             isCombust: false,
-            degreeFormatted: "0° 0' 0\"",
-            signLord: "Mars",
-            starLord: "Ketu",
-            subLord: "Ketu"
+            degreeFormatted: formatLongitude(mandiLon),
+            signLord: mandiKp.signLord,
+            starLord: mandiKp.starLord,
+            subLord: mandiKp.subLord
         });
 
         // 10b. Include Ascendant in planets list for direct mobile/web chart access
@@ -123,25 +288,102 @@ router.post('/full', async (req, res) => {
 
         // 11. Dasha Logic
         const moon = planets.find(p => p.name === 'Moon');
-        // ... (rest of the logic remains similar but uses the parallel results)
-        const { getFullVimshottariDashaTree } = require('../../utils/rasiEng/dashaCalculations');
         const moonLon = moon ? moon.longitude : 0;
         const detailedDasha = getFullVimshottariDashaTree(moonLon, dt);
+
+        // 12. Lagna Subhar / Paavar / Badhaka / Maraka
+        const lagnaIndex = typeof houses.ascendant === 'number' ? Math.floor(houses.ascendant / 30) % 12 : 0;
+        const lagnaRules = LAGNA_RULES[lagnaIndex] || {
+            subhar: "சுக்கிரன், குரு",
+            paavar: "புதன், சனி, செவ்வாய்",
+            badhakathipathi: "பாதகாதிபதி",
+            marakathipathi: "மாறகாதிபதி"
+        };
+
+        // 13. Current Running Dasha & Bhukti with Star Lords & Date Ranges
+        const nowLuxon = DateTime.now();
+        const moonSignName = moon ? moon.signName : 'Aries';
+        const moonSignTamil = TAMIL_SIGN_NAMES[moonSignName] || moonSignName;
+        const ascSignName = houses.ascendantDetails?.signName || 'Aries';
+        const ascSignTamil = TAMIL_SIGN_NAMES[ascSignName] || ascSignName;
+        const moonNakName = moon ? (moon.nakshatraName || moon.nakshatra) : 'Ashwini';
+
+        let currentDashaInfo = null;
+        if (Array.isArray(detailedDasha) && detailedDasha.length > 0) {
+            // Find currently running Mahadasha
+            const curM = detailedDasha.find(d => {
+                const s = DateTime.fromISO(d.start);
+                const e = DateTime.fromISO(d.end);
+                return s <= nowLuxon && e >= nowLuxon;
+            }) || detailedDasha[0];
+
+            // Find currently running Bhukti
+            const curB = (curM.subPeriods && Array.isArray(curM.subPeriods)) ? curM.subPeriods.find(b => {
+                const s = DateTime.fromISO(b.start);
+                const e = DateTime.fromISO(b.end);
+                return s <= nowLuxon && e >= nowLuxon;
+            }) || curM.subPeriods[0] : null;
+
+            // Star Lords of Dasa Lord and Bhukti Lord
+            const dasaPlanetObj = planets.find(p => p.name.toLowerCase() === curM.lord.toLowerCase());
+            const bhuktiPlanetObj = curB ? planets.find(p => p.name.toLowerCase() === curB.lord.toLowerCase()) : null;
+
+            const dasaStarLord = dasaPlanetObj?.starLord || 'Unknown';
+            const bhuktiStarLord = bhuktiPlanetObj?.starLord || 'Unknown';
+
+            const formatDisplayDate = (isoStr) => {
+                if (!isoStr) return '';
+                try {
+                    return DateTime.fromISO(isoStr).toFormat('dd/MM/yyyy');
+                } catch (_) {
+                    return String(isoStr).slice(0, 10);
+                }
+            };
+
+            const dasaStartFormatted = formatDisplayDate(curM.start);
+            const dasaEndFormatted = formatDisplayDate(curM.end);
+            const bhuktiStartFormatted = curB ? formatDisplayDate(curB.start) : '';
+            const bhuktiEndFormatted = curB ? formatDisplayDate(curB.end) : '';
+
+            const dasaTamil = TAMIL_PLANET_NAMES[curM.lord] || curM.lord;
+            const bhuktiTamil = curB ? (TAMIL_PLANET_NAMES[curB.lord] || curB.lord) : '';
+            const dasaStarLordTamil = TAMIL_PLANET_NAMES[dasaStarLord] || dasaStarLord;
+            const bhuktiStarLordTamil = TAMIL_PLANET_NAMES[bhuktiStarLord] || bhuktiStarLord;
+
+            currentDashaInfo = {
+                dasaLord: curM.lord,
+                dasaLordTamil: dasaTamil,
+                dasaStarLord,
+                dasaStarLordTamil,
+                dasaStartDate: dasaStartFormatted,
+                dasaEndDate: dasaEndFormatted,
+                dasaDisplayText: `${dasaTamil} திசை (${dasaStartFormatted} To ${dasaEndFormatted})`,
+                dasaStarDisplayText: `திசாநாதன் நின்ற நட்சத்திர அதிபதி: ${dasaStarLordTamil}`,
+
+                bhuktiLord: curB ? curB.lord : '',
+                bhuktiLordTamil: bhuktiTamil,
+                bhuktiStarLord,
+                bhuktiStarLordTamil,
+                bhuktiStartDate: bhuktiStartFormatted,
+                bhuktiEndDate: bhuktiEndFormatted,
+                bhuktiDisplayText: `${bhuktiTamil} புத்தி (${bhuktiStartFormatted} To ${bhuktiEndFormatted})`,
+                bhuktiStarDisplayText: `புத்திநாதன் நின்ற நட்சத்திர அதிபதி: ${bhuktiStarLordTamil}`
+            };
+        }
 
         // Transits (Could also be parallelized if needed)
         const now = DateTime.now().toUTC();
         const transitJD = swissEph.julday(now.year, now.month, now.day, now.hour + now.minute / 60);
         const rawTransits = swissEph.getAllPlanets(transitJD, ayanamsa);
         const transits = rawTransits.map(t => {
-            const sign = swissEph.getSign(t.longitude);
+            const s = swissEph.getSign(t.longitude);
             return {
                 name: t.name,
-                signName: sign.name,
+                signName: s.name,
                 isRetrograde: t.isRetrograde
             };
         });
 
-        const { getNavamsaSign } = require('../../utils/rasiEng/calculations');
         const navamsaPlanets = planets.map(p => {
             return {
                 name: p.name,
@@ -155,6 +397,9 @@ router.post('/full', async (req, res) => {
             });
         }
 
+        const clientBirthDistrict = pob || city || 'Tamil Nadu';
+        const formattedTob = dt.toFormat('hh:mm a');
+
         const chartData = {
             planets,
             houses,
@@ -162,12 +407,24 @@ router.post('/full', async (req, res) => {
             dasha: detailedDasha,
             transits,
             tamilDate: tamilDateData,
-            navamsa: { planets: navamsaPlanets }
+            navamsa: { planets: navamsaPlanets },
+            clientInfo: {
+                name: name || 'Client',
+                dob: dt.toFormat('dd/MM/yyyy'),
+                tob: formattedTob,
+                tobFormatted: formattedTob,
+                pob: clientBirthDistrict,
+                rasi: moonSignTamil,
+                lagna: ascSignTamil,
+                nakshatra: moonNakName
+            },
+            currentDashaInfo,
+            lagnaRoles: lagnaRules
         };
 
         res.json({
             success: true,
-            version: "v5.5",
+            version: "v5.6",
             data: chartData
         });
     } catch (error) {

@@ -3770,6 +3770,7 @@ io.on('connection', (socket) => {
         title: title || 'Astro Eleven Notification',
         body: body || '',
         imageUrl: data.imageUrl || '',
+        linkUrl: data.linkUrl || '',
         timestamp: Date.now()
       };
       if (allUsers) {
@@ -3791,8 +3792,20 @@ io.on('connection', (socket) => {
       for (let i = 0; i < validUsers.length; i += chunkSize) {
         const chunk = validUsers.slice(i, i + chunkSize);
         const promises = chunk.map(u => {
-          const fcmData = { type: 'marketing_offer', title, body, image: data.imageUrl || '' };
-          const fcmNotif = { title, body, image: data.imageUrl || '' };
+          const fcmData = {
+            type: 'marketing_offer',
+            title,
+            body,
+            image: data.imageUrl || '',
+            linkUrl: data.linkUrl || '',
+            url: data.linkUrl || ''
+          };
+          const fcmNotif = {
+            title,
+            body,
+            image: data.imageUrl || '',
+            link: data.linkUrl || ''
+          };
           return sendFcmV1Push(u.fcmToken, fcmData, fcmNotif, u.userId)
             .then(res => res.success ? 1 : 0)
             .catch(() => 0);

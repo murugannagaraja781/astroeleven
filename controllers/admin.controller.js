@@ -171,7 +171,7 @@ exports.getAstrologerPerformance = async (req, res) => {
     try {
         const { astrologerId } = req.params;
         const { days } = req.query;
-        const stats = await performanceService.getAstrologerPerformance(astrologerId, parseInt(days) || 30);
+        const stats = await performanceService.getAstrologerPerformance(astrologerId, days || 30);
         res.json(stats);
     } catch (e) {
         res.json({ ok: false, error: e.message });
@@ -181,7 +181,7 @@ exports.getAstrologerPerformance = async (req, res) => {
 exports.getAllAstrologersPerformance = async (req, res) => {
     try {
         const { days } = req.query;
-        const stats = await performanceService.getAllAstrologersPerformance(parseInt(days) || 30);
+        const stats = await performanceService.getAllAstrologersPerformance(days || 30);
         res.json(stats);
     } catch (e) {
         res.json({ ok: false, error: e.message });

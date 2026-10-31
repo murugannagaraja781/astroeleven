@@ -68,6 +68,8 @@ class ChartDisplayActivity : ComponentActivity() {
                 addProperty("lat", birthData.optDouble("latitude"))
                 addProperty("lng", birthData.optDouble("longitude"))
                 addProperty("timezone", birthData.optDouble("timezone", 5.5))
+                addProperty("name", birthData.optString("name"))
+                addProperty("city", birthData.optString("city", birthData.optString("district", "")))
             }
 
             val response = apiInterface.getRasiEngBirthChart(payload)
@@ -149,12 +151,12 @@ class ChartDisplayActivity : ComponentActivity() {
 
         // Build planet details table from array
         val planetTableHtml = buildString {
-            val displayOrder = listOf("Ascendant", "Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu")
+            val displayOrder = listOf("Ascendant", "Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu", "Mandi")
             for (pName in displayOrder) {
                 for (i in 0 until planetsArray.length()) {
                     val p = planetsArray.getJSONObject(i)
                     if (p.optString("name") == pName) {
-                        val tName = if (pName == "Ascendant") "லக்னம்" else (tamilPlanetNames[pName] ?: pName)
+                        val tName = if (pName == "Ascendant") "லக்னம்" else if (pName == "Mandi") "மாந்தி" else (tamilPlanetNames[pName] ?: pName)
                         val sign = tamilSignNames[p.optString("signName", p.optString("sign", ""))] ?: p.optString("sign", "")
                         val deg = p.optString("degreeFormatted", "")
                         val naks = p.optString("nakshatraName", p.optString("nakshatra", ""))
@@ -166,21 +168,71 @@ class ChartDisplayActivity : ComponentActivity() {
             }
         }
 
-        // Dasha info from array
-        val dashaHtml = if (dasha != null && dasha.length() > 0) {
-            val currentDasha = dasha.getJSONObject(0)
-            val lord = currentDasha.optString("lord", "")
-            val endsAt = currentDasha.optString("end", "").take(10)
-            val subPeriods = currentDasha.optJSONArray("subPeriods")
-            val bhukti = if (subPeriods != null && subPeriods.length() > 0) subPeriods.getJSONObject(0).optString("lord", "") else ""
+        val clientInfo = data.optJSONObject("clientInfo")
+        val clientName = clientInfo?.optString("name")?.takeIf { it.isNotBlank() } ?: inputData.optString("name", "User")
+        val clientDob = clientInfo?.optString("dob")?.takeIf { it.isNotBlank() } ?: "${inputData.optInt("day")}/${inputData.optInt("month")}/${inputData.optInt("year")}"
+        val clientTob = clientInfo?.optString("tob")?.takeIf { it.isNotBlank() } ?: "${inputData.optInt("hour")}:${inputData.optInt("minute")}"
+        val clientPob = clientInfo?.optString("pob")?.takeIf { it.isNotBlank() } ?: inputData.optString("city", inputData.optString("district", "-"))
+
+        val currentDashaInfo = data.optJSONObject("currentDashaInfo")
+        val lagnaRoles = data.optJSONObject("lagnaRoles")
+
+        var moonSign = ""
+        var ascSign = ""
+        var moonNakshatra = ""
+        for (i in 0 until planetsArray.length()) {
+            val p = planetsArray.getJSONObject(i)
+            val pName = p.optString("name")
+            if (pName == "Moon") {
+                moonSign = tamilSignNames[p.optString("signName", p.optString("sign", ""))] ?: p.optString("sign", "")
+                moonNakshatra = p.optString("nakshatraName", p.optString("nakshatra", ""))
+            } else if (pName == "Ascendant") {
+                ascSign = tamilSignNames[p.optString("signName", p.optString("sign", ""))] ?: p.optString("sign", "")
+            }
+        }
+
+        // Dasha info from array or currentDashaInfo
+        val dashaCardHtml = if (currentDashaInfo != null && (currentDashaInfo.optString("dashaLord").isNotBlank() || currentDashaInfo.optString("dashaDisplay").isNotBlank())) {
+            val dLord = currentDashaInfo.optString("dashaLordTamil").ifEmpty { currentDashaInfo.optString("dashaLord") }
+            val dStar = currentDashaInfo.optString("dashaStarLordTamil").ifEmpty { currentDashaInfo.optString("dashaStarLord") }
+            val dStart = currentDashaInfo.optString("dashaStartDate")
+            val dEnd = currentDashaInfo.optString("dashaEndDate")
+
+            val bLord = currentDashaInfo.optString("bhuktiLordTamil").ifEmpty { currentDashaInfo.optString("bhuktiLord") }
+            val bStar = currentDashaInfo.optString("bhuktiStarLordTamil").ifEmpty { currentDashaInfo.optString("bhuktiStarLord") }
+            val bStart = currentDashaInfo.optString("bhuktiStartDate")
+            val bEnd = currentDashaInfo.optString("bhuktiEndDate")
 
             """
-            <h3>Current Dasha</h3>
-            <table class="info-table highlight">
-                <tr><th>Lord</th><td>$lord</td></tr>
-                <tr><th>Bhukti</th><td>$bhukti</td></tr>
-                <tr><th>Ends At</th><td>$endsAt</td></tr>
-            </table>
+            <div class="card" style="background:#FFF9E6; border:1px solid #FFE082;">
+                <h4 style="margin:0 0 8px 0; color:#B78103;">நடப்பு திசா புத்தி</h4>
+                <div style="font-weight:bold; color:#4E342E; font-size:13px;">$dLord திசை ($dStart To $dEnd)</div>
+                <div style="font-size:12px; color:#6D4C41; margin-bottom:6px;">திசாநாதன் நின்ற நட்சத்திர அதிபதி: $dStar</div>
+                <div style="font-weight:bold; color:#4E342E; font-size:13px;">$bLord புத்தி ($bStart To $bEnd)</div>
+                <div style="font-size:12px; color:#6D4C41;">புத்திநாதன் நின்ற நட்சத்திர அதிபதி: $bStar</div>
+            </div>
+            """
+        } else ""
+
+        val lagnaRolesCardHtml = if (lagnaRoles != null) {
+            val subhar = lagnaRoles.optString("subhar", "-")
+            val paavar = lagnaRoles.optString("paavar", "-")
+            val badhaka = lagnaRoles.optString("badhaka", "-")
+            val maraka = lagnaRoles.optString("maraka", "-")
+            val lName = lagnaRoles.optString("lagnaTamil").ifEmpty { ascSign }
+
+            """
+            <div class="card" style="background:#F9FBE7; border:1px solid #DCEDC8;">
+                <h4 style="margin:0 0 8px 0; color:#33691E;">லக்ன கிரக நிலைகள் ($lName லக்னம்)</h4>
+                <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                    <div><span style="font-weight:bold; color:#2E7D32;">லக்ன சுபர்:</span> $subhar</div>
+                    <div><span style="font-weight:bold; color:#C62828;">லக்ன பாவர்:</span> $paavar</div>
+                </div>
+                <div style="display:flex; justify-content:space-between;">
+                    <div><span style="font-weight:bold; color:#E65100;">பாதகாதிபதி:</span> $badhaka</div>
+                    <div><span style="font-weight:bold; color:#4A148C;">மாறகாதிபதி:</span> $maraka</div>
+                </div>
+            </div>
             """
         } else ""
 
@@ -191,6 +243,7 @@ class ChartDisplayActivity : ComponentActivity() {
                 <style>
                     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 16px; background: #FCFCFC; color: #1A1A1A; }
                     h2, h3 { text-align: center; color: #E1353C; margin: 24px 0 12px 0; border-bottom: 1px solid #E2E8F0; padding-bottom: 8px; font-weight: 600; letter-spacing: 1px; }
+                    .card { background:#FFFFFF; border-radius:10px; padding:14px; margin-bottom:14px; box-shadow:0 2px 6px rgba(0,0,0,0.04); }
                     .chart-container {
                         display: grid;
                         grid-template-columns: 1fr 1fr 1fr 1fr;
@@ -228,8 +281,37 @@ class ChartDisplayActivity : ComponentActivity() {
                 </style>
             </head>
             <body>
-                <h3>${inputData.optString("name")}'s Chart</h3>
-                <p style="text-align:center; font-size:12px;">${inputData.optString("city")} | ${inputData.optInt("day")}-${inputData.optInt("month")}-${inputData.optInt("year")}</p>
+                <!-- 1. Client Details Header -->
+                <div class="card" style="background:#FFF8F0; border:1px solid #FFD180;">
+                    <h4 style="margin:0 0 10px 0; color:#8B2500;">ஜாதகர் விவரங்கள்</h4>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:13px;">
+                        <div><span style="color:#777;">பெயர்:</span> <strong>$clientName</strong></div>
+                        <div><span style="color:#777;">பிறந்த தேதி:</span> <strong>$clientDob</strong></div>
+                        <div><span style="color:#777;">பிறந்த நேரம்:</span> <strong>$clientTob</strong></div>
+                        <div><span style="color:#777;">பிறந்த மாவட்டம்:</span> <strong>$clientPob</strong></div>
+                    </div>
+                </div>
+
+                <!-- 2. Rasi, Lagna, Nakshatra -->
+                <div class="card" style="background:#F3F7FF; border:1px solid #BBDEFB; display:flex; justify-content:space-around; text-align:center;">
+                    <div>
+                        <div style="font-size:11px; color:#1565C0;">லக்னம்</div>
+                        <div style="font-size:15px; font-weight:bold; color:#0D47A1;">$ascSign</div>
+                    </div>
+                    <div style="border-left:1px solid #BBDEFB; height:28px;"></div>
+                    <div>
+                        <div style="font-size:11px; color:#1565C0;">ராசி</div>
+                        <div style="font-size:15px; font-weight:bold; color:#0D47A1;">$moonSign</div>
+                    </div>
+                    <div style="border-left:1px solid #BBDEFB; height:28px;"></div>
+                    <div>
+                        <div style="font-size:11px; color:#1565C0;">நட்சத்திரம்</div>
+                        <div style="font-size:14px; font-weight:bold; color:#0D47A1;">$moonNakshatra</div>
+                    </div>
+                </div>
+
+                $dashaCardHtml
+                $lagnaRolesCardHtml
 
                 <h3>Rasi Chart</h3>
                 <div class="chart-container">
