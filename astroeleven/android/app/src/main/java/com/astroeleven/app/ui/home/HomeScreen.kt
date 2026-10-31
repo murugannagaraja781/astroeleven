@@ -3928,7 +3928,7 @@ fun ConsultationHistoryCard(item: SessionHistoryItem) {
 
             Spacer(modifier = Modifier.height(12.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                val totalSec = (item.duration / 1000).toLong()
+                val totalSec = (if (item.duration > 50000) item.duration / 1000 else item.duration).toLong()
                 val mins = totalSec / 60
                 val secs = totalSec % 60
                 val duraText = if (mins > 0L) "${mins}m ${secs}s" else "${secs}s"

@@ -466,4 +466,23 @@ A signed release APK build was compiled successfully:
 * **Size:** ~68 MB (71,226,380 bytes)
 * **Status:** Build Successful
 
+---
+
+## [2026-10-31] - Release APK Build - Version 1.1.0 (Version Code 46) - Consultation Time Duration Fix (0s Fix)
+
+A signed release APK build was compiled successfully:
+- Application ID: `com.astroeleven.app`
+- Version Code: `46`
+- Version Name: `"1.1.0"`
+- Features & Fixes:
+  1. Consultation Time 0s Fix: In `AstrologerHistoryActivity.kt` and `HomeScreen.kt`, `item.duration / 1000` was inadvertently dividing the server's duration (which was already in seconds) by 1000 again, converting all durations under 1000s into 0s. Updated duration calculation to `if (item.duration > 50000) item.duration / 1000 else item.duration` so that both seconds and milliseconds are formatted accurately as e.g. "14m 0s", "5m 0s", "1m 0s".
+  2. Chart Loading Fix: Resolved `dashaStarLordTamil` ReferenceError in `/api/rasi-eng/charts/full` on live server.
+- Signed with release keystore (`astrocust.jks`, V1, V2, V3, V4 enabled)
+- Proguard / R8 minified with 16KB page alignment support
+
+* **Date & Time:** October 31, 2026 - 09:10 PM (IST)
+* **Release APK File Path:** [astroeleven/android/app/build/outputs/apk/release/app-release.apk](file:///Users/wohozo/Documents/astroeleven/astroeleven/android/app/build/outputs/apk/release/app-release.apk) (copied to [app-release.apk](file:///Users/wohozo/Documents/astroeleven/app-release.apk) & [public/astroeleven.apk](file:///Users/wohozo/Documents/astroeleven/public/astroeleven.apk))
+* **Status:** Build in progress
+
+
 

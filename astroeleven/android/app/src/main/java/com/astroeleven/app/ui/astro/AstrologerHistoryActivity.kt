@@ -206,7 +206,7 @@ fun HistoryCard(item: SessionHistoryItem) {
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text("Consultation Time", fontSize = 12.sp, color = colors.textSecondary)
-                    val totalSec = item.duration / 1000
+                    val totalSec = if (item.duration > 50000) item.duration / 1000 else item.duration
                     val mins = totalSec / 60
                     val secs = totalSec % 60
                     val duraText = if (mins > 0) "${mins}m ${secs}s" else "${secs}s"
