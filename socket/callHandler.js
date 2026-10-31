@@ -281,11 +281,12 @@ module.exports = (io, socket, SERVER_URL, broadcastAstroUpdate) => {
             });
 
             if (enrichedBirthData || birthData) {
+                const bData = enrichedBirthData || birthData;
                 saveKundaliRecord({
                     clientId: clientId,
-                    clientName: (fromUser && fromUser.role === 'client' ? fromUser.name : (toUser ? toUser.name : 'Client')),
-                    clientPhone: (fromUser && fromUser.role === 'client' ? fromUser.phone : (toUser ? toUser.phone : '')),
-                    birthData: enrichedBirthData || birthData,
+                    clientName: bData.name || (fromUser && fromUser.role === 'client' ? fromUser.name : (toUser ? toUser.name : 'Client')),
+                    clientPhone: bData.phone || (fromUser && fromUser.role === 'client' ? fromUser.phone : (toUser ? toUser.phone : '')),
+                    birthData: bData,
                     astrologerId: astrologerId,
                     astrologerName: (toUser && toUser.role === 'astrologer' ? toUser.name : (fromUser ? fromUser.name : 'Astrologer')),
                     consultationType: type || 'call',

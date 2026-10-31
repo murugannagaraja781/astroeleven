@@ -352,12 +352,19 @@ router.post('/full', async (req, res) => {
 
             currentDashaInfo = {
                 dasaLord: curM.lord,
+                dashaLord: curM.lord,
                 dasaLordTamil: dasaTamil,
+                dashaLordTamil: dasaTamil,
                 dasaStarLord,
+                dashaStarLord: dasaStarLord,
                 dasaStarLordTamil,
+                dashaStarLordTamil,
                 dasaStartDate: dasaStartFormatted,
+                dashaStartDate: dasaStartFormatted,
                 dasaEndDate: dasaEndFormatted,
+                dashaEndDate: dasaEndFormatted,
                 dasaDisplayText: `${dasaTamil} திசை (${dasaStartFormatted} To ${dasaEndFormatted})`,
+                dashaDisplay: `${dasaTamil} திசை (${dasaStartFormatted} To ${dasaEndFormatted})`,
                 dasaStarDisplayText: `திசாநாதன் நின்ற நட்சத்திர அதிபதி: ${dasaStarLordTamil}`,
 
                 bhuktiLord: curB ? curB.lord : '',
@@ -367,9 +374,21 @@ router.post('/full', async (req, res) => {
                 bhuktiStartDate: bhuktiStartFormatted,
                 bhuktiEndDate: bhuktiEndFormatted,
                 bhuktiDisplayText: `${bhuktiTamil} புத்தி (${bhuktiStartFormatted} To ${bhuktiEndFormatted})`,
+                bhuktiDisplay: `${bhuktiTamil} புத்தி (${bhuktiStartFormatted} To ${bhuktiEndFormatted})`,
                 bhuktiStarDisplayText: `புத்திநாதன் நின்ற நட்சத்திர அதிபதி: ${bhuktiStarLordTamil}`
             };
         }
+
+        const lagnaRoles = {
+            lagna: ascSignName,
+            lagnaTamil: ascSignTamil,
+            subhar: lagnaRules.subhar,
+            paavar: lagnaRules.paavar,
+            badhaka: lagnaRules.badhakathipathi,
+            badhakathipathi: lagnaRules.badhakathipathi,
+            maraka: lagnaRules.marakathipathi,
+            marakathipathi: lagnaRules.marakathipathi
+        };
 
         // Transits (Could also be parallelized if needed)
         const now = DateTime.now().toUTC();

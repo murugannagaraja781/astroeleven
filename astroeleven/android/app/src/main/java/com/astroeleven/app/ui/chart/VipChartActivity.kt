@@ -1839,34 +1839,52 @@ private suspend fun fetchFullChart(birthData: JSONObject): ChartData? = withCont
                 // Current Dasha Info
                 val dashaInfoObj = dataObj.optJSONObject("currentDashaInfo")
                 val currentDashaData = if (dashaInfoObj != null) {
+                    val dLord = dashaInfoObj.optString("dasaLord").ifEmpty { dashaInfoObj.optString("dashaLord", "") }
+                    val dLordTamil = dashaInfoObj.optString("dasaLordTamil").ifEmpty { dashaInfoObj.optString("dashaLordTamil", "") }
+                    val dStarLord = dashaInfoObj.optString("dasaStarLord").ifEmpty { dashaInfoObj.optString("dashaStarLord", "") }
+                    val dStarLordTamil = dashaInfoObj.optString("dasaStarLordTamil").ifEmpty { dashaInfoObj.optString("dashaStarLordTamil", "") }
+                    val dStart = dashaInfoObj.optString("dasaStartDate").ifEmpty { dashaInfoObj.optString("dashaStartDate", "") }
+                    val dEnd = dashaInfoObj.optString("dasaEndDate").ifEmpty { dashaInfoObj.optString("dashaEndDate", "") }
+                    val dDisplay = dashaInfoObj.optString("dasaDisplayText").ifEmpty { dashaInfoObj.optString("dashaDisplay", "") }
+
+                    val bLord = dashaInfoObj.optString("bhuktiLord", "")
+                    val bLordTamil = dashaInfoObj.optString("bhuktiLordTamil", "")
+                    val bStarLord = dashaInfoObj.optString("bhuktiStarLord", "")
+                    val bStarLordTamil = dashaInfoObj.optString("bhuktiStarLordTamil", "")
+                    val bStart = dashaInfoObj.optString("bhuktiStartDate", "")
+                    val bEnd = dashaInfoObj.optString("bhuktiEndDate", "")
+                    val bDisplay = dashaInfoObj.optString("bhuktiDisplayText").ifEmpty { dashaInfoObj.optString("bhuktiDisplay", "") }
+
                     CurrentDashaInfo(
-                        dashaLord = dashaInfoObj.optString("dashaLord", ""),
-                        dashaLordTamil = dashaInfoObj.optString("dashaLordTamil", ""),
-                        dashaStarLord = dashaInfoObj.optString("dashaStarLord", ""),
-                        dashaStarLordTamil = dashaInfoObj.optString("dashaStarLordTamil", ""),
-                        dashaStartDate = dashaInfoObj.optString("dashaStartDate", ""),
-                        dashaEndDate = dashaInfoObj.optString("dashaEndDate", ""),
-                        dashaDisplay = dashaInfoObj.optString("dashaDisplay", ""),
-                        bhuktiLord = dashaInfoObj.optString("bhuktiLord", ""),
-                        bhuktiLordTamil = dashaInfoObj.optString("bhuktiLordTamil", ""),
-                        bhuktiStarLord = dashaInfoObj.optString("bhuktiStarLord", ""),
-                        bhuktiStarLordTamil = dashaInfoObj.optString("bhuktiStarLordTamil", ""),
-                        bhuktiStartDate = dashaInfoObj.optString("bhuktiStartDate", ""),
-                        bhuktiEndDate = dashaInfoObj.optString("bhuktiEndDate", ""),
-                        bhuktiDisplay = dashaInfoObj.optString("bhuktiDisplay", "")
+                        dashaLord = dLord,
+                        dashaLordTamil = dLordTamil,
+                        dashaStarLord = dStarLord,
+                        dashaStarLordTamil = dStarLordTamil,
+                        dashaStartDate = dStart,
+                        dashaEndDate = dEnd,
+                        dashaDisplay = dDisplay,
+                        bhuktiLord = bLord,
+                        bhuktiLordTamil = bLordTamil,
+                        bhuktiStarLord = bStarLord,
+                        bhuktiStarLordTamil = bStarLordTamil,
+                        bhuktiStartDate = bStart,
+                        bhuktiEndDate = bEnd,
+                        bhuktiDisplay = bDisplay
                     )
                 } else null
 
                 // Lagna Roles
                 val lagnaRolesObj = dataObj.optJSONObject("lagnaRoles")
                 val lagnaRolesData = if (lagnaRolesObj != null) {
+                    val badh = lagnaRolesObj.optString("badhakathipathi").ifEmpty { lagnaRolesObj.optString("badhaka", "") }
+                    val mar = lagnaRolesObj.optString("marakathipathi").ifEmpty { lagnaRolesObj.optString("maraka", "") }
                     LagnaRoles(
                         lagna = lagnaRolesObj.optString("lagna", ""),
                         lagnaTamil = lagnaRolesObj.optString("lagnaTamil", ""),
                         subhar = lagnaRolesObj.optString("subhar", ""),
                         paavar = lagnaRolesObj.optString("paavar", ""),
-                        badhaka = lagnaRolesObj.optString("badhaka", ""),
-                        maraka = lagnaRolesObj.optString("maraka", "")
+                        badhaka = badh,
+                        maraka = mar
                     )
                 } else null
 

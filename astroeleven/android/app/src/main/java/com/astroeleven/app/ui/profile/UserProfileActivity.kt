@@ -169,9 +169,10 @@ fun UserProfileScreen(
                     }
 
                     Text(
-                        text = "Profile",
+                        text = if (name.isNotBlank()) name else "Profile",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
+                        color = CosmicAppTheme.colors.textPrimary,
                         modifier = Modifier.offset(y = (-40).dp)
                     )
 

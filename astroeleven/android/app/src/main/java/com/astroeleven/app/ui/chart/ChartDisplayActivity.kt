@@ -192,11 +192,11 @@ class ChartDisplayActivity : ComponentActivity() {
         }
 
         // Dasha info from array or currentDashaInfo
-        val dashaCardHtml = if (currentDashaInfo != null && (currentDashaInfo.optString("dashaLord").isNotBlank() || currentDashaInfo.optString("dashaDisplay").isNotBlank())) {
-            val dLord = currentDashaInfo.optString("dashaLordTamil").ifEmpty { currentDashaInfo.optString("dashaLord") }
-            val dStar = currentDashaInfo.optString("dashaStarLordTamil").ifEmpty { currentDashaInfo.optString("dashaStarLord") }
-            val dStart = currentDashaInfo.optString("dashaStartDate")
-            val dEnd = currentDashaInfo.optString("dashaEndDate")
+        val dashaCardHtml = if (currentDashaInfo != null && (currentDashaInfo.optString("dasaLord").isNotBlank() || currentDashaInfo.optString("dashaLord").isNotBlank() || currentDashaInfo.optString("dasaDisplayText").isNotBlank() || currentDashaInfo.optString("dashaDisplay").isNotBlank())) {
+            val dLord = currentDashaInfo.optString("dasaLordTamil").ifEmpty { currentDashaInfo.optString("dashaLordTamil").ifEmpty { currentDashaInfo.optString("dasaLord").ifEmpty { currentDashaInfo.optString("dashaLord") } } }
+            val dStar = currentDashaInfo.optString("dasaStarLordTamil").ifEmpty { currentDashaInfo.optString("dashaStarLordTamil").ifEmpty { currentDashaInfo.optString("dasaStarLord").ifEmpty { currentDashaInfo.optString("dashaStarLord") } } }
+            val dStart = currentDashaInfo.optString("dasaStartDate").ifEmpty { currentDashaInfo.optString("dashaStartDate") }
+            val dEnd = currentDashaInfo.optString("dasaEndDate").ifEmpty { currentDashaInfo.optString("dashaEndDate") }
 
             val bLord = currentDashaInfo.optString("bhuktiLordTamil").ifEmpty { currentDashaInfo.optString("bhuktiLord") }
             val bStar = currentDashaInfo.optString("bhuktiStarLordTamil").ifEmpty { currentDashaInfo.optString("bhuktiStarLord") }
@@ -217,8 +217,8 @@ class ChartDisplayActivity : ComponentActivity() {
         val lagnaRolesCardHtml = if (lagnaRoles != null) {
             val subhar = lagnaRoles.optString("subhar", "-")
             val paavar = lagnaRoles.optString("paavar", "-")
-            val badhaka = lagnaRoles.optString("badhaka", "-")
-            val maraka = lagnaRoles.optString("maraka", "-")
+            val badhaka = lagnaRoles.optString("badhakathipathi").ifEmpty { lagnaRoles.optString("badhaka", "-") }
+            val maraka = lagnaRoles.optString("marakathipathi").ifEmpty { lagnaRoles.optString("maraka", "-") }
             val lName = lagnaRoles.optString("lagnaTamil").ifEmpty { ascSign }
 
             """
@@ -354,7 +354,6 @@ class ChartDisplayActivity : ComponentActivity() {
                     <tr><th>Yoga</th><td>${panchangam.optString("yoga")}</td></tr>
                     <tr><th>Karana</th><td>${panchangam.optString("karana")}</td></tr>
                 </table>
-                $dashaHtml
 
                 <h3>நவகிரக பாதசாரம் (Navagraha Pathasaram)</h3>
                 <table class="info-table">
