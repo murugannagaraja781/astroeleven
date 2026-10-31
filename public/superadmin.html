@@ -2774,6 +2774,42 @@ body {
                     </div>
                 </div>
 
+                <!-- Executive Wallet Recharges Overview Banner (PhonePe Original) -->
+                <div style="background:linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(59,130,246,0.06) 100%); border:1px solid rgba(16,185,129,0.3); border-radius:14px; padding:18px 22px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+                    <div style="display:flex; align-items:center; gap:14px;">
+                        <div style="width:48px; height:48px; border-radius:14px; background:#10B981; color:white; display:flex; align-items:center; justify-content:center; font-size:1.5rem; box-shadow:0 4px 14px rgba(16,185,129,0.3);">
+                            <i class="fas fa-wallet"></i>
+                        </div>
+                        <div>
+                            <div style="font-size:1.1rem; font-weight:800; color:var(--text-main); display:flex; align-items:center; gap:8px;">
+                                Overall Client Wallet Recharges Summary
+                                <span style="background:#10B981; color:white; font-size:0.7rem; padding:2px 8px; border-radius:12px; font-weight:700;">PhonePe Live</span>
+                            </div>
+                            <div style="font-size:0.82rem; color:var(--text-muted); margin-top:2px;">
+                                Original user recharge transactions only. Test balances & admin top-ups are safely isolated.
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:18px; flex-wrap:wrap; align-items:center;">
+                        <div style="border-left:3px solid #10B981; padding-left:14px;">
+                            <div style="font-size:0.72rem; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Total Original Recharge</div>
+                            <div id="paySideTotalVolume" style="font-size:1.35rem; font-weight:800; color:#10B981;">₹0</div>
+                        </div>
+                        <div style="border-left:3px solid #3B82F6; padding-left:14px;">
+                            <div style="font-size:0.72rem; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Total Recharged Users</div>
+                            <div id="paySideTotalUsers" style="font-size:1.35rem; font-weight:800; color:#3B82F6;">0 Users</div>
+                        </div>
+                        <div style="border-left:3px solid #F59E0B; padding-left:14px;">
+                            <div style="font-size:0.72rem; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Avg / Client</div>
+                            <div id="paySideAvgPerUser" style="font-size:1.35rem; font-weight:800; color:#D97706;">₹0</div>
+                        </div>
+                        <div style="border-left:3px solid #8B5CF6; padding-left:14px;">
+                            <div style="font-size:0.72rem; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Gross (Inc. Admin)</div>
+                            <div id="paySideGrossAmount" style="font-size:1.35rem; font-weight:800; color:#7C3AED;">₹0</div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- KPI Metric Cards Strip -->
                 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:15px; margin-bottom: 22px;">
                     <div class="admin-card" style="display:flex; align-items:center; gap:15px; padding:16px; border-left:4px solid #10B981; background:var(--bg-card);">
@@ -2781,35 +2817,39 @@ body {
                             <i class="fas fa-coins"></i>
                         </div>
                         <div>
-                            <div id="payKpiTotalVolume" style="font-size:1.45rem; font-weight:800; color:var(--text-main);">₹0</div>
-                            <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Total Successful Volume</div>
+                            <div id="payKpiTotalVolume" style="font-size:1.45rem; font-weight:800; color:#10B981;">₹0</div>
+                            <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Total Original Recharges</div>
+                            <div id="payKpiTotalSub" style="font-size:0.72rem; color:var(--text-muted); margin-top:2px;">0 Client Transactions</div>
                         </div>
                     </div>
                     <div class="admin-card" style="display:flex; align-items:center; gap:15px; padding:16px; border-left:4px solid #3B82F6; background:var(--bg-card);">
                         <div style="width:44px; height:44px; border-radius:12px; background:rgba(59,130,246,0.12); display:flex; align-items:center; justify-content:center; color:#3B82F6; font-size:1.3rem;">
-                            <i class="fas fa-calendar-day"></i>
+                            <i class="fas fa-users"></i>
                         </div>
                         <div>
-                            <div id="payKpiTodayVolume" style="font-size:1.45rem; font-weight:800; color:var(--text-main);">₹0</div>
-                            <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Today's Collections</div>
-                        </div>
-                    </div>
-                    <div class="admin-card" style="display:flex; align-items:center; gap:15px; padding:16px; border-left:4px solid #059669; background:var(--bg-card);">
-                        <div style="width:44px; height:44px; border-radius:12px; background:rgba(5,150,105,0.12); display:flex; align-items:center; justify-content:center; color:#059669; font-size:1.3rem;">
-                            <i class="fas fa-check-circle"></i>
-                        </div>
-                        <div>
-                            <div id="payKpiSuccessCount" style="font-size:1.45rem; font-weight:800; color:var(--text-main);">0</div>
-                            <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Successful Payments</div>
+                            <div id="payKpiTotalUsers" style="font-size:1.45rem; font-weight:800; color:#3B82F6;">0 Users</div>
+                            <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Total Recharged Users</div>
+                            <div style="font-size:0.72rem; color:var(--text-muted); margin-top:2px;">Unique Paying Clients</div>
                         </div>
                     </div>
                     <div class="admin-card" style="display:flex; align-items:center; gap:15px; padding:16px; border-left:4px solid #F59E0B; background:var(--bg-card);">
                         <div style="width:44px; height:44px; border-radius:12px; background:rgba(245,158,11,0.12); display:flex; align-items:center; justify-content:center; color:#F59E0B; font-size:1.3rem;">
-                            <i class="fas fa-hourglass-half"></i>
+                            <i class="fas fa-filter"></i>
                         </div>
                         <div>
-                            <div id="payKpiPendingCount" style="font-size:1.45rem; font-weight:800; color:var(--text-main);">0</div>
-                            <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Pending Incomplete</div>
+                            <div id="payKpiPeriodVolume" style="font-size:1.45rem; font-weight:800; color:#F59E0B;">₹0</div>
+                            <div id="payKpiPeriodLabel" style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Selected Period</div>
+                            <div id="payKpiPeriodUsers" style="font-size:0.72rem; color:var(--text-muted); margin-top:2px;">0 Users (0 txns)</div>
+                        </div>
+                    </div>
+                    <div class="admin-card" style="display:flex; align-items:center; gap:15px; padding:16px; border-left:4px solid #8B5CF6; background:var(--bg-card);">
+                        <div style="width:44px; height:44px; border-radius:12px; background:rgba(139,92,246,0.12); display:flex; align-items:center; justify-content:center; color:#8B5CF6; font-size:1.3rem;">
+                            <i class="fas fa-flask"></i>
+                        </div>
+                        <div>
+                            <div id="payKpiTestVolume" style="font-size:1.45rem; font-weight:800; color:#8B5CF6;">₹0</div>
+                            <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Admin/Test (Excluded)</div>
+                            <div id="payKpiTestSub" style="font-size:0.72rem; color:var(--text-muted); margin-top:2px;">0 Test Transactions</div>
                         </div>
                     </div>
                 </div>
@@ -2818,8 +2858,8 @@ body {
                 <div class="admin-card" style="padding:16px; margin-bottom:20px; background:var(--bg-card); border-radius:14px; border:1px solid var(--border-soft);">
                     <div style="display:flex; flex-direction:column; gap:14px;">
                         <!-- Row 1: Search & Status -->
-                        <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
-                            <div style="position:relative; flex:1; min-width:240px;">
+                        <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:space-between;">
+                            <div style="position:relative; flex:1; min-width:260px;">
                                 <i class="fas fa-search" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--text-muted);"></i>
                                 <input type="text" id="paymentsSearchInput" placeholder="Search Client Name, Phone, Txn ID, or PhonePe Order ID..." 
                                        oninput="debouncePaymentsSearch()" 
@@ -2832,17 +2872,24 @@ body {
                                 <button class="pay-status-pill" onclick="setPaymentsStatusFilter('pending', this)">Pending</button>
                                 <button class="pay-status-pill" onclick="setPaymentsStatusFilter('failed', this)">Failed</button>
                             </div>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <label style="display:inline-flex; align-items:center; gap:6px; font-size:0.82rem; font-weight:700; color:var(--text-main); cursor:pointer; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); padding:6px 12px; border-radius:8px;">
+                                    <input type="checkbox" id="payExcludeTestCheck" checked onchange="toggleExcludeTestUsers(this.checked)" style="accent-color:#10B981; cursor:pointer; width:16px; height:16px;">
+                                    <span>Real Clients Only <small style="color:var(--text-muted); font-weight:normal;">(Exclude Admin/Test)</small></span>
+                                </label>
+                            </div>
                         </div>
 
                         <!-- Row 2: Date Filters -->
                         <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:space-between; border-top:1px solid var(--border-soft); padding-top:12px;">
                             <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
                                 <span style="font-size:0.8rem; font-weight:700; color:var(--text-muted); margin-right:4px;"><i class="fas fa-calendar-alt"></i> DATE:</span>
-                                <button class="pay-date-pill active" onclick="setPaymentsDateFilter('all', this)">All Time</button>
+                                <button class="pay-date-pill active" id="payDateBtnAll" onclick="setPaymentsDateFilter('all', this)" style="font-weight:800; border:1px solid #10B981;"><i class="fas fa-layer-group"></i> Total (All Time)</button>
                                 <button class="pay-date-pill" onclick="setPaymentsDateFilter('today', this)">Today</button>
                                 <button class="pay-date-pill" onclick="setPaymentsDateFilter('yesterday', this)">Yesterday</button>
-                                <button class="pay-date-pill" onclick="setPaymentsDateFilter('7days', this)">Last 7 Days</button>
-                                <button class="pay-date-pill" onclick="setPaymentsDateFilter('30days', this)">Last 30 Days</button>
+                                <button class="pay-date-pill" onclick="setPaymentsDateFilter('7days', this)">This Week (7D)</button>
+                                <button class="pay-date-pill" onclick="setPaymentsDateFilter('30days', this)">This Month (30D)</button>
+                                <button class="pay-date-pill" onclick="setPaymentsDateFilter('year', this)">This Year</button>
                             </div>
                             <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                                 <input type="date" id="payCustomStartDate" style="padding:6px 10px; background:var(--bg-main); border:1px solid var(--border-soft); border-radius:8px; color:var(--text-main); font-size:0.82rem;">
@@ -7299,7 +7346,13 @@ body {
         let currentPaymentsStatus = 'all';
         let currentPaymentsDateRange = 'all';
         let currentPaymentsSearch = '';
+        let currentPaymentsExcludeTest = true;
         let paymentsSearchTimer = null;
+
+        window.toggleExcludeTestUsers = (checked) => {
+            currentPaymentsExcludeTest = !!checked;
+            loadAdminPayments(1);
+        };
 
         window.setPaymentsStatusFilter = (status, el) => {
             currentPaymentsStatus = status;
@@ -7357,7 +7410,8 @@ body {
                     limit: 20,
                     status: currentPaymentsStatus,
                     dateRange: currentPaymentsDateRange,
-                    search: currentPaymentsSearch
+                    search: currentPaymentsSearch,
+                    excludeTest: currentPaymentsExcludeTest ? 'true' : 'false'
                 });
 
                 if (currentPaymentsDateRange === 'custom') {
@@ -7377,14 +7431,46 @@ body {
 
                 if (data.summary) {
                     const s = data.summary;
+                    const totVol = Number(s.totalVolume || 0);
+                    const totUsers = Number(s.totalUniqueUsers || 0);
+                    const perVol = Number(s.periodVolume || 0);
+                    const perUsers = Number(s.periodUniqueUsers || 0);
+                    const perTxns = Number(s.periodSuccessCount || 0);
+                    const testVol = Number(s.testVolume || 0);
+                    const testUsers = Number(s.testUniqueUsers || 0);
+                    const testTxns = Number(s.testCount || 0);
+                    const grossVol = Number(s.grossVolume || 0);
+                    const avgPerUser = totUsers > 0 ? (totVol / totUsers).toFixed(2) : '0.00';
+
+                    // Update Top KPI Cards
                     const totVolEl = document.getElementById('payKpiTotalVolume');
-                    const todVolEl = document.getElementById('payKpiTodayVolume');
-                    const succCountEl = document.getElementById('payKpiSuccessCount');
-                    const pendCountEl = document.getElementById('payKpiPendingCount');
-                    if (totVolEl) totVolEl.textContent = '₹' + Number(s.totalVolume || 0).toLocaleString('en-IN');
-                    if (todVolEl) todVolEl.textContent = '₹' + Number(s.todayVolume || 0).toLocaleString('en-IN');
-                    if (succCountEl) succCountEl.textContent = Number(s.successCount || 0).toLocaleString('en-IN');
-                    if (pendCountEl) pendCountEl.textContent = Number(s.pendingCount || 0).toLocaleString('en-IN');
+                    const totSubEl = document.getElementById('payKpiTotalSub');
+                    const totUsersEl = document.getElementById('payKpiTotalUsers');
+                    const perVolEl = document.getElementById('payKpiPeriodVolume');
+                    const perLabelEl = document.getElementById('payKpiPeriodLabel');
+                    const perUsersEl = document.getElementById('payKpiPeriodUsers');
+                    const testVolEl = document.getElementById('payKpiTestVolume');
+                    const testSubEl = document.getElementById('payKpiTestSub');
+
+                    if (totVolEl) totVolEl.textContent = '₹' + totVol.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    if (totSubEl) totSubEl.textContent = `${s.successCount || 0} Client Recharges`;
+                    if (totUsersEl) totUsersEl.textContent = `${totUsers} Users`;
+                    if (perVolEl) perVolEl.textContent = '₹' + perVol.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    if (perLabelEl) perLabelEl.textContent = s.periodLabel || 'Selected Period';
+                    if (perUsersEl) perUsersEl.textContent = `${perUsers} Users (${perTxns} txns)`;
+                    if (testVolEl) testVolEl.textContent = '₹' + testVol.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    if (testSubEl) testSubEl.textContent = `${testUsers} Test User (${testTxns} txns)`;
+
+                    // Update Executive Banner Summary
+                    const sideVolEl = document.getElementById('paySideTotalVolume');
+                    const sideUsersEl = document.getElementById('paySideTotalUsers');
+                    const sideAvgEl = document.getElementById('paySideAvgPerUser');
+                    const sideGrossEl = document.getElementById('paySideGrossAmount');
+
+                    if (sideVolEl) sideVolEl.textContent = '₹' + totVol.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    if (sideUsersEl) sideUsersEl.textContent = `${totUsers} Users`;
+                    if (sideAvgEl) sideAvgEl.textContent = '₹' + Number(avgPerUser).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    if (sideGrossEl) sideGrossEl.textContent = '₹' + grossVol.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                 }
 
                 const payments = data.payments || [];
@@ -7433,6 +7519,8 @@ body {
                         bonusBadge = `<span style="background:#FEF3C7; color:#B45309; padding:2px 8px; border-radius:12px; font-size:0.72rem; font-weight:700;">Referral Reward</span>`;
                     }
 
+                    const testBadge = p.isTest ? `<span style="background:rgba(239,68,68,0.12); color:#DC2626; padding:2px 6px; border-radius:6px; font-size:0.68rem; font-weight:700; margin-left:4px;"><i class="fas fa-flask"></i> ADMIN TEST</span>` : '';
+
                     html += `
                         <tr style="border-bottom:1px solid var(--border-soft); transition:background 0.2s;" onmouseover="this.style.background='rgba(0,0,0,0.015)'" onmouseout="this.style.background='transparent'">
                             <td style="padding:14px 16px; font-size:0.85rem; color:var(--text-main); white-space:nowrap;">
@@ -7440,7 +7528,9 @@ body {
                                 <small style="color:var(--text-muted); font-size:0.72rem;">ID: #${p.id || '-'}</small>
                             </td>
                             <td style="padding:14px 16px;">
-                                <div style="font-weight:700; color:var(--text-main); font-size:0.88rem;">${p.userName || 'Client'}</div>
+                                <div style="font-weight:700; color:var(--text-main); font-size:0.88rem; display:flex; align-items:center;">
+                                    ${p.userName || 'Client'} ${testBadge}
+                                </div>
                                 <div style="color:var(--text-muted); font-size:0.78rem;"><i class="fas fa-phone-alt" style="font-size:0.7rem; color:var(--primary);"></i> ${p.userPhone || 'No Phone'}</div>
                                 <div style="color:var(--text-dim); font-size:0.7rem; font-family:monospace;">${p.userId || ''}</div>
                             </td>
@@ -7449,7 +7539,7 @@ body {
                                 ${p.providerRefId ? `<small style="color:var(--text-muted); font-size:0.72rem; display:block;">PhonePe Ref: ${p.providerRefId}</small>` : ''}
                             </td>
                             <td style="padding:14px 16px; text-align:right;">
-                                <div style="font-weight:800; font-size:1.05rem; color:var(--primary);">₹${totalAmt.toLocaleString('en-IN')}</div>
+                                <div style="font-weight:800; font-size:1.05rem; color:var(--primary);">₹${totalAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                 <small style="color:var(--text-muted); font-size:0.72rem;">Base: ₹${baseAmt} | GST: ₹${gstAmt}</small>
                             </td>
                             <td style="padding:14px 16px; text-align:center;">

@@ -10,6 +10,8 @@ const Payment = require('../models/Payment');
 const RechargePackage = require('../models/RechargePackage');
 const KundaliRecord = require('../models/KundaliRecord');
 const performanceService = require('../services/performance.service');
+const mongoose = require('../utils/mongoose-mysql');
+const pool = mongoose.pool;
 const fs = require('fs');
 const path = require('path');
 
@@ -589,99 +591,204 @@ exports.getPayments = async (req, res) => {
             dateRange = 'all',
             startDate,
             endDate,
-            search = ''
+            search = '',
+            excludeTest = 'true'
         } = req.query;
 
         const parsedPage = Math.max(1, parseInt(page) || 1);
         const parsedLimit = Math.max(1, parseInt(limit) || 20);
+        const shouldExcludeTest = excludeTest !== 'false';
 
-        const query = {};
-        const andConditions = [];
+        // Filter condition to exclude admin and test accounts
+        const testSqlFilter = `(
+            (u.role IS NULL OR u.role NOT IN ('superadmin', 'admin'))
+            AND (u.phone IS NULL OR u.phone != '917305307369')
+            AND (u.name IS NULL OR LOWER(u.name) NOT LIKE '%test%')
+            AND (p.userId NOT LIKE '%test%')
+        )`;
 
-        // Status Filter
-        if (status && status !== 'all') {
-            andConditions.push({ status: status.toLowerCase() });
-        }
+        // 1. All-time Real Clients Statistics (All-Time Total Original PhonePe Recharges)
+        const [overallRealRows] = await pool.query(`
+            SELECT 
+                IFNULL(SUM(p.amount), 0) AS totalVolume,
+                COUNT(*) AS successCount,
+                COUNT(DISTINCT p.userId) AS uniqueUsers
+            FROM payments p
+            LEFT JOIN users u ON p.userId = u.userId
+            WHERE p.status = 'success' AND ${testSqlFilter}
+        `);
+        const overallReal = overallRealRows[0] || {};
 
-        // Date Filter
+        // 2. All-time Test/Admin Statistics (Separately tracked for audit)
+        const [testAdminRows] = await pool.query(`
+            SELECT 
+                IFNULL(SUM(p.amount), 0) AS testVolume,
+                COUNT(*) AS testCount,
+                COUNT(DISTINCT p.userId) AS testUsers
+            FROM payments p
+            LEFT JOIN users u ON p.userId = u.userId
+            WHERE p.status = 'success' AND NOT ${testSqlFilter}
+        `);
+        const testAdmin = testAdminRows[0] || {};
+
+        // 3. Gross All-Time Statistics (All success records including test)
+        const [grossRows] = await pool.query(`
+            SELECT 
+                IFNULL(SUM(p.amount), 0) AS grossVolume,
+                COUNT(*) AS grossCount,
+                COUNT(DISTINCT p.userId) AS grossUsers
+            FROM payments p
+            WHERE p.status = 'success'
+        `);
+        const grossAll = grossRows[0] || {};
+
+        // 4. Date filtering for Period stats & Table Query
         const now = new Date();
+        let dateCondition = '';
+        const dateParams = [];
+        let periodLabel = 'All Time (Total)';
+
         if (dateRange === 'today') {
-            const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-            andConditions.push({ createdAt: { $gte: startOfDay } });
+            const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+            dateCondition = ' AND p.createdAt >= ? ';
+            dateParams.push(start);
+            periodLabel = "Today's Recharges";
         } else if (dateRange === 'yesterday') {
-            const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0);
-            const endOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
-            andConditions.push({ createdAt: { $gte: startOfYesterday, $lte: endOfYesterday } });
-        } else if (dateRange === '7days') {
-            const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-            andConditions.push({ createdAt: { $gte: sevenDaysAgo } });
-        } else if (dateRange === '30days') {
-            const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-            andConditions.push({ createdAt: { $gte: thirtyDaysAgo } });
+            const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0);
+            const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
+            dateCondition = ' AND p.createdAt >= ? AND p.createdAt <= ? ';
+            dateParams.push(start, end);
+            periodLabel = "Yesterday's Recharges";
+        } else if (dateRange === '7days' || dateRange === 'week') {
+            const start = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+            dateCondition = ' AND p.createdAt >= ? ';
+            dateParams.push(start);
+            periodLabel = 'Last 7 Days (Week)';
+        } else if (dateRange === '30days' || dateRange === 'month') {
+            const start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+            dateCondition = ' AND p.createdAt >= ? ';
+            dateParams.push(start);
+            periodLabel = 'Last 30 Days (Month)';
+        } else if (dateRange === 'year') {
+            const start = new Date(now.getFullYear(), 0, 1, 0, 0, 0);
+            dateCondition = ' AND p.createdAt >= ? ';
+            dateParams.push(start);
+            periodLabel = `${now.getFullYear()} This Year`;
         } else if (dateRange === 'custom' && (startDate || endDate)) {
-            const dateCond = {};
-            if (startDate) dateCond.$gte = new Date(startDate + 'T00:00:00');
-            if (endDate) dateCond.$lte = new Date(endDate + 'T23:59:59.999');
-            andConditions.push({ createdAt: dateCond });
-        }
-
-        // Search Filter (TransactionId, ProviderRefId, UserId, or User Name/Phone)
-        if (search && search.trim()) {
-            const term = search.trim();
-            const searchRegex = new RegExp(term.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'i');
-            const matchingUsers = await User.find({
-                $or: [
-                    { name: searchRegex },
-                    { phone: searchRegex },
-                    { userId: term }
-                ]
-            }).select('userId').limit(100).lean();
-
-            const userIds = matchingUsers.map(u => u.userId);
-            if (userIds.length > 0) {
-                andConditions.push({
-                    $or: [
-                        { transactionId: { $regex: term } },
-                        { merchantTransactionId: { $regex: term } },
-                        { providerRefId: { $regex: term } },
-                        { userId: { $in: userIds } }
-                    ]
-                });
-            } else {
-                andConditions.push({
-                    $or: [
-                        { transactionId: { $regex: term } },
-                        { merchantTransactionId: { $regex: term } },
-                        { providerRefId: { $regex: term } },
-                        { userId: term }
-                    ]
-                });
+            if (startDate && endDate) {
+                dateCondition = ' AND p.createdAt >= ? AND p.createdAt <= ? ';
+                dateParams.push(new Date(startDate + 'T00:00:00'), new Date(endDate + 'T23:59:59.999'));
+                periodLabel = `Custom (${startDate} to ${endDate})`;
+            } else if (startDate) {
+                dateCondition = ' AND p.createdAt >= ? ';
+                dateParams.push(new Date(startDate + 'T00:00:00'));
+                periodLabel = `From ${startDate}`;
+            } else if (endDate) {
+                dateCondition = ' AND p.createdAt <= ? ';
+                dateParams.push(new Date(endDate + 'T23:59:59.999'));
+                periodLabel = `Until ${endDate}`;
             }
         }
 
-        if (andConditions.length > 0) {
-            query.$and = andConditions;
+        // Period stats for selected filter
+        const [periodRows] = await pool.query(`
+            SELECT 
+                IFNULL(SUM(p.amount), 0) AS periodVolume,
+                COUNT(*) AS periodSuccessCount,
+                COUNT(DISTINCT p.userId) AS periodUniqueUsers
+            FROM payments p
+            LEFT JOIN users u ON p.userId = u.userId
+            WHERE p.status = 'success'
+              ${shouldExcludeTest ? `AND ${testSqlFilter}` : ''}
+              ${dateCondition}
+        `, dateParams);
+        const periodStats = periodRows[0] || {};
+
+        // Today's real recharge
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+        const [todayRows] = await pool.query(`
+            SELECT 
+                IFNULL(SUM(p.amount), 0) AS todayVolume,
+                COUNT(*) AS todaySuccessCount,
+                COUNT(DISTINCT p.userId) AS todayUniqueUsers
+            FROM payments p
+            LEFT JOIN users u ON p.userId = u.userId
+            WHERE p.status = 'success'
+              AND p.createdAt >= ?
+              AND ${testSqlFilter}
+        `, [todayStart]);
+        const todayStats = todayRows[0] || {};
+
+        // Pending count
+        const [pendingRows] = await pool.query(`SELECT COUNT(*) AS pendingCount FROM payments WHERE status = 'pending'`);
+        const pendingCount = pendingRows[0]?.pendingCount || 0;
+
+        // Table Query conditions
+        let whereClauses = ['1=1'];
+        let queryParams = [];
+
+        if (status && status !== 'all') {
+            whereClauses.push('p.status = ?');
+            queryParams.push(status.toLowerCase());
         }
 
-        const total = await Payment.countDocuments(query);
-        const payments = await Payment.find(query)
-            .sort({ id: -1 })
-            .skip((parsedPage - 1) * parsedLimit)
-            .limit(parsedLimit)
-            .lean();
-
-        // Populate user details (name, phone, role)
-        const uniqueUserIds = [...new Set(payments.map(p => p.userId).filter(Boolean))];
-        const userMap = {};
-        if (uniqueUserIds.length > 0) {
-            const users = await User.find({ userId: { $in: uniqueUserIds } })
-                .select('userId name phone role walletBalance')
-                .lean();
-            users.forEach(u => { userMap[u.userId] = u; });
+        if (shouldExcludeTest) {
+            whereClauses.push(testSqlFilter);
         }
+
+        if (dateCondition) {
+            whereClauses.push(dateCondition.replace(/^\s*AND\s*/i, ''));
+            queryParams.push(...dateParams);
+        }
+
+        if (search && search.trim()) {
+            const term = `%${search.trim()}%`;
+            whereClauses.push(`(
+                p.transactionId LIKE ? OR
+                p.merchantTransactionId LIKE ? OR
+                p.providerRefId LIKE ? OR
+                p.userId LIKE ? OR
+                u.name LIKE ? OR
+                u.phone LIKE ?
+            )`);
+            queryParams.push(term, term, term, term, term, term);
+        }
+
+        const whereSql = whereClauses.join(' AND ');
+
+        // Total count for pagination
+        const [countRows] = await pool.query(`
+            SELECT COUNT(*) AS total
+            FROM payments p
+            LEFT JOIN users u ON p.userId = u.userId
+            WHERE ${whereSql}
+        `, queryParams);
+        const total = countRows[0]?.total || 0;
+
+        // Fetch paginated payments
+        const offset = (parsedPage - 1) * parsedLimit;
+        const [payments] = await pool.query(`
+            SELECT 
+                p.*,
+                u.name AS userName,
+                u.phone AS userPhone,
+                u.role AS userRole,
+                u.walletBalance AS userBalance
+            FROM payments p
+            LEFT JOIN users u ON p.userId = u.userId
+            WHERE ${whereSql}
+            ORDER BY p.id DESC
+            LIMIT ? OFFSET ?
+        `, [...queryParams, parsedLimit, offset]);
 
         const populatedPayments = payments.map(p => {
-            const u = userMap[p.userId] || {};
+            const isTest = (
+                p.userRole === 'superadmin' ||
+                p.userRole === 'admin' ||
+                p.userPhone === '917305307369' ||
+                (p.userName && p.userName.toLowerCase().includes('test')) ||
+                (p.userId && p.userId.toLowerCase().includes('test'))
+            );
 
             let statusReason = p.failureReason || '';
             if (!statusReason) {
@@ -702,26 +809,14 @@ exports.getPayments = async (req, res) => {
 
             return {
                 ...p,
-                userName: u.name || p.userName || 'Guest User',
-                userPhone: u.phone || p.userPhone || 'N/A',
-                userRole: u.role || 'client',
-                userBalance: u.walletBalance || 0,
+                userName: p.userName || 'Guest User',
+                userPhone: p.userPhone || 'N/A',
+                userRole: p.userRole || 'client',
+                userBalance: p.userBalance || 0,
+                isTest,
                 statusReason
             };
         });
-
-        // Compute summary metrics (Total Success Collections, Today's Collections, Counts)
-        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-
-        const [allSuccessTotal, todaySuccessTotal, totalSuccessCount, totalPendingCount] = await Promise.all([
-            Payment.aggregate([{ $match: { status: 'success' } }]),
-            Payment.aggregate([{ $match: { status: 'success', createdAt: { $gte: todayStart } } }]),
-            Payment.countDocuments({ status: 'success' }),
-            Payment.countDocuments({ status: 'pending' })
-        ]);
-
-        const totalVolume = allSuccessTotal[0]?.totalCollected || 0;
-        const todayVolume = todaySuccessTotal[0]?.totalCollected || 0;
 
         res.json({
             ok: true,
@@ -730,10 +825,27 @@ exports.getPayments = async (req, res) => {
             page: parsedPage,
             pages: Math.ceil(total / parsedLimit),
             summary: {
-                totalVolume: Math.round(totalVolume * 100) / 100,
-                todayVolume: Math.round(todayVolume * 100) / 100,
-                successCount: totalSuccessCount,
-                pendingCount: totalPendingCount
+                totalVolume: Math.round(Number(overallReal.totalVolume) * 100) / 100,
+                totalUniqueUsers: Number(overallReal.uniqueUsers || 0),
+                successCount: Number(overallReal.successCount || 0),
+
+                periodVolume: Math.round(Number(periodStats.periodVolume) * 100) / 100,
+                periodUniqueUsers: Number(periodStats.periodUniqueUsers || 0),
+                periodSuccessCount: Number(periodStats.periodSuccessCount || 0),
+                periodLabel,
+
+                todayVolume: Math.round(Number(todayStats.todayVolume) * 100) / 100,
+                todayUniqueUsers: Number(todayStats.todayUniqueUsers || 0),
+
+                testVolume: Math.round(Number(testAdmin.testVolume) * 100) / 100,
+                testUniqueUsers: Number(testAdmin.testUsers || 0),
+                testCount: Number(testAdmin.testCount || 0),
+
+                grossVolume: Math.round(Number(grossAll.grossVolume) * 100) / 100,
+                grossUniqueUsers: Number(grossAll.grossUsers || 0),
+                grossSuccessCount: Number(grossAll.grossCount || 0),
+
+                pendingCount: Number(pendingCount)
             }
         });
     } catch (e) {
