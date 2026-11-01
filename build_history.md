@@ -2,6 +2,33 @@
 
 This file tracks the builds created for the Astro Eleven Android application.
 
+## [2026-11-01] - Release Build v1.2.1 (Code 57)
+
+A release rebuild was performed containing:
+1. **Lagna Subhar / Paavar / Badhakar / Marakar Classical Reference Table Alignment:**
+   - Aligned Lagna Subhar / Paavar chart calculations in `VipChartActivity.kt` and `rasiEng.controller.js` to strictly match the astrological reference chart (Image 2).
+   - For Kumbam Lagna (Row 11): displays Subhar as "சனி, புதன், சுக்கிரன்" (matching reference table சனி, பு, சுக்).
+2. **Astrologer Learning Videos Hub:**
+   - Added dedicated "Learning Videos" tab in Astrologer Dashboard (`AstrologerDashboardActivity.kt`).
+   - Integrated with backend `target=astrologer` query parameter so only training/learning videos for astrologers appear here.
+   - User Academy Videos remain separated under `target=user` in Client App.
+3. **Super Admin Astrologer Learning Videos Management:**
+   - Added Astrologer Learning Videos hub in `SuperPowerAdminDashboardActivity.kt` and web admin portal (`public/superadmin.html`).
+   - Enables Super Admin to add, edit, preview, and delete training videos specifically targeted to astrologers.
+4. **Withdrawal Request System Fix:**
+   - Fixed withdrawal approval failure in Super Admin panel by passing a valid ISO timestamp to MySQL `processed_at`.
+   - Fixed astrologer withdrawal limits and minimum thresholds.
+
+* **Date & Time:** November 01, 2026 - 11:34:00 PM (IST)
+* **File Name:** `app-release.apk` / `astroeleven.apk`
+* **Version Code:** 57
+* **Version Name:** 1.2.1
+* **File Path:** `astroeleven/android/app/build/outputs/apk/release/app-release.apk`
+* **Size:** ~68 MB (71,258,386 Bytes)
+* **Status:** Release Build & Deployment Successful (https://astroeleven.com/astroeleven.apk)
+
+---
+
 ## [2026-11-01] - Release Build v1.1.7 (Code 53)
 
 A release rebuild was performed containing:
