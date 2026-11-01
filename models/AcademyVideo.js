@@ -5,6 +5,7 @@ const AcademyVideoSchema = new mongoose.Schema({
     youtubeUrl: String,
     thumbnail: String,
     category: String,
+    audience: { type: String, default: 'user' }, // 'user' or 'astrologer'
     createdAt: { type: Date, default: Date.now }
 });
 

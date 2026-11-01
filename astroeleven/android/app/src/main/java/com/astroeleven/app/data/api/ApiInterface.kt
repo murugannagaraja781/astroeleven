@@ -74,7 +74,13 @@ interface ApiInterface {
     suspend fun getRasiEngMatching(@Body request: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
 
     @retrofit2.http.GET("api/academy/videos")
-    suspend fun getAcademyVideos(): Response<com.google.gson.JsonObject>
+    suspend fun getAcademyVideos(@retrofit2.http.Query("target") target: String? = null): Response<com.google.gson.JsonObject>
+
+    @retrofit2.http.POST("api/admin/academy/videos")
+    suspend fun addAcademyVideo(@retrofit2.http.Body body: com.google.gson.JsonObject): Response<com.google.gson.JsonObject>
+
+    @retrofit2.http.DELETE("api/admin/academy/videos/{id}")
+    suspend fun deleteAcademyVideo(@retrofit2.http.Path("id") id: String): Response<com.google.gson.JsonObject>
     @retrofit2.http.GET("api/user/{userId}/intake")
     suspend fun getUserIntake(@retrofit2.http.Path("userId") userId: String): Response<com.google.gson.JsonObject>
 

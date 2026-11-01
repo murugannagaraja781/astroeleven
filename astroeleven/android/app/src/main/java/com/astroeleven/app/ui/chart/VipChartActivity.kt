@@ -40,6 +40,7 @@ import androidx.compose.ui.res.painterResource
 import com.astroeleven.app.R
 import com.astroeleven.app.ui.theme.CosmicAppTheme
 import com.google.gson.Gson
+import com.google.gson.annotations.SerializedName
 import androidx.annotation.Keep
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -141,22 +142,23 @@ data class RasiClassification(
     val lordTa: String,
     val subhargal: String,
     val paabargal: String,
-    val maaragar: String
+    val maaragar: String,
+    val badhagar: String = "-"
 )
 
 val rasiClassifications = mapOf(
-    "Aries" to RasiClassification("Mars", "செவ்வாய்", "செவ்வாய், சூரியன், குரு", "புதன், சுக்கிரன், சனி", "சுக்கிரன், புதன்"),
-    "Taurus" to RasiClassification("Venus", "சுக்கிரன்", "சுக்கிரன், புதன், சனி", "செவ்வாய், சந்திரன், குரு", "செவ்வாய், குரு"),
-    "Gemini" to RasiClassification("Mercury", "புதன்", "புதன், சுக்கிரன், சனி", "செவ்வாய், சூரியன், குரு", "சந்திரன், குரு"),
-    "Cancer" to RasiClassification("Moon", "சந்திரன்", "சந்திரன், செவ்வாய், குரு", "புதன், சுக்கிரன், சனி", "சனி, புதன்"),
-    "Leo" to RasiClassification("Sun", "சூரியன்", "சூரியன், செவ்வாய், குரு", "சுக்கிரன், சனி", "புதன், சனி"),
-    "Virgo" to RasiClassification("Mercury", "புதன்", "புதன், சுக்கிரன், சனி", "சூரியன், செவ்வாய், குரு", "செவ்வாய், குரு"),
-    "Libra" to RasiClassification("Venus", "சுக்கிரன்", "சுக்கிரன், சனி, புதன்", "செவ்வாய், குரு, சூரியன்", "செவ்வாய், குரு"),
-    "Scorpio" to RasiClassification("Mars", "செவ்வாய்", "செவ்வாய், குரு, சூரியன்", "சனி, சுக்கிரன், புதன்", "சுக்கிரன், புதன்"),
-    "Sagittarius" to RasiClassification("Jupiter", "குரு", "குரு, செவ்வாய், சூரியன்", "சந்திரன், சுக்கிரன், புதன்", "சனி, புதன்"),
-    "Capricorn" to RasiClassification("Saturn", "சனி", "சனி, சுக்கிரன், புதன்", "சூரியன், சந்திரன், செவ்வாய்", "சூரியன், சந்திரன்"),
-    "Aquarius" to RasiClassification("Saturn", "சனி", "சனி, புதன், சுக்கிரன்", "சூரியன், சந்திரன், செவ்வாய்", "சூரியன், செவ்வாய்"),
-    "Pisces" to RasiClassification("Jupiter", "குரு", "குரு, சந்திரன், செவ்வாய்", "சூரியன், புதன், சுக்கிரன், சனி", "புதன், சுக்கிரன், சனி")
+    "Aries" to RasiClassification("Mars", "செவ்வாய்", "செவ்வாய், சூரியன், குரு", "புதன், சுக்கிரன், சனி", "சுக்கிரன், புதன்", "சனி"),
+    "Taurus" to RasiClassification("Venus", "சுக்கிரன்", "சுக்கிரன், புதன், சனி", "செவ்வாய், சந்திரன், குரு", "செவ்வாய், குரு", "சனி"),
+    "Gemini" to RasiClassification("Mercury", "புதன்", "புதன், சுக்கிரன், சனி", "செவ்வாய், சூரியன், குரு", "சந்திரன், குரு", "குரு"),
+    "Cancer" to RasiClassification("Moon", "சந்திரன்", "சந்திரன், செவ்வாய், குரு", "புதன், சுக்கிரன், சனி", "சனி, புதன்", "சுக்கிரன்"),
+    "Leo" to RasiClassification("Sun", "சூரியன்", "சூரியன், செவ்வாய், குரு", "சுக்கிரன், சனி", "புதன், சனி", "செவ்வாய்"),
+    "Virgo" to RasiClassification("Mercury", "புதன்", "புதன், சுக்கிரன், சனி", "சூரியன், செவ்வாய், குரு", "செவ்வாய், சூரியன்", "குரு"),
+    "Libra" to RasiClassification("Venus", "சுக்கிரன்", "சுக்கிரன், சனி, புதன்", "செவ்வாய், குரு, சூரியன்", "செவ்வாய், குரு", "சூரியன்"),
+    "Scorpio" to RasiClassification("Mars", "செவ்வாய்", "செவ்வாய், குரு, சூரியன்", "சனி, சுக்கிரன், புதன்", "சுக்கிரன், புதன்", "சந்திரன்"),
+    "Sagittarius" to RasiClassification("Jupiter", "குரு", "குரு, செவ்வாய், சூரியன்", "சந்திரன், சுக்கிரன், புதன்", "சனி, புதன்", "புதன்"),
+    "Capricorn" to RasiClassification("Saturn", "சனி", "சனி, சுக்கிரன், புதன்", "சூரியன், சந்திரன், செவ்வாய்", "சூரியன், சந்திரன்", "செவ்வாய்"),
+    "Aquarius" to RasiClassification("Saturn", "சனி", "சனி, புதன், சுக்கிரன்", "சூரியன், சந்திரன், செவ்வாய்", "சூரியன், செவ்வாய்", "சுக்கிரன்"),
+    "Pisces" to RasiClassification("Jupiter", "குரு", "குரு, சந்திரன், செவ்வாய்", "சூரியன், புதன், சுக்கிரன், சனி", "புதன், சுக்கிரன், சனி", "புதன்")
 )
 
 // --- Updated Data Models ---
@@ -189,8 +191,11 @@ val rasiClassifications = mapOf(
     val lagnaTamil: String = "",
     val subhar: String = "",
     val paavar: String = "",
+    @SerializedName("badhaka", alternate = ["badhakathipathi"])
     val badhaka: String = "",
-    val maraka: String = ""
+    @SerializedName("maraka", alternate = ["marakathipathi"])
+    val maraka: String = "",
+    val samar: String = ""
 )
 
 @Keep data class ChartResponse(val success: Boolean = false, val data: ChartData? = null)
@@ -561,13 +566,15 @@ fun ChartsTab(data: ChartData, birthData: JSONObject) {
             Spacer(Modifier.height(12.dp))
         }
 
-        // 4. Lagna Roles Card (Subhar, Paavar, Badhaka, Maraka)
+        // 4. Lagna Roles Card (Subhar, Paavar, Badhaka, Maraka) - Classical Parashara Rules
         val lRoles = data.lagnaRoles
-        val fallbackClassification = rasiClassifications[currentAscSign]
-        val subhar = lRoles?.subhar?.takeIf { it.isNotBlank() } ?: fallbackClassification?.subhargal ?: "-"
-        val paavar = lRoles?.paavar?.takeIf { it.isNotBlank() } ?: fallbackClassification?.paabargal ?: "-"
-        val badhaka = lRoles?.badhaka?.takeIf { it.isNotBlank() } ?: "-"
-        val maraka = lRoles?.maraka?.takeIf { it.isNotBlank() } ?: fallbackClassification?.maaragar ?: "-"
+        val classification = rasiClassifications[currentAscSign]
+            ?: rasiClassifications.entries.firstOrNull { it.key.equals(currentAscSign, ignoreCase = true) }?.value
+            ?: rasiClassifications[data.houses.ascendantDetails.signName]
+        val subhar = classification?.subhargal ?: lRoles?.subhar?.takeIf { it.isNotBlank() } ?: "-"
+        val paavar = classification?.paabargal ?: lRoles?.paavar?.takeIf { it.isNotBlank() } ?: "-"
+        val badhaka = classification?.badhagar?.takeIf { it != "-" } ?: lRoles?.badhaka?.takeIf { it.isNotBlank() } ?: "-"
+        val maraka = classification?.maaragar?.takeIf { it != "-" } ?: lRoles?.maraka?.takeIf { it.isNotBlank() } ?: "-"
 
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -1884,7 +1891,8 @@ private suspend fun fetchFullChart(birthData: JSONObject): ChartData? = withCont
                         subhar = lagnaRolesObj.optString("subhar", ""),
                         paavar = lagnaRolesObj.optString("paavar", ""),
                         badhaka = badh,
-                        maraka = mar
+                        maraka = mar,
+                        samar = lagnaRolesObj.optString("samar", "")
                     )
                 } else null
 

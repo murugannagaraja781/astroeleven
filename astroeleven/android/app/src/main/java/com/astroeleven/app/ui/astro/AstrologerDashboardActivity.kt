@@ -39,6 +39,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VideoCall
+import androidx.compose.material.icons.filled.School
 import androidx.compose.material3.*
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
@@ -1009,7 +1010,8 @@ fun AstrologerDashboardScreen(
         "Earnings" to Icons.Default.MonetizationOn,
         "Profile" to Icons.Default.Person,
         "Edit Tags" to Icons.Default.Star,
-        "Add Rate" to Icons.Default.MonetizationOn
+        "Add Rate" to Icons.Default.MonetizationOn,
+        "Learning" to Icons.Default.School
     )
 
 
@@ -1302,6 +1304,22 @@ fun AstrologerDashboardScreen(
                     )
                 }
 
+                IconButton(
+                    onClick = {
+                        val intent = Intent(context, com.astroeleven.app.ui.academy.AcademyActivity::class.java).apply {
+                            putExtra("target", "astrologer")
+                        }
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.15f))
+                        .border(1.dp, Color.White.copy(alpha = 0.25f), CircleShape)
+                ) {
+                    Icon(Icons.Default.School, contentDescription = "Learning Videos", tint = Color.White, modifier = Modifier.size(18.dp))
+                }
+                Spacer(modifier = Modifier.width(8.dp))
                 IconButton(
                     onClick = { refreshBalanceAndHistory() },
                     modifier = Modifier
@@ -1818,6 +1836,12 @@ fun AstrologerDashboardScreen(
                                              "Earnings" -> { showEarningsReportDialog = true }
                                              "Add Rate" -> { showAddRateDialog = true }
                                              "Edit Tags" -> { showEditSkillsDialog = true }
+                                             "Learning" -> {
+                                                 val intent = Intent(context, com.astroeleven.app.ui.academy.AcademyActivity::class.java).apply {
+                                                     putExtra("target", "astrologer")
+                                                 }
+                                                 context.startActivity(intent)
+                                             }
                                              "Star" -> Toast.makeText(context, "Feedback metrics panel", Toast.LENGTH_SHORT).show()
                                          }
                                      }
@@ -1846,6 +1870,7 @@ fun AstrologerDashboardScreen(
                                          "Profile" -> "Edit Bio"
                                          "History" -> "Logs"
                                          "Earnings" -> "Ledger"
+                                         "Learning" -> "Videos & Guides"
                                          "Star" -> "4.9 ★ Rating"
                                          "Settings" -> "Setup"
                                          else -> ""

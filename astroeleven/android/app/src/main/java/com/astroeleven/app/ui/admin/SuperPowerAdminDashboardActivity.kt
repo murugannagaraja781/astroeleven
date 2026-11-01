@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.*
@@ -27,6 +28,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -86,7 +92,7 @@ fun SuperPowerScreen(
     onThemeSelected: (AppTheme) -> Unit
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Approval", "Banners", "Branding", "Workflow", "Profile", "Store")
+    val tabs = listOf("Approval", "Banners", "Learning", "Branding", "Workflow", "Profile", "Store")
  
     Scaffold(
         topBar = {
@@ -117,10 +123,11 @@ fun SuperPowerScreen(
             when (selectedTab) {
                 0 -> PendingAstrologersTab()
                 1 -> BannersManagementTab()
-                2 -> BrandingTab(onThemeSelected)
-                3 -> WorkflowTab()
-                4 -> AdminProfileTab()
-                5 -> StoreTab()
+                2 -> LearningVideosTab()
+                3 -> BrandingTab(onThemeSelected)
+                4 -> WorkflowTab()
+                5 -> AdminProfileTab()
+                6 -> StoreTab()
                 else -> Box(Modifier.fillMaxSize()) { Text("More features coming soon", modifier = Modifier.align(Alignment.Center)) }
             }
         }
@@ -304,6 +311,307 @@ fun BannersManagementTab() {
                             }
                         }) {
                             Text("❌", fontSize = 16.sp)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun LearningVideosTab() {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    var selectedAudience by remember { mutableStateOf("astrologer") } // "astrologer" or "user"
+    var videos by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    var title by remember { mutableStateOf("") }
+    var videoUrl by remember { mutableStateOf("") }
+    var category by remember { mutableStateOf("Training") }
+    var thumbnail by remember { mutableStateOf("") }
+    var isAdding by remember { mutableStateOf(false) }
+
+    fun refreshVideos() {
+        isLoading = true
+        scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val res = ApiClient.api.getAcademyVideos(target = selectedAudience)
+                if (res.isSuccessful && res.body() != null) {
+                    val arr = res.body()?.getAsJsonArray("videos")
+                    val list = arr?.map { it.asJsonObject } ?: emptyList()
+                    withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        videos = list
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    isLoading = false
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(selectedAudience) {
+        refreshVideos()
+    }
+
+    val isAstro = selectedAudience == "astrologer"
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            "🎓 Academy Videos Manager",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.ExtraBold,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            "Upload separate learning video links for Astrologers or User App.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.Gray
+        )
+
+        // Audience Selector Switch (Astrologer vs User)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            FilterChip(
+                selected = isAstro,
+                onClick = { selectedAudience = "astrologer" },
+                label = { Text("🔮 Astrologer Academy (Learning Icon)") },
+                modifier = Modifier.weight(1f),
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = Color(0xFF6200EE),
+                    selectedLabelColor = Color.White
+                )
+            )
+            FilterChip(
+                selected = !isAstro,
+                onClick = { selectedAudience = "user" },
+                label = { Text("👤 User Academy (User App)") },
+                modifier = Modifier.weight(1f),
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = Color(0xFFD32F2F),
+                    selectedLabelColor = Color.White
+                )
+            )
+        }
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = if (isAstro) Color(0xFFF3E5F5) else Color(0xFFFFEBEE)
+            ),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                val headerText = if (isAstro) 
+                    "➕ Add Astrologer Learning Video (ஜோதிடர் ஆப்)" 
+                    else "➕ Add User Academy Video (பயனர் ஆப்)"
+                Text(headerText, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = if (isAstro) Color(0xFF4A148C) else Color(0xFFB71C1C))
+
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Video Title (வீடியோ தலைப்பு) *") },
+                    placeholder = { Text(if (isAstro) "e.g. Astrologer Consultation Guide" else "e.g. Astrology Basics for Users") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                OutlinedTextField(
+                    value = videoUrl,
+                    onValueChange = { videoUrl = it },
+                    label = { Text("Video / YouTube URL *") },
+                    placeholder = { Text("https://www.youtube.com/watch?v=... or https://youtu.be/...") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                OutlinedTextField(
+                    value = category,
+                    onValueChange = { category = it },
+                    label = { Text("Category (பிரிவு)") },
+                    placeholder = { Text("e.g. Training, Kundli, Basics") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                OutlinedTextField(
+                    value = thumbnail,
+                    onValueChange = { thumbnail = it },
+                    label = { Text("Thumbnail URL (Optional)") },
+                    placeholder = { Text("https://.../thumb.jpg") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                Button(
+                    onClick = {
+                        if (title.trim().isEmpty()) {
+                            Toast.makeText(context, "Video Title is required", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        if (videoUrl.trim().isEmpty()) {
+                            Toast.makeText(context, "Video URL is required", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        isAdding = true
+                        scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                            try {
+                                val body = JsonObject().apply {
+                                    addProperty("title", title.trim())
+                                    addProperty("youtubeUrl", videoUrl.trim())
+                                    addProperty("category", category.trim().ifEmpty { "General" })
+                                    addProperty("thumbnail", thumbnail.trim())
+                                    addProperty("audience", selectedAudience)
+                                    addProperty("target", selectedAudience)
+                                }
+                                val res = ApiClient.api.addAcademyVideo(body)
+                                withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                    isAdding = false
+                                    if (res.isSuccessful && res.body()?.get("ok")?.asBoolean == true) {
+                                        Toast.makeText(context, "Video published successfully for ${if (isAstro) "Astrologers" else "Users"}!", Toast.LENGTH_SHORT).show()
+                                        title = ""
+                                        videoUrl = ""
+                                        category = "Training"
+                                        thumbnail = ""
+                                        refreshVideos()
+                                    } else {
+                                        Toast.makeText(context, "Failed to publish video", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                    isAdding = false
+                                    Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isAstro) Color(0xFF6200EE) else Color(0xFFD32F2F)
+                    ),
+                    enabled = !isAdding
+                ) {
+                    if (isAdding) CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
+                    else Text("Publish Video to ${if (isAstro) "Astrologers" else "Users"}", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            val listTitle = if (isAstro) "🔮 Astrologer Learning Videos (${videos.size})" else "👤 User Academy Videos (${videos.size})"
+            Text(listTitle, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            IconButton(onClick = { refreshVideos() }) {
+                Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+            }
+        }
+
+        if (isLoading) {
+            Box(Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else if (videos.isEmpty()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp).fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(Icons.Default.PlayCircle, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(40.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
+                    val emptyText = if (isAstro) "No Astrologer learning videos published yet." else "No User academy videos published yet."
+                    Text(emptyText, color = Color.Gray)
+                }
+            }
+        } else {
+            videos.forEach { vObj ->
+                val id = vObj.get("_id")?.asString ?: ""
+                val vTitle = vObj.get("title")?.asString ?: "Untitled Video"
+                val vUrl = vObj.get("youtubeUrl")?.asString ?: ""
+                val vCat = vObj.get("category")?.asString ?: "General"
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(14.dp).fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(if (isAstro) Color(0xFFEDE7F6) else Color(0xFFFFEBEE)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.PlayArrow, contentDescription = "Play", tint = if (isAstro) Color(0xFF6200EE) else Color.Red, modifier = Modifier.size(24.dp))
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(vTitle, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text("Category: $vCat", fontSize = 11.sp, color = if (isAstro) Color(0xFF6200EE) else MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
+                            Text(
+                                vUrl,
+                                fontSize = 11.sp,
+                                color = Color.Gray,
+                                maxLines = 1,
+                                modifier = Modifier.clickable {
+                                    if (vUrl.isNotEmpty()) {
+                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(vUrl))
+                                        context.startActivity(intent)
+                                    }
+                                }
+                            )
+                        }
+                        IconButton(onClick = {
+                            if (vUrl.isNotEmpty()) {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(vUrl))
+                                context.startActivity(intent)
+                            }
+                        }) {
+                            Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = "Open", tint = if (isAstro) Color(0xFF6200EE) else MaterialTheme.colorScheme.primary)
+                        }
+                        IconButton(onClick = {
+                            if (id.isNotEmpty()) {
+                                scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                                    try {
+                                        val res = ApiClient.api.deleteAcademyVideo(id)
+                                        withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                            if (res.isSuccessful) {
+                                                Toast.makeText(context, "Video Deleted", Toast.LENGTH_SHORT).show()
+                                                refreshVideos()
+                                            }
+                                        }
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
+                                    }
+                                }
+                            }
+                        }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red)
                         }
                     }
                 }

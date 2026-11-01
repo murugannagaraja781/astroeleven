@@ -53,76 +53,112 @@ const TAMIL_SIGN_NAMES = {
 // Classical Tamil Lagna Subhar / Paavar / Badhaka / Maraka Rules (பராசர முறை)
 const LAGNA_RULES = {
     0: { // Aries (மேஷம்) - Chara
-        subhar: "சூரியன், குரு",
+        subhar: "செவ்வாய், சூரியன், குரு",
         paavar: "புதன், சுக்கிரன், சனி",
-        badhakathipathi: "சனி (11-ஆம் அதிபதி)",
-        marakathipathi: "சுக்கிரன் (2, 7-ஆம் அதிபதி)"
+        samar: "சந்திரன்",
+        badhakathipathi: "சனி",
+        badhaka: "சனி",
+        marakathipathi: "சுக்கிரன், புதன்",
+        maraka: "சுக்கிரன், புதன்"
     },
     1: { // Taurus (ரிஷபம்) - Sthira
-        subhar: "சனி, புதன்",
-        paavar: "குரு, சந்திரன், சுக்கிரன்",
-        badhakathipathi: "சனி (9-ஆம் அதிபதி)",
-        marakathipathi: "செவ்வாய் (7-ஆம் அதிபதி), குரு"
+        subhar: "சுக்கிரன், புதன், சனி",
+        paavar: "செவ்வாய், சந்திரன், குரு",
+        samar: "சூரியன்",
+        badhakathipathi: "சனி",
+        badhaka: "சனி",
+        marakathipathi: "செவ்வாய், குரு",
+        maraka: "செவ்வாய், குரு"
     },
     2: { // Gemini (மிதுனம்) - Ubhaya
-        subhar: "சுக்கிரன்",
-        paavar: "செவ்வாய், குரு, சூரியன்",
-        badhakathipathi: "குரு (7-ஆம் அதிபதி)",
-        marakathipathi: "சந்திரன் (2-ஆம் அதிபதி), குரு (7-ஆம் அதிபதி)"
+        subhar: "புதன், சுக்கிரன், சனி",
+        paavar: "செவ்வாய், சூரியன், குரு",
+        samar: "சந்திரன்",
+        badhakathipathi: "குரு",
+        badhaka: "குரு",
+        marakathipathi: "சந்திரன், குரு",
+        maraka: "சந்திரன், குரு"
     },
     3: { // Cancer (கடகம்) - Chara
-        subhar: "செவ்வாய், குரு",
-        paavar: "சுக்கிரன், புதன்",
-        badhakathipathi: "சுக்கிரன் (11-ஆம் அதிபதி)",
-        marakathipathi: "சூரியன் (2-ஆம் அதிபதி), சனி (7-ஆம் அதிபதி)"
+        subhar: "சந்திரன், செவ்வாய், குரு",
+        paavar: "புதன், சுக்கிரன், சனி",
+        samar: "சூரியன்",
+        badhakathipathi: "சுக்கிரன்",
+        badhaka: "சுக்கிரன்",
+        marakathipathi: "சனி, புதன்",
+        maraka: "சனி, புதன்"
     },
     4: { // Leo (சிம்மம்) - Sthira
-        subhar: "செவ்வாய், குரு",
-        paavar: "சுக்கிரன், புதன்",
-        badhakathipathi: "செவ்வாய் (9-ஆம் அதிபதி)",
-        marakathipathi: "புதன் (2-ஆம் அதிபதி), சனி (7-ஆம் அதிபதி)"
+        subhar: "சூரியன், செவ்வாய், குரு",
+        paavar: "சுக்கிரன், சனி",
+        samar: "சந்திரன், புதன்",
+        badhakathipathi: "செவ்வாய்",
+        badhaka: "செவ்வாய்",
+        marakathipathi: "புதன், சனி",
+        maraka: "புதன், சனி"
     },
     5: { // Virgo (கன்னி) - Ubhaya
-        subhar: "சுக்கிரன்",
-        paavar: "செவ்வாய், குரு, சந்திரன்",
-        badhakathipathi: "குரு (7-ஆம் அதிபதி)",
-        marakathipathi: "சுக்கிரன் (2-ஆம் அதிபதி), குரு (7-ஆம் அதிபதி)"
+        subhar: "புதன், சுக்கிரன், சனி",
+        paavar: "சூரியன், செவ்வாய், குரு",
+        samar: "சந்திரன்",
+        badhakathipathi: "குரு",
+        badhaka: "குரு",
+        marakathipathi: "செவ்வாய், சூரியன்",
+        maraka: "செவ்வாய், சூரியன்"
     },
     6: { // Libra (துலாம்) - Chara
-        subhar: "சனி, புதன்",
-        paavar: "குரு, சூரியன், செவ்வாய்",
-        badhakathipathi: "சூரியன் (11-ஆம் அதிபதி)",
-        marakathipathi: "செவ்வாய் (2, 7-ஆம் அதிபதி)"
+        subhar: "சுக்கிரன், சனி, புதன்",
+        paavar: "செவ்வாய், குரு, சூரியன்",
+        samar: "சந்திரன்",
+        badhakathipathi: "சூரியன்",
+        badhaka: "சூரியன்",
+        marakathipathi: "செவ்வாய், குரு",
+        maraka: "செவ்வாய், குரு"
     },
     7: { // Scorpio (விருச்சிகம்) - Sthira
-        subhar: "குரு, சந்திரன்",
-        paavar: "புதன், சுக்கிரன்",
-        badhakathipathi: "சந்திரன் (9-ஆம் அதிபதி)",
-        marakathipathi: "சுக்கிரன் (7-ஆம் அதிபதி), புதன்"
+        subhar: "செவ்வாய், குரு, சூரியன்",
+        paavar: "சனி, சுக்கிரன், புதன்",
+        samar: "சந்திரன்",
+        badhakathipathi: "சந்திரன்",
+        badhaka: "சந்திரன்",
+        marakathipathi: "சுக்கிரன், புதன்",
+        maraka: "சுக்கிரன், புதன்"
     },
     8: { // Sagittarius (தனுசு) - Ubhaya
-        subhar: "சூரியன், செவ்வாய்",
-        paavar: "சுக்கிரன், புதன்",
-        badhakathipathi: "புதன் (7-ஆம் அதிபதி)",
-        marakathipathi: "சனி (2-ஆம் அதிபதி), புதன் (7-ஆம் அதிபதி)"
+        subhar: "குரு, செவ்வாய், சூரியன்",
+        paavar: "சந்திரன், சுக்கிரன், புதன்",
+        samar: "சனி",
+        badhakathipathi: "புதன்",
+        badhaka: "புதன்",
+        marakathipathi: "சனி, புதன்",
+        maraka: "சனி, புதன்"
     },
     9: { // Capricorn (மகரம்) - Chara
-        subhar: "சுக்கிரன், புதன்",
-        paavar: "செவ்வாய், குரு, சந்திரன்",
-        badhakathipathi: "செவ்வாய் (11-ஆம் அதிபதி)",
-        marakathipathi: "சனி (2-ஆம் அதிபதி), சந்திரன் (7-ஆம் அதிபதி)"
+        subhar: "சனி, சுக்கிரன், புதன்",
+        paavar: "சூரியன், சந்திரன், செவ்வாய்",
+        samar: "குரு",
+        badhakathipathi: "செவ்வாய்",
+        badhaka: "செவ்வாய்",
+        marakathipathi: "சூரியன், சந்திரன்",
+        maraka: "சூரியன், சந்திரன்"
     },
     10: { // Aquarius (கும்பம்) - Sthira
-        subhar: "சுக்கிரன்",
-        paavar: "குரு, சந்திரன், செவ்வாய்",
-        badhakathipathi: "சுக்கிரன் (9-ஆம் அதிபதி)",
-        marakathipathi: "குரு (2-ஆம் அதிபதி), சூரியன் (7-ஆம் அதிபதி)"
+        subhar: "சனி, புதன், சுக்கிரன்",
+        paavar: "சூரியன், சந்திரன், செவ்வாய்",
+        samar: "குரு",
+        badhakathipathi: "சுக்கிரன்",
+        badhaka: "சுக்கிரன்",
+        marakathipathi: "சூரியன், செவ்வாய்",
+        maraka: "சூரியன், செவ்வாய்"
     },
     11: { // Pisces (மீனம்) - Ubhaya
-        subhar: "சந்திரன், செவ்வாய்",
-        paavar: "சுக்கிரன், புதன், சூரியன்",
-        badhakathipathi: "புதன் (7-ஆம் அதிபதி)",
-        marakathipathi: "செவ்வாய் (2-ஆம் அதிபதி), புதன் (7-ஆம் அதிபதி)"
+        subhar: "குரு, சந்திரன், செவ்வாய்",
+        paavar: "சூரியன், புதன், சுக்கிரன், சனி",
+        samar: "-",
+        badhakathipathi: "புதன்",
+        badhaka: "புதன்",
+        marakathipathi: "புதன், சுக்கிரன், சனி",
+        maraka: "புதன், சுக்கிரன், சனி"
     }
 };
 
@@ -294,10 +330,13 @@ router.post('/full', async (req, res) => {
         // 12. Lagna Subhar / Paavar / Badhaka / Maraka
         const lagnaIndex = typeof houses.ascendant === 'number' ? Math.floor(houses.ascendant / 30) % 12 : 0;
         const lagnaRules = LAGNA_RULES[lagnaIndex] || {
-            subhar: "சுக்கிரன், குரு",
-            paavar: "புதன், சனி, செவ்வாய்",
-            badhakathipathi: "பாதகாதிபதி",
-            marakathipathi: "மாறகாதிபதி"
+            subhar: "செவ்வாய், சூரியன், குரு",
+            paavar: "புதன், சுக்கிரன், சனி",
+            samar: "சந்திரன்",
+            badhaka: "சனி",
+            badhakathipathi: "சனி",
+            maraka: "சுக்கிரன், புதன்",
+            marakathipathi: "சுக்கிரன், புதன்"
         };
 
         // 13. Current Running Dasha & Bhukti with Star Lords & Date Ranges
@@ -385,10 +424,11 @@ router.post('/full', async (req, res) => {
             lagnaTamil: ascSignTamil,
             subhar: lagnaRules.subhar,
             paavar: lagnaRules.paavar,
-            badhaka: lagnaRules.badhakathipathi,
+            badhaka: lagnaRules.badhaka || lagnaRules.badhakathipathi,
             badhakathipathi: lagnaRules.badhakathipathi,
-            maraka: lagnaRules.marakathipathi,
-            marakathipathi: lagnaRules.marakathipathi
+            maraka: lagnaRules.maraka || lagnaRules.marakathipathi,
+            marakathipathi: lagnaRules.marakathipathi,
+            samar: lagnaRules.samar || "-"
         };
 
         // Transits (Could also be parallelized if needed)
@@ -439,7 +479,7 @@ router.post('/full', async (req, res) => {
                 nakshatra: moonNakName
             },
             currentDashaInfo,
-            lagnaRoles: lagnaRules
+            lagnaRoles: lagnaRoles
         };
 
         res.json({

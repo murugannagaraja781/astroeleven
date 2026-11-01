@@ -2738,7 +2738,7 @@
       style="background:#F3F4F6; width:100%; height:90vh; border-top-left-radius:25px; border-top-right-radius:25px; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 -5px 20px rgba(0,0,0,0.2); max-width:500px;">
       <div
         style="padding:20px; background: var(--bg-card); font-weight:700; font-size:1.2rem; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e5e5e5; color:var(--text-main);">
-        <span>🎓 Astro Academy</span>
+        <span id="clientAcademyTitle">🎓 Astro Academy</span>
         <button onclick="document.getElementById('clientAcademyModal').classList.add('hidden')"
           style="background:none; border:none; font-size:1.4rem; color:var(--text-muted); cursor:pointer;"><i
             class="fas fa-times"></i></button>
@@ -2758,7 +2758,7 @@
       style="background:#F3F4F6; width:100%; height:90vh; border-top-left-radius:25px; border-top-right-radius:25px; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 -5px 20px rgba(0,0,0,0.2); max-width:500px;">
       <div
         style="padding:20px; background: var(--bg-card); font-weight:700; font-size:1.2rem; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e5e5e5; color:var(--text-main);">
-        <span>🎓 Astro Academy</span>
+        <span id="clientAcademyTitle">🎓 Astro Academy</span>
         <button onclick="document.getElementById('clientAcademyModal').classList.add('hidden')"
           style="background:none; border:none; font-size:1.4rem; color:var(--text-muted); cursor:pointer;"><i
             class="fas fa-times"></i></button>
@@ -2919,6 +2919,7 @@
         </a>
       </div>
       <div>
+        <i class="fas fa-graduation-cap" title="Learning Videos" style="cursor: pointer; margin-right: 12px; font-size: 1.1rem; color: #6200EE;" onclick="openAstroLearningVideos()"></i>
         <i class="fas fa-bell"></i>
         <i class="fas fa-sign-out-alt" style="margin-left: 10px; cursor: pointer;" onclick="clearSession()"></i>
       </div>
@@ -3012,6 +3013,9 @@
         </div>
         <div class="grid-item" onclick="showProfile()" style="cursor: pointer;">
           <div class="grid-icon"><i class="fas fa-user"></i></div> Profile
+        </div>
+        <div class="grid-item" onclick="openAstroLearningVideos()" style="cursor: pointer;">
+          <div class="grid-icon" style="background: rgba(98, 0, 238, 0.1); color: #6200EE;"><i class="fas fa-graduation-cap"></i></div> Learning
         </div>
         <!-- <div class="grid-item" onclick="showChartHelper()" style="cursor: pointer;">
           <div class="grid-icon"><i class="fas fa-chart-pie"></i></div> Birth Chart
@@ -6625,21 +6629,29 @@
     });
 
 
-    async function openAcademyModal() {
-      document.getElementById('clientAcademyModal').classList.remove('hidden');
+    async function openAcademyModal(target = 'user') {
+      const modal = document.getElementById('clientAcademyModal');
+      if (modal) modal.classList.remove('hidden');
       const list = document.getElementById('clientAcademyList');
-      list.innerHTML = '<div style="text-align:center; padding:20px;"><i class="fas fa-circle-notch fa-spin"></i> Loading...</div>';
+      const titleSpan = document.getElementById('clientAcademyTitle');
+      const isAstro = target === 'astrologer';
+      if (titleSpan) {
+        titleSpan.innerHTML = isAstro ? '🎓 Astrologer Learning Hub' : '🎓 Astro Academy';
+      }
+      if (list) {
+        list.innerHTML = '<div style="text-align:center; padding:20px;"><i class="fas fa-circle-notch fa-spin"></i> Loading...</div>';
+      }
 
       try {
-        const res = await fetch('/api/academy/videos');
+        const res = await fetch(`/api/academy/videos?target=${encodeURIComponent(target)}`);
         const data = await res.json();
-        if (data.ok && data.videos.length > 0) {
+        if (data.ok && data.videos && data.videos.length > 0) {
           list.innerHTML = data.videos.map(v => `
             <a href="${v.youtubeUrl}" target="_blank" style="text-decoration:none; color:inherit;">
               <div style="background: var(--bg-card); border-radius:15px; overflow:hidden; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1); border:1px solid #eee;">
                 <div style="padding:15px; display:flex; align-items:center; gap:15px;">
-                  <div style="width:50px; height:50px; background: var(--bg-card)7ed; border-radius:12px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                    <i class="fab fa-youtube" style="font-size:1.8rem; color:#ef4444;"></i>
+                  <div style="width:50px; height:50px; background: ${isAstro ? 'rgba(98, 0, 238, 0.1)' : 'rgba(239, 68, 68, 0.1)'}; border-radius:12px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    <i class="fab fa-youtube" style="font-size:1.8rem; color:${isAstro ? '#6200EE' : '#ef4444'};"></i>
                   </div>
                   <div>
                     <div style="font-weight:700; color:var(--text-main); font-size:1rem; margin-bottom:4px;">${v.title}</div>
@@ -6652,11 +6664,18 @@
             </a>
           `).join('');
         } else {
-          list.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">No educational videos available yet.</div>';
+          const emptyText = isAstro 
+            ? 'Super Admin விரைவில் ஜோதிடர்களுக்கான பயிற்சி வீடியோ லிங்குகளை பதிவேற்றுவார்.'
+            : 'No educational videos available yet.';
+          list.innerHTML = `<div style="text-align:center; padding:20px; color:var(--text-muted);">${emptyText}</div>`;
         }
       } catch (err) {
         list.innerHTML = '<div style="text-align:center; padding:20px; color:#ef4444;">Failed to load videos.</div>';
       }
+    }
+
+    function openAstroLearningVideos() {
+      openAcademyModal('astrologer');
     }
 
     // Super Admin functions have been moved to superadmin.html

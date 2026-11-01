@@ -26,7 +26,7 @@ const RASI_CLASSIFICATIONS = [
     { subhargal: "புதன், சுக்கிரன், சனி", paabargal: "செவ்வாய், சூரியன், குரு", maaragar: "சந்திரன், குரு" }, // Gemini (மிதுனம்)
     { subhargal: "சந்திரன், செவ்வாய், குரு", paabargal: "புதன், சுக்கிரன், சனி", maaragar: "சனி, புதன்" }, // Cancer (கடகம்)
     { subhargal: "சூரியன், செவ்வாய், குரு", paabargal: "சுக்கிரன், சனி", maaragar: "புதன், சனி" }, // Leo (சிம்மம்)
-    { subhargal: "புதன், சுக்கிரன், சனி", paabargal: "சூரியன், செவ்வாய், குரு", maaragar: "செவ்வாய், குரு" }, // Virgo (கன்னி)
+    { subhargal: "புதன், சுக்கிரன், சனி", paabargal: "சூரியன், செவ்வாய், குரு", maaragar: "செவ்வாய், சூரியன்" }, // Virgo (கன்னி)
     { subhargal: "சுக்கிரன், சனி, புதன்", paabargal: "செவ்வாய், குரு, சூரியன்", maaragar: "செவ்வாய், குரு" }, // Libra (துலாம்)
     { subhargal: "செவ்வாய், குரு, சூரியன்", paabargal: "சனி, சுக்கிரன், புதன்", maaragar: "சுக்கிரன், புதன்" }, // Scorpio (விருச்சிகம்)
     { subhargal: "குரு, செவ்வாய், சூரியன்", paabargal: "சந்திரன், சுக்கிரன், புதன்", maaragar: "சனி, புதன்" }, // Sagittarius (தனுசு)

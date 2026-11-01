@@ -1549,39 +1549,72 @@ app.post('/api/admin/app-settings', async (req, res) => {
 // Astro Academy Videos
 app.get('/api/academy/videos', async (req, res) => {
     try {
-        let videos = await AcademyVideo.find().sort({ createdAt: -1 });
+        const { audience, target } = req.query;
+        const requestedTarget = audience || target;
+        let query = {};
+        if (requestedTarget === 'astrologer') {
+            query = { audience: 'astrologer' };
+        } else if (requestedTarget === 'user') {
+            query = { audience: { $ne: 'astrologer' } };
+        }
+        let videos = await AcademyVideo.find(query).sort({ createdAt: -1 });
         if (!videos || videos.length === 0) {
-            // Default curated educational astrology videos
-            videos = [
-                {
-                    _id: 'acad_1',
-                    title: 'ஜோதிட அடிப்படைகள் - ராசிகள் மற்றும் கிரகங்கள் (Astrology Basics)',
-                    youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-                    thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
-                    category: 'Basics'
-                },
-                {
-                    _id: 'acad_2',
-                    title: '27 நட்சத்திரங்கள் & அவற்றின் பலன்கள் (27 Nakshatras)',
-                    youtubeUrl: 'https://www.youtube.com/watch?v=kJQP7kiw5Fk',
-                    thumbnail: 'https://img.youtube.com/vi/kJQP7kiw5Fk/hqdefault.jpg',
-                    category: 'Nakshatra'
-                },
-                {
-                    _id: 'acad_3',
-                    title: 'லக்னம் மற்றும் 12 பாவங்களின் விளக்கம் (12 Houses in Astrology)',
-                    youtubeUrl: 'https://www.youtube.com/watch?v=3JZ_D3ELwOQ',
-                    thumbnail: 'https://img.youtube.com/vi/3JZ_D3ELwOQ/hqdefault.jpg',
-                    category: 'Kundli'
-                },
-                {
-                    _id: 'acad_4',
-                    title: 'தினசரி பஞ்சாங்கம் பார்ப்பது எப்படி? (Daily Panchangam Guide)',
-                    youtubeUrl: 'https://www.youtube.com/watch?v=L_LUpnjgPso',
-                    thumbnail: 'https://img.youtube.com/vi/L_LUpnjgPso/hqdefault.jpg',
-                    category: 'Panchangam'
-                }
-            ];
+            if (requestedTarget === 'astrologer') {
+                videos = [
+                    {
+                        _id: 'acad_astro_1',
+                        title: 'ஜோதிடர்களுக்கான பயிற்சி - பலன் சொல்லும் ரகசியங்கள் (Astrologer Training)',
+                        youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+                        thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
+                        category: 'Consultation Tips',
+                        audience: 'astrologer'
+                    },
+                    {
+                        _id: 'acad_astro_2',
+                        title: 'ஜாதக கட்டங்கள், தசா புக்தி துல்லிய கணிதம் (Advanced Kundli)',
+                        youtubeUrl: 'https://www.youtube.com/watch?v=3JZ_D3ELwOQ',
+                        thumbnail: 'https://img.youtube.com/vi/3JZ_D3ELwOQ/hqdefault.jpg',
+                        category: 'Kundli Calculation',
+                        audience: 'astrologer'
+                    }
+                ];
+            } else {
+                // Default curated educational astrology videos for users
+                videos = [
+                    {
+                        _id: 'acad_1',
+                        title: 'ஜோதிட அடிப்படைகள் - ராசிகள் மற்றும் கிரகங்கள் (Astrology Basics)',
+                        youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+                        thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
+                        category: 'Basics',
+                        audience: 'user'
+                    },
+                    {
+                        _id: 'acad_2',
+                        title: '27 நட்சத்திரங்கள் & அவற்றின் பலன்கள் (27 Nakshatras)',
+                        youtubeUrl: 'https://www.youtube.com/watch?v=kJQP7kiw5Fk',
+                        thumbnail: 'https://img.youtube.com/vi/kJQP7kiw5Fk/hqdefault.jpg',
+                        category: 'Nakshatra',
+                        audience: 'user'
+                    },
+                    {
+                        _id: 'acad_3',
+                        title: 'லக்னம் மற்றும் 12 பாவங்களின் விளக்கம் (12 Houses in Astrology)',
+                        youtubeUrl: 'https://www.youtube.com/watch?v=3JZ_D3ELwOQ',
+                        thumbnail: 'https://img.youtube.com/vi/3JZ_D3ELwOQ/hqdefault.jpg',
+                        category: 'Kundli',
+                        audience: 'user'
+                    },
+                    {
+                        _id: 'acad_4',
+                        title: 'தினசரி பஞ்சாங்கம் பார்ப்பது எப்படி? (Daily Panchangam Guide)',
+                        youtubeUrl: 'https://www.youtube.com/watch?v=L_LUpnjgPso',
+                        thumbnail: 'https://img.youtube.com/vi/L_LUpnjgPso/hqdefault.jpg',
+                        category: 'Panchangam',
+                        audience: 'user'
+                    }
+                ];
+            }
         }
         res.json({ ok: true, videos });
     } catch (err) {
@@ -1589,15 +1622,24 @@ app.get('/api/academy/videos', async (req, res) => {
     }
 });
 
+// Dedicated alias for Astrologer Academy videos
+app.get('/api/astrologer/academy/videos', async (req, res) => {
+    req.query.audience = 'astrologer';
+    let videos = await AcademyVideo.find({ audience: 'astrologer' }).sort({ createdAt: -1 });
+    res.json({ ok: true, videos });
+});
+
 app.post('/api/admin/academy/videos', async (req, res) => {
     try {
-        const { title, youtubeUrl, thumbnail, category } = req.body;
+        const { title, youtubeUrl, thumbnail, category, audience, target } = req.body;
         if (!title || !youtubeUrl) return res.status(400).json({ ok: false, error: 'Title and YouTube URL required' });
+        const videoAudience = audience || target || 'user';
         const video = await AcademyVideo.create({
             title,
             youtubeUrl,
             thumbnail: thumbnail || '',
-            category: category || 'General'
+            category: category || 'General',
+            audience: videoAudience
         });
         res.json({ ok: true, video });
     } catch (err) {
@@ -3917,20 +3959,25 @@ io.on('connection', (socket) => {
   });
 
   socket.on('approve-withdrawal', async (data, cb) => {
-    if (!await checkAdmin(socket.id, data?.adminUserId)) return cb ? cb({ ok: false }) : null;
+    if (!cb) cb = () => {};
+    if (!await checkAdmin(socket.id, data?.adminUserId)) return cb({ ok: false, error: 'Unauthorized' });
     try {
       const { withdrawalId } = data;
-      const w = await Withdrawal.findById(withdrawalId);
-      if (!w || w.status !== 'pending') return cb({ ok: false, error: 'Invalid Request' });
+      let w = await Withdrawal.findById(withdrawalId);
+      if (!w) {
+        w = await Withdrawal.findOne({ id: withdrawalId }) || await Withdrawal.findOne({ _id: withdrawalId });
+      }
+      if (!w || w.status !== 'pending') return cb({ ok: false, error: 'Invalid Request or Already Processed' });
 
-      const u = await User.findOne({ userId: w.astroId });
+      const astroId = w.astroId || w.userId;
+      const u = await User.findOne({ userId: astroId });
       if (!u) return cb({ ok: false, error: 'User not found' });
 
       // Balance already deducted at request time
 
       // Update Request
       w.status = 'approved';
-      w.processedAt = Date.now();
+      w.processedAt = new Date();
       await w.save();
 
       // Notify Astro via Socket
@@ -3943,7 +3990,7 @@ io.on('connection', (socket) => {
       if (u.fcmToken) {
         const fcmData = {
           type: "withdrawal_approved",
-          withdrawalId: w._id.toString(),
+          withdrawalId: (w._id || w.id || '').toString(),
           amount: w.amount.toString()
         };
         const fcmNotification = {
@@ -3955,19 +4002,24 @@ io.on('connection', (socket) => {
 
       cb({ ok: true, balance: u.walletBalance });
     } catch (e) {
-      console.error(e);
-      cb({ ok: false, error: 'Error' });
+      console.error('approve-withdrawal socket error:', e);
+      cb({ ok: false, error: e.message || 'Error' });
     }
   });
 
   socket.on('reject-withdrawal', async (data, cb) => {
-    if (!await checkAdmin(socket.id, data?.adminUserId)) return cb ? cb({ ok: false }) : null;
+    if (!cb) cb = () => {};
+    if (!await checkAdmin(socket.id, data?.adminUserId)) return cb({ ok: false, error: 'Unauthorized' });
     try {
       const { withdrawalId } = data;
-      const w = await Withdrawal.findById(withdrawalId);
-      if (!w || w.status !== 'pending') return cb({ ok: false, error: 'Invalid Request' });
+      let w = await Withdrawal.findById(withdrawalId);
+      if (!w) {
+        w = await Withdrawal.findOne({ id: withdrawalId }) || await Withdrawal.findOne({ _id: withdrawalId });
+      }
+      if (!w || w.status !== 'pending') return cb({ ok: false, error: 'Invalid Request or Already Processed' });
 
-      const u = await User.findOne({ userId: w.astroId });
+      const astroId = w.astroId || w.userId;
+      const u = await User.findOne({ userId: astroId });
       if (u) {
         // REFUND atomically
         await User.updateOne({ userId: u.userId }, { $inc: { walletBalance: w.amount } });
@@ -3982,13 +4034,13 @@ io.on('connection', (socket) => {
       }
 
       w.status = 'rejected';
-      w.processedAt = Date.now();
+      w.processedAt = new Date();
       await w.save();
 
       cb({ ok: true });
     } catch (e) {
-      console.error(e);
-      cb({ ok: false });
+      console.error('reject-withdrawal socket error:', e);
+      cb({ ok: false, error: e.message || 'Error' });
     }
   });
 

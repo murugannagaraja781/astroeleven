@@ -18,14 +18,27 @@ const path = require('path');
 
 
 exports.getVideos = async (req, res) => {
-    const videos = await AcademyVideo.find().sort({ createdAt: -1 });
-    res.json({ ok: true, videos });
+    try {
+        const { audience, target } = req.query;
+        const requestedTarget = audience || target;
+        let query = {};
+        if (requestedTarget === 'astrologer') {
+            query = { audience: 'astrologer' };
+        } else if (requestedTarget === 'user') {
+            query = { audience: { $ne: 'astrologer' } };
+        }
+        const videos = await AcademyVideo.find(query).sort({ createdAt: -1 });
+        res.json({ ok: true, videos });
+    } catch (e) {
+        res.status(500).json({ ok: false, error: e.message });
+    }
 };
 
 exports.addVideo = async (req, res) => {
     try {
-        const { title, youtubeUrl, thumbnail, category } = req.body;
-        const video = await AcademyVideo.create({ title, youtubeUrl, thumbnail, category });
+        const { title, youtubeUrl, thumbnail, category, audience, target } = req.body;
+        const videoAudience = audience || target || 'user';
+        const video = await AcademyVideo.create({ title, youtubeUrl, thumbnail, category, audience: videoAudience });
         res.json({ ok: true, video });
     } catch (e) {
         res.json({ ok: false, error: e.message });
@@ -1395,11 +1408,15 @@ exports.markNotificationRead = async (req, res) => {
 exports.approveWithdrawal = async (req, res) => {
     try {
         const { id } = req.params;
-        const w = await Withdrawal.findById(id);
+        let w = await Withdrawal.findById(id);
+        if (!w) {
+            w = await Withdrawal.findOne({ id }) || await Withdrawal.findOne({ _id: id });
+        }
         if (!w || w.status !== 'pending') {
             return res.json({ ok: false, error: 'Invalid or already processed withdrawal' });
         }
-        const u = await User.findOne({ userId: w.astroId });
+        const astroId = w.astroId || w.userId;
+        const u = await User.findOne({ userId: astroId });
         w.status = 'approved';
         w.processedAt = new Date();
         await w.save();
@@ -1433,11 +1450,15 @@ exports.approveWithdrawal = async (req, res) => {
 exports.rejectWithdrawal = async (req, res) => {
     try {
         const { id } = req.params;
-        const w = await Withdrawal.findById(id);
+        let w = await Withdrawal.findById(id);
+        if (!w) {
+            w = await Withdrawal.findOne({ id }) || await Withdrawal.findOne({ _id: id });
+        }
         if (!w || w.status !== 'pending') {
             return res.json({ ok: false, error: 'Invalid or already processed withdrawal' });
         }
-        const u = await User.findOne({ userId: w.astroId });
+        const astroId = w.astroId || w.userId;
+        const u = await User.findOne({ userId: astroId });
         if (u) {
             await User.updateOne({ userId: u.userId }, { $inc: { walletBalance: w.amount } });
             const freshU = await User.findOne({ userId: u.userId });
