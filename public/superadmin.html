@@ -8434,6 +8434,35 @@ body {
         let adminNotifications = JSON.parse(localStorage.getItem('admin_notifs') || '[]');
         updateNotifUI();
 
+        async function fetchServerNotifications() {
+            try {
+                const res = await fetch('/api/admin/notifications');
+                const data = await res.json();
+                if (data.ok && Array.isArray(data.list) && data.list.length > 0) {
+                    const serverNotifs = data.list.map(n => {
+                        let parsedData = {};
+                        try {
+                            parsedData = typeof n.data === 'string' ? JSON.parse(n.data) : (n.data || {});
+                        } catch(e) {}
+                        return {
+                            id: n.id || n._id,
+                            type: n.type || 'EVENT',
+                            text: n.body || n.title,
+                            data: parsedData,
+                            time: n.createdAt ? new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString(),
+                            read: n.isRead === 1 || n.isRead === true
+                        };
+                    });
+                    adminNotifications = serverNotifs;
+                    localStorage.setItem('admin_notifs', JSON.stringify(adminNotifications));
+                    updateNotifUI();
+                }
+            } catch(e) {
+                console.error("Error fetching notifications:", e);
+            }
+        }
+        fetchServerNotifications();
+
         socket.on('admin-notification', (msg) => {
             // Add to History
             msg.id = Date.now();
@@ -8456,6 +8485,8 @@ body {
                  <div style="display: flex; flex-direction: column; gap: 10px;">
                     ${msg.data && msg.data.withdrawalId ?
                     `<button class="approve" onclick="approveW('${msg.data.withdrawalId}'); this.parentElement.parentElement.remove();">Process Withdrawal</button>` : ''}
+                    ${msg.type === 'feedback' || (msg.data && msg.data.type === 'feedback') ?
+                    `<button class="approve" style="background:#10B981; color:#fff;" onclick="navAdmin('feedback'); this.parentElement.parentElement.remove();"><i class="fas fa-comments"></i> View in Feedback Menu</button>` : ''}
                     <button class="close" onclick="this.parentElement.parentElement.remove()">Dismiss</button>
                  </div>
               `;
@@ -8466,6 +8497,18 @@ body {
             
             // Sound Effect
             try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch (e) { }
+        });
+
+        // Realtime Feedback Socket Listener
+        socket.on('new-feedback', (fb) => {
+            console.log('⚡ [SOCKET] Realtime Feedback received:', fb);
+            const sect = document.getElementById('admin-sect-feedback');
+            if (sect && sect.classList.contains('active') && typeof fetchFeedback === 'function') {
+                fetchFeedback();
+            }
+            if (typeof showAdminToast === 'function') {
+                showAdminToast(`💬 New Feedback from ${fb.userName || 'User'} (${fb.rating || 5}★): "${(fb.comment || '').substring(0, 45)}"`, 'info');
+            }
         });
 
         // Realtime Puja Booking Socket Listener
@@ -8521,6 +8564,11 @@ body {
                         <div style="margin-top:10px; display:flex; gap:10px;">
                             <button onclick="navAdmin('withdrawals'); toggleNotifDropdown()" class="btn-admin" style="height:26px; font-size:0.7rem; border:1px solid var(--primary); background:none; color:var(--primary); transition:all 0.2s;">View Details</button>
                             <button onclick="approveW('${n.data.withdrawalId}'); event.stopPropagation()" class="btn-admin" style="height:26px; font-size:0.7rem; background:var(--primary); color:#000;">Approve Now</button>
+                        </div>
+                    ` : ''}
+                    ${n.type === 'feedback' || (n.data && n.data.type === 'feedback') ? `
+                        <div style="margin-top:10px; display:flex; gap:10px;">
+                            <button onclick="navAdmin('feedback'); toggleNotifDropdown()" class="btn-admin" style="height:26px; font-size:0.7rem; border:1px solid #10B981; background:rgba(16, 185, 129, 0.15); color:#10B981; transition:all 0.2s;"><i class="fas fa-comments"></i> View in Feedback Menu</button>
                         </div>
                     ` : ''}
                     ${!n.read ? '<div style="position:absolute; right:10px; top:15px; width:6px; height:6px; background:var(--primary); border-radius:50%;"></div>' : ''}
@@ -8869,7 +8917,7 @@ body {
                                 <div style="font-size:0.7rem; color:var(--text-dim); margin-top:4px;">Rating: ${f.rating}/5</div>
                             </div>
                         </div>
-                        <div style="font-size:0.9rem; color:var(--text-secondary); line-height:1.6; font-style:italic; background:rgba(255,255,255,0.02); padding:10px; border-radius:8px;">
+                        <div style="font-size:0.9rem; color:var(--text-secondary); line-height:1.6; font-style:italic; background:rgba(255,255,255,0.02); padding:10px; border-radius:8px; white-space: pre-wrap; word-break: break-word;">
                             "${f.comment || 'No comment provided.'}"
                         </div>
                         <div style="margin-top:15px; font-size:0.75rem; color:var(--text-muted); display:flex; justify-content:space-between;">

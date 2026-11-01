@@ -29,6 +29,9 @@ import androidx.core.content.ContextCompat
 import com.astroeleven.app.ui.theme.CosmicAppTheme
 import com.astroeleven.app.ui.theme.AstroDimens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+
 class PermissionActivity : ComponentActivity() {
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -82,6 +85,33 @@ fun PermissionScreen(onBack: () -> Unit) {
         } else true)
     }
 
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { perms ->
+        hasAudioPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        hasCameraPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            hasNotificationPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+    // Auto-request missing runtime permissions upfront on entering this screen
+    LaunchedEffect(Unit) {
+        val needed = mutableListOf<String>()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotificationPermission) {
+            needed.add(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        if (!hasAudioPermission) {
+            needed.add(Manifest.permission.RECORD_AUDIO)
+        }
+        if (!hasCameraPermission) {
+            needed.add(Manifest.permission.CAMERA)
+        }
+        if (needed.isNotEmpty()) {
+            permissionLauncher.launch(needed.toTypedArray())
+        }
+    }
+
     LaunchedEffect(Unit) {
         while(true) {
             hasOverlayPermission = Settings.canDrawOverlays(context)
@@ -103,6 +133,22 @@ fun PermissionScreen(onBack: () -> Unit) {
     }
 
     fun repairAll() {
+        val neededRuntime = mutableListOf<String>()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotificationPermission) {
+            neededRuntime.add(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        if (!hasAudioPermission) {
+            neededRuntime.add(Manifest.permission.RECORD_AUDIO)
+        }
+        if (!hasCameraPermission) {
+            neededRuntime.add(Manifest.permission.CAMERA)
+        }
+
+        if (neededRuntime.isNotEmpty()) {
+            permissionLauncher.launch(neededRuntime.toTypedArray())
+            return
+        }
+
         if (!hasOverlayPermission) {
             val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}"))
             context.startActivity(intent)
@@ -118,12 +164,6 @@ fun PermissionScreen(onBack: () -> Unit) {
                 data = Uri.parse("package:${context.packageName}")
             }
             context.startActivity(intent)
-        } else if (!hasAudioPermission || !hasCameraPermission || (!hasNotificationPermission && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)) {
-            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                data = Uri.fromParts("package", context.packageName, null)
-            }
-            context.startActivity(intent)
-            Toast.makeText(context, "Please enable required permissions in Settings", Toast.LENGTH_LONG).show()
         } else {
             Toast.makeText(context, "All settings are perfect!", Toast.LENGTH_SHORT).show()
             onBack()
@@ -186,13 +226,24 @@ fun PermissionScreen(onBack: () -> Unit) {
             }
 
             PermissionItemRow("Microphone & Camera", "Used during Live Consultations", Icons.Default.Videocam, hasAudioPermission && hasCameraPermission) {
-                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply { data = Uri.fromParts("package", context.packageName, null) }
-                context.startActivity(intent)
+                if (!hasAudioPermission || !hasCameraPermission) {
+                    val needed = mutableListOf<String>()
+                    if (!hasAudioPermission) needed.add(Manifest.permission.RECORD_AUDIO)
+                    if (!hasCameraPermission) needed.add(Manifest.permission.CAMERA)
+                    permissionLauncher.launch(needed.toTypedArray())
+                } else {
+                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply { data = Uri.fromParts("package", context.packageName, null) }
+                    context.startActivity(intent)
+                }
             }
 
             PermissionItemRow("Notifications", "Alerts for new chat/call requests", Icons.Default.Notifications, hasNotificationPermission) {
-                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply { data = Uri.fromParts("package", context.packageName, null) }
-                context.startActivity(intent)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotificationPermission) {
+                    permissionLauncher.launch(arrayOf(Manifest.permission.POST_NOTIFICATIONS))
+                } else {
+                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply { data = Uri.fromParts("package", context.packageName, null) }
+                    context.startActivity(intent)
+                }
             }
 
             if (Build.VERSION.SDK_INT >= 34) {
@@ -208,11 +259,30 @@ fun PermissionScreen(onBack: () -> Unit) {
                 onClick = { repairAll() },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = if (hasOverlayPermission && hasBatteryOptimizationPermission) Color(0xFFEAB308) else Color.Red)
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (hasOverlayPermission && hasBatteryOptimizationPermission && hasAudioPermission && hasCameraPermission && hasNotificationPermission)
+                        Color(0xFF10B981)
+                    else
+                        Color(0xFFEAB308)
+                )
             ) {
-                Icon(if (hasOverlayPermission && hasBatteryOptimizationPermission) Icons.Default.CheckCircle else Icons.Default.Build, null)
+                Icon(
+                    if (hasOverlayPermission && hasBatteryOptimizationPermission && hasAudioPermission && hasCameraPermission && hasNotificationPermission)
+                        Icons.Default.CheckCircle
+                    else
+                        Icons.Default.Build,
+                    null
+                )
                 Spacer(modifier = Modifier.width(12.dp))
-                Text(if (hasOverlayPermission && hasBatteryOptimizationPermission && hasAudioPermission) "ALL SETTINGS OK" else "REPAIR SETTINGS", fontWeight = FontWeight.ExtraBold)
+                Text(
+                    if (hasOverlayPermission && hasBatteryOptimizationPermission && hasAudioPermission && hasCameraPermission && hasNotificationPermission)
+                        "ALL PERMISSIONS OK"
+                    else if (!hasAudioPermission || !hasCameraPermission || (!hasNotificationPermission && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU))
+                        "GRANT ALL PERMISSIONS (ஒரே கிளிக்கில் வழங்கு)"
+                    else
+                        "REPAIR SETTINGS (சரிசெய்)",
+                    fontWeight = FontWeight.ExtraBold
+                )
             }
             
             Text(

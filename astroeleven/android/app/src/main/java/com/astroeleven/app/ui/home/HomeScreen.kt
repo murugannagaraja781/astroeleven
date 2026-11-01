@@ -62,6 +62,20 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.graphics.SolidColor
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.compose.animation.core.*
 import androidx.activity.compose.BackHandler
 import android.content.Intent
@@ -374,7 +388,7 @@ fun HomeScreen(
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     var selectedTab by remember { mutableIntStateOf(0) }
-    var selectedFilter by remember { mutableStateOf("Chat") }
+    var selectedFilter by remember { mutableStateOf("All") }
     var searchQuery by remember { mutableStateOf("") }
     var showReferralDialog by remember { mutableStateOf(false) }
     var showPoojaDialog by remember { mutableStateOf(false) }
@@ -544,36 +558,122 @@ fun HomeScreen(
     // Language State (Default English)
     var isTamil by rememberSaveable { mutableStateOf(false) }
 
-    // Logic to filter astrologers based on selection
-    val filteredAstros = remember(astrologers, selectedFilter, searchQuery) {
-        val baseList = if (selectedFilter == "All") {
-            astrologers
+    // Call and Notification Permissions
+    var hasAudioPermission by remember {
+        mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED)
+    }
+    var hasCameraPermission by remember {
+        mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
+    }
+    var hasNotificationPermission by remember {
+        mutableStateOf(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        } else true)
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { perms ->
+        hasAudioPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        hasCameraPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            hasNotificationPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+    val requestAllCallPermissions: () -> Unit = {
+        val needed = mutableListOf<String>()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotificationPermission) {
+            needed.add(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        if (!hasAudioPermission) {
+            needed.add(Manifest.permission.RECORD_AUDIO)
+        }
+        if (!hasCameraPermission) {
+            needed.add(Manifest.permission.CAMERA)
+        }
+        if (needed.isNotEmpty()) {
+            permissionLauncher.launch(needed.toTypedArray())
+        }
+    }
+
+    // Auto-request all call & notification permissions upfront on entry
+    LaunchedEffect(Unit) {
+        requestAllCallPermissions()
+    }
+
+    // Check permissions before call to guarantee zero delay or popups during call
+    val safeCallClick: (Astrologer, String) -> Unit = { astro, type ->
+        val currentAudio = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        val currentCam = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+        val isVideo = type == "video"
+        if (!currentAudio || (isVideo && !currentCam)) {
+            val needed = mutableListOf<String>()
+            if (!currentAudio) needed.add(Manifest.permission.RECORD_AUDIO)
+            if (isVideo && !currentCam) needed.add(Manifest.permission.CAMERA)
+            permissionLauncher.launch(needed.toTypedArray())
         } else {
+            onCallClick(astro, type)
+        }
+    }
+
+    // Logic to filter astrologers based on selection
+    val filteredAstros = remember(astrologers, selectedFilter, activeServiceView, searchQuery) {
+        // 1. Service view filter (chat, call, video)
+        val serviceList = if (activeServiceView != null) {
             astrologers.filter { astro ->
-                when (selectedFilter) {
-                    "Chat" -> astro.isChatOnline || true // Show all chat-capable astros
-                    "Call" -> astro.isAudioOnline || true
-                    "Video" -> astro.isVideoOnline || true
-                    else -> (astro.skills.any { it.contains(selectedFilter, ignoreCase = true) } ||
-                            astro.name.contains(selectedFilter, ignoreCase = true))
+                when (activeServiceView) {
+                    "chat" -> astro.isChatOnline || true
+                    "call" -> astro.isAudioOnline || true
+                    "video" -> astro.isVideoOnline || true
+                    else -> true
                 }
+            }
+        } else {
+            astrologers
+        }
+
+        // 2. Category filter (Love, Business, Career, Marriage, Finance, Health, Vedic, Tarot, Numerology)
+        val categoryList = if (selectedFilter == "All" || selectedFilter.isBlank()) {
+            serviceList
+        } else {
+            serviceList.filter { astro ->
+                val cat = selectedFilter.trim().lowercase()
+                val hasMatch = astro.skills.any { s ->
+                    val skill = s.trim().lowercase()
+                    skill.contains(cat) || when (cat) {
+                        "love" -> skill.contains("love") || skill.contains("relationship") || skill.contains("kadhal") || skill.contains("காதல்") || skill.contains("marriage") || skill.contains("thirumanam") || skill.contains("திருமணம்")
+                        "business" -> skill.contains("business") || skill.contains("trade") || skill.contains("vyabaram") || skill.contains("வியாபாரம்") || skill.contains("finance") || skill.contains("career")
+                        "career" -> skill.contains("career") || skill.contains("job") || skill.contains("work") || skill.contains("profession") || skill.contains("thozhil") || skill.contains("தொழில்") || skill.contains("வேலை")
+                        "marriage" -> skill.contains("marriage") || skill.contains("thirumanam") || skill.contains("திருமணம்") || skill.contains("porutham") || skill.contains("பொருத்தம்") || skill.contains("matching") || skill.contains("kundali") || skill.contains("love")
+                        "finance" -> skill.contains("finance") || skill.contains("wealth") || skill.contains("money") || skill.contains("panam") || skill.contains("பணம்") || skill.contains("dhanam") || skill.contains("தனம்") || skill.contains("business")
+                        "health" -> skill.contains("health") || skill.contains("medical") || skill.contains("aarokkiyam") || skill.contains("ஆரோக்கியம்") || skill.contains("wellness") || skill.contains("remedy")
+                        "tarot" -> skill.contains("tarot") || skill.contains("டாரட்") || skill.contains("card")
+                        "numerology" -> skill.contains("numerology") || skill.contains("numerologist") || skill.contains("எண்கணிதம்") || skill.contains("number")
+                        "vedic" -> skill.contains("vedic") || skill.contains("வேதிக்") || skill.contains("jathagam") || skill.contains("ஜாதகம்") || skill.contains("prasannam") || skill.contains("prashana")
+                        else -> false
+                    }
+                }
+                hasMatch || astro.name.contains(selectedFilter, ignoreCase = true)
             }
         }
 
         val searchedList = if (searchQuery.isEmpty()) {
-            baseList
+            categoryList
         } else {
-            baseList.filter { astro ->
+            categoryList.filter { astro ->
                 astro.name.contains(searchQuery, ignoreCase = true) ||
-                (astro.userId != null && astro.userId.contains(searchQuery, ignoreCase = true)) ||
+                (astro.userId.isNotEmpty() && astro.userId.contains(searchQuery, ignoreCase = true)) ||
                 astro.skills.any { it.contains(searchQuery, ignoreCase = true) }
             }
         }
 
-        // User Request: Show offline astros too.
-        // We sort by online status so online ones are always at top.
-        searchedList.sortedWith(compareByDescending<com.astroeleven.app.data.model.Astrologer> { it.isOnline }
-            .thenBy { it.isBusy })
+        // Show online astros first, then non-busy, then sorted by experience
+        searchedList.sortedWith(
+            compareByDescending<com.astroeleven.app.data.model.Astrologer> {
+                it.isOnline || it.isChatOnline || it.isAudioOnline || it.isVideoOnline
+            }.thenBy { it.isBusy }.thenByDescending { it.experience }
+        )
     }
 
 
@@ -1049,13 +1149,8 @@ fun HomeScreen(
                             onTabSelected = { tabIndex, serviceView ->
                                 selectedTab = tabIndex
                                 activeServiceView = serviceView
-                                if (tabIndex == 1) {
-                                    selectedFilter = when (serviceView) {
-                                        "chat" -> "Chat"
-                                        "call" -> "Call"
-                                        "video" -> "Video"
-                                        else -> "All"
-                                    }
+                                if (tabIndex == 1 && selectedFilter.isBlank()) {
+                                    selectedFilter = "All"
                                 }
                             },
                             onLoginClick = { onBannerClick(com.astroeleven.app.data.model.Banner(id = "", imageUrl = "")) }
@@ -1068,13 +1163,8 @@ fun HomeScreen(
                         onTabSelected = { tabIndex, serviceView ->
                             selectedTab = tabIndex
                             activeServiceView = serviceView
-                            if (tabIndex == 1) {
-                                selectedFilter = when (serviceView) {
-                                    "chat" -> "Chat"
-                                    "call" -> "Call"
-                                    "video" -> "Video"
-                                    else -> "All"
-                                }
+                            if (tabIndex == 1 && selectedFilter.isBlank()) {
+                                selectedFilter = "All"
                             }
                         }
                     )
@@ -1196,7 +1286,7 @@ fun HomeScreen(
                             onBannerClick = onBannerClick,
                             onWalletClick = onWalletClick,
                             onChatClick = onChatClick,
-                            onCallClick = onCallClick,
+                            onCallClick = safeCallClick,
                             onRasiClick = onRasiClick,
                             showBanner = showBanner,
                             selectedFilter = selectedFilter,
@@ -1204,9 +1294,11 @@ fun HomeScreen(
                             referralBannerImage = referralBannerImage,
                             customRasiIcons = customRasiIcons,
                             onAstroClick = { selectedLiveAstro = it },
-                            onViewAllClick = { selectedTab = 1; selectedFilter = "All" },
+                            onViewAllClick = { selectedTab = 1; selectedFilter = "All"; activeServiceView = null },
                             searchQuery = searchQuery,
                             onSearchQueryChange = { searchQuery = it },
+                            hasMissingPermissions = (!hasAudioPermission || !hasCameraPermission || (!hasNotificationPermission && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)),
+                            onRequestPermissions = { requestAllCallPermissions() },
                             onAction = { action ->
                                 if (action == "referral") {
                                     selectedTab = 4
@@ -1232,9 +1324,10 @@ fun HomeScreen(
                                 } else {
                                     if (action == "chat" || action == "call" || action == "video") {
                                         activeServiceView = action
-                                        selectedFilter = action.replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.getDefault()) else it.toString() }
+                                        selectedFilter = "All"
                                         selectedTab = 1
                                     } else {
+                                        activeServiceView = null
                                         selectedFilter = "All"
                                         selectedTab = 1
                                     }
@@ -1244,11 +1337,12 @@ fun HomeScreen(
                         1 -> ConsultTab(
                             astrologers = filteredAstros,
                             onChatClick = { astro -> checkBalanceAndProceed { onChatClick(astro) } },
-                            onCallClick = { astro, type -> checkBalanceAndProceed { onCallClick(astro, type) } },
+                            onCallClick = { astro, type -> checkBalanceAndProceed { safeCallClick(astro, type) } },
                             isTamil = isTamil,
                             searchQuery = searchQuery,
                             onSearchChange = { searchQuery = it },
                             selectedFilter = selectedFilter,
+                            onFilterSelected = { selectedFilter = it },
                             activeServiceView = activeServiceView,
                             adsBannerImageUrl = adsBannerImageUrl,
                             adsBannerLinkUrl = adsBannerLinkUrl,
@@ -1412,8 +1506,71 @@ fun LazyListScope.HomeTab(
     onViewAllClick: () -> Unit,
     searchQuery: String = "",
     onSearchQueryChange: (String) -> Unit = {},
+    hasMissingPermissions: Boolean = false,
+    onRequestPermissions: () -> Unit = {},
     onAction: (String) -> Unit
 ) {
+    // 0. Permission Warning Card if permissions are missing
+    if (hasMissingPermissions) {
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF7ED)),
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                border = BorderStroke(1.dp, Color(0xFFFDBA74))
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .background(Color(0xFFEA580C).copy(alpha = 0.12f), RoundedCornerShape(10.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.NotificationsActive,
+                            contentDescription = null,
+                            tint = Color(0xFFEA580C),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = if (isTamil) "அழைப்பு & அறிவிப்பு அனுமதி தேவை" else "Call & Notification Permissions",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                            color = Color(0xFF9A3412)
+                        )
+                        Text(
+                            text = if (isTamil) "தடையற்ற ஆடியோ, வீடியோ அழைப்புகளுக்கு அனுமதியை வழங்கவும்" else "Allow microphone, camera & notifications for calls",
+                            fontSize = 11.sp,
+                            color = Color(0xFFC2410C)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = { onRequestPermissions() },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEA580C)),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = if (isTamil) "வழங்கு" else "Allow",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
+                }
+            }
+        }
+    }
+
     // 1. Services Section (Top Icons - Horoscope, Match, etc.)
     item {
         TopServicesSection(services, isTamil)
@@ -1437,6 +1594,20 @@ fun LazyListScope.HomeTab(
             searchQuery = searchQuery,
             onSearchQueryChange = onSearchQueryChange,
             isTamil = isTamil
+        )
+    }
+
+    // 2.3 Consultation & Chat History Card ("home-kku keezha")
+    item {
+        val context = LocalContext.current
+        ConsultationHistoryHomeCard(
+            isTamil = isTamil,
+            onClick = {
+                val intent = Intent(context, com.astroeleven.app.ui.astro.AstrologerHistoryActivity::class.java).apply {
+                    putExtra("isTamil", isTamil)
+                }
+                context.startActivity(intent)
+            }
         )
     }
 
@@ -1499,6 +1670,34 @@ fun LazyListScope.HomeTab(
 
     if (isLoading) {
         item { AstrologerShimmerItem() }
+    } else if (filteredAstros.isEmpty()) {
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = if (isTamil) "இந்த பிரிவில் ஜோதிடர்கள் தற்போது இல்லை" else "No astrologers found in this category",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TextButton(onClick = { onAction("filter_All") }) {
+                        Text(if (isTamil) "அனைத்து ஜோதிடர்கள்" else "View All Astrologers", color = CosmicAppTheme.colors.accent)
+                    }
+                }
+            }
+        }
     } else {
         items(filteredAstros) { astro ->
             AstrologerCard(astro, { onChatClick(it) }, { a, t -> onCallClick(a, t) }, 0, isTamil, selectedFilter)
@@ -1941,6 +2140,7 @@ fun LazyListScope.ConsultTab(
     searchQuery: String,
     onSearchChange: (String) -> Unit,
     selectedFilter: String = "All",
+    onFilterSelected: (String) -> Unit = {},
     activeServiceView: String? = null,
     adsBannerImageUrl: String? = null,
     adsBannerLinkUrl: String? = null,
@@ -1966,9 +2166,7 @@ fun LazyListScope.ConsultTab(
         FilterBar(
             filters = categoryTags,
             selectedFilter = selectedFilter,
-            onFilterSelected = { filter ->
-                // Switch filter dynamically
-            }
+            onFilterSelected = onFilterSelected
         )
     }
 
@@ -2026,18 +2224,57 @@ fun LazyListScope.ConsultTab(
         }
     }
 
-
-
-    items(astrologers) { astro ->
-        AstrologerCard(
-            astro = astro,
-            onChatClick = onChatClick,
-            onCallClick = onCallClick,
-            selectedTab = 1,
-            isTamil = isTamil,
-            selectedFilter = selectedFilter,
-            activeServiceView = activeServiceView
-        )
+    if (astrologers.isEmpty()) {
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Search,
+                        contentDescription = null,
+                        tint = Color.Gray,
+                        modifier = Modifier.size(40.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = if (isTamil) "இந்த பிரிவில் ஜோதிடர்கள் தற்போது இல்லை" else "No astrologers found in this category",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Button(
+                        onClick = { onFilterSelected("All") },
+                        shape = RoundedCornerShape(20.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+                    ) {
+                        Text(if (isTamil) "அனைத்து ஜோதிடர்கள்" else "View All Astrologers", color = Color.White)
+                    }
+                }
+            }
+        }
+    } else {
+        items(astrologers) { astro ->
+            AstrologerCard(
+                astro = astro,
+                onChatClick = onChatClick,
+                onCallClick = onCallClick,
+                selectedTab = 1,
+                isTamil = isTamil,
+                selectedFilter = selectedFilter,
+                activeServiceView = activeServiceView
+            )
+        }
     }
 }
 
@@ -2191,7 +2428,7 @@ fun AppDrawer(onItemClick: (String) -> Unit, onClose: () -> Unit, session: AuthR
             Spacer(modifier = Modifier.height(8.dp))
 
         // Drawer Items
-        val items = listOf("home", "profile", "wallet", "remedies", "join_as_astrologer", "Terms & Conditions", "Privacy Policy", "logout")
+        val items = listOf("home", "history", "profile", "wallet", "remedies", "join_as_astrologer", "Terms & Conditions", "Privacy Policy", "logout")
         items.forEach { itemKey ->
             NavigationDrawerItem(
                 label = {
@@ -2201,9 +2438,34 @@ fun AppDrawer(onItemClick: (String) -> Unit, onClose: () -> Unit, session: AuthR
                         fontWeight = FontWeight.Bold
                     )
                 },
+                icon = {
+                    val iconVector = when(itemKey) {
+                        "home" -> Icons.Rounded.Home
+                        "history" -> Icons.Rounded.History
+                        "profile" -> Icons.Rounded.Person
+                        "wallet" -> Icons.Rounded.AccountBalanceWallet
+                        "remedies" -> Icons.Rounded.Spa
+                        "join_as_astrologer" -> Icons.Rounded.Stars
+                        "logout" -> Icons.Rounded.Logout
+                        else -> Icons.Rounded.Info
+                    }
+                    Icon(
+                        imageVector = iconVector,
+                        contentDescription = null,
+                        tint = if (itemKey == "logout") Color.Red else Color(0xFFB3262A),
+                        modifier = Modifier.size(22.dp)
+                    )
+                },
                 selected = false,
                 onClick = {
                     when (itemKey) {
+                        "history" -> {
+                            onClose()
+                            val intent = Intent(context, com.astroeleven.app.ui.astro.AstrologerHistoryActivity::class.java).apply {
+                                putExtra("isTamil", isTamil)
+                            }
+                            context.startActivity(intent)
+                        }
                         "Terms & Conditions" -> {
                             onClose()
                             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://astroeleven.com/terms-condition.html")))
@@ -2262,31 +2524,32 @@ fun HomeTopBar(
             .fillMaxWidth()
             .background(Color(0xFFFDBA16))
             .statusBarsPadding()
-            .padding(bottom = 8.dp)
+            .padding(bottom = 6.dp)
     ) {
-        // Row 1: Logo, Greeting, Wallet Pill, Translate, Notification
+        // Row 1: Logo, Greeting, Wallet Pill, History, Translate, Notification
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             // User Info (Circular Logo + "Hi Name")
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier.weight(1f)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.weight(1f, fill = false)
             ) {
                 // Circular Logo with dark border for contrast
                 Box(
                     modifier = Modifier
-                        .size(46.dp)
-                        .clickable { onMenuClick() }
+                        .size(38.dp)
+                        .clickable { onMenuClick() },
+                    contentAlignment = Alignment.Center
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(42.dp)
+                            .size(36.dp)
                             .clip(CircleShape)
                             .background(Color.White)
                             .border(1.dp, Color(0xFFB3262A), CircleShape) // Crimson border
@@ -2305,25 +2568,33 @@ fun HomeTopBar(
                         text = "Astro Eleven",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.ExtraBold,
-                            fontFamily = FontFamily.Serif
+                            fontFamily = FontFamily.Serif,
+                            fontSize = 15.sp
                         ),
-                        color = Color(0xFFB3262A) // Astro Crimson
+                        color = Color(0xFFB3262A), // Astro Crimson
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
                     val cleanName = if (!userName.isNullOrBlank() && !userName.startsWith("User_")) userName else if (isTamil) "பயனர்" else "User"
                     Text(
                         text = "Hi $cleanName",
-                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 11.sp
+                        ),
                         color = Color(0xFF2B2516), // Dark bronze for high contrast
                         maxLines = 1,
+                        softWrap = false,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
                 }
             }
 
-            // Wallet Pill, Translate, Notifications Icons
+            // Wallet Pill, History, Translate, Notifications Icons
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(5.dp)
             ) {
                 // Wallet Pill (Premium white style on yellow background)
                 Surface(
@@ -2331,58 +2602,84 @@ fun HomeTopBar(
                     shape = RoundedCornerShape(50),
                     color = Color.White,
                     border = BorderStroke(1.dp, Color(0xFFB3262A).copy(alpha = 0.4f)),
-                    shadowElevation = 2.dp,
-                    modifier = Modifier.height(36.dp)
+                    shadowElevation = 1.dp,
+                    modifier = Modifier.height(30.dp)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(start = 10.dp, end = 4.dp, top = 2.dp, bottom = 2.dp)
+                        modifier = Modifier.padding(start = 7.dp, end = 3.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.AccountBalanceWallet,
                             contentDescription = null,
-                            tint = Color(0xFFB3262A), // Crimson tint
-                            modifier = Modifier.size(16.dp)
+                            tint = Color(0xFFB3262A),
+                            modifier = Modifier.size(13.dp)
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "₹${balance.toInt()}",
                             style = MaterialTheme.typography.labelMedium.copy(
                                 fontWeight = FontWeight.ExtraBold,
-                                fontSize = 14.sp
+                                fontSize = 12.sp
                             ),
                             color = Color(0xFF2B2516)
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
                         // Plus inside gold/crimson circle
                         Box(
                             modifier = Modifier
-                                .size(24.dp)
+                                .size(20.dp)
                                 .background(Color(0xFFB3262A), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("+", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                            Text("+", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
 
+                // Consultation History Icon
+                Box(
+                    modifier = Modifier
+                        .requiredSize(30.dp)
+                        .background(Color.White, CircleShape)
+                        .border(1.dp, Color(0xFFB3262A).copy(alpha = 0.2f), CircleShape)
+                        .clickable {
+                            val intent = Intent(context, com.astroeleven.app.ui.astro.AstrologerHistoryActivity::class.java).apply {
+                                putExtra("isTamil", isTamil)
+                            }
+                            context.startActivity(intent)
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.History,
+                        contentDescription = if (isTamil) "ஆலோசனை வரலாறு" else "Consultation History",
+                        tint = Color(0xFF2B2516),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+
                 // Translate Icon (A -> அ)
-                IconButton(
-                    onClick = onToggleLanguage,
-                    modifier = Modifier.requiredSize(36.dp)
+                Box(
+                    modifier = Modifier
+                        .requiredSize(30.dp)
+                        .background(Color.White, CircleShape)
+                        .border(1.dp, Color(0xFFB3262A).copy(alpha = 0.2f), CircleShape)
+                        .clickable { onToggleLanguage() },
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Translate,
                         contentDescription = "Language",
-                        tint = Color(0xFF2B2516), // Dark bronze
-                        modifier = Modifier.size(22.dp)
+                        tint = Color(0xFF2B2516),
+                        modifier = Modifier.size(16.dp)
                     )
                 }
 
                 // Notification Bell with Red Badge
                 Box(
                     modifier = Modifier
-                        .requiredSize(36.dp)
+                        .requiredSize(30.dp)
                         .background(Color.White, CircleShape)
                         .border(1.dp, Color(0xFFB3262A).copy(alpha = 0.2f), CircleShape)
                         .clickable {
@@ -2394,21 +2691,19 @@ fun HomeTopBar(
                         imageVector = Icons.Rounded.Notifications,
                         contentDescription = "Notifications",
                         tint = Color(0xFF2B2516),
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(16.dp)
                     )
                     // Red Dot Badge
                     Box(
                         modifier = Modifier
-                            .size(7.dp)
+                            .size(6.dp)
                             .background(Color(0xFFE1353C), CircleShape)
                             .align(Alignment.TopEnd)
-                            .offset(x = (-3).dp, y = 3.dp)
+                            .offset(x = (-2).dp, y = 2.dp)
                     )
                 }
             }
         }
-
-        // Row 2: Capsule Search Bar removed per user request
     }
 }
 
@@ -4518,27 +4813,69 @@ fun SearchBarSection(
     isTamil: Boolean,
     modifier: Modifier = Modifier
 ) {
-    OutlinedTextField(
-        value = searchQuery,
-        onValueChange = onSearchQueryChange,
-        placeholder = {
-            Text(
-                text = if (isTamil) "ஜோதிடர் பெயர்..." else "Search Astrologer Name...",
-                color = Color.Gray.copy(alpha = 0.7f),
-                fontSize = 13.sp
-            )
-        },
-        leadingIcon = {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        shape = RoundedCornerShape(12.dp),
+        color = Color.White,
+        border = BorderStroke(1.dp, Color(0xFFB3262A).copy(alpha = 0.25f)),
+        shadowElevation = 2.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+                .padding(horizontal = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Icon(
                 imageVector = Icons.Rounded.Search,
                 contentDescription = "Search Icon",
                 tint = Color(0xFFB3262A),
                 modifier = Modifier.size(20.dp)
             )
-        },
-        trailingIcon = {
+
+            Spacer(modifier = Modifier.width(10.dp))
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                if (searchQuery.isEmpty()) {
+                    Text(
+                        text = if (isTamil) "ஜோதிடர் பெயர் தேடுக..." else "Search Astrologer Name...",
+                        color = Color.Gray.copy(alpha = 0.65f),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Normal,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                BasicTextField(
+                    value = searchQuery,
+                    onValueChange = onSearchQueryChange,
+                    singleLine = true,
+                    textStyle = TextStyle(
+                        color = Color(0xFF2B2516),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        platformStyle = PlatformTextStyle(includeFontPadding = false)
+                    ),
+                    cursorBrush = SolidColor(Color(0xFFB3262A)),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
             if (searchQuery.isNotEmpty()) {
-                IconButton(onClick = { onSearchQueryChange("") }) {
+                IconButton(
+                    onClick = { onSearchQueryChange("") },
+                    modifier = Modifier.size(28.dp)
+                ) {
                     Icon(
                         imageVector = Icons.Rounded.Clear,
                         contentDescription = "Clear",
@@ -4547,20 +4884,93 @@ fun SearchBarSection(
                     )
                 }
             }
-        },
-        modifier = modifier
+        }
+    }
+}
+
+@Composable
+fun ConsultationHistoryHomeCard(isTamil: Boolean, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
             .fillMaxWidth()
-            .height(48.dp)
-            .padding(horizontal = 16.dp, vertical = 0.dp),
-        singleLine = true,
-        shape = RoundedCornerShape(10.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = Color.White,
-            unfocusedContainerColor = Color.White,
-            focusedBorderColor = Color(0xFFB3262A),
-            unfocusedBorderColor = Color.LightGray.copy(alpha = 0.5f),
-            cursorColor = Color(0xFFB3262A)
-        )
-    )
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = BorderStroke(1.dp, Color(0xFFB3262A).copy(alpha = 0.18f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .background(
+                        Brush.linearGradient(
+                            listOf(Color(0xFFB3262A), Color(0xFFE1353C))
+                        ),
+                        CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.History,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = if (isTamil) "ஆலோசனை & சாட் வரலாறு" else "Consultation & Chat History",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    color = Color(0xFF2B2516)
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = if (isTamil) "முந்தைய ஜோதிட ஆலோசனைகள் மற்றும் அரட்டை விவரங்களை காண்க" else "View past call logs, advice & chat transcripts anytime",
+                    fontSize = 11.sp,
+                    color = Color.Gray,
+                    maxLines = 2,
+                    lineHeight = 15.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = Color(0xFFB3262A).copy(alpha = 0.08f),
+                border = BorderStroke(1.dp, Color(0xFFB3262A).copy(alpha = 0.25f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (isTamil) "காண்க" else "View",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFB3262A)
+                    )
+                    Spacer(modifier = Modifier.width(2.dp))
+                    Icon(
+                        imageVector = Icons.Rounded.ChevronRight,
+                        contentDescription = null,
+                        tint = Color(0xFFB3262A),
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+            }
+        }
+    }
 }
 

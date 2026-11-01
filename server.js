@@ -19,6 +19,7 @@ const Session = require('./models/Session');
 const PairMonth = require('./models/PairMonth');
 const BillingLedger = require('./models/BillingLedger');
 const Withdrawal = require('./models/Withdrawal');
+const Notification = require('./models/Notification');
 const Payment = require('./models/Payment');
 const ChatMessage = require('./models/ChatMessage');
 const AcademyVideo = require('./models/AcademyVideo');
@@ -1239,31 +1240,41 @@ app.get('/api/astrology/astrologer/:id', async (req, res) => {
   }
 });
 
-// --- Get Astrologer Session History ---
+// --- Get Astrologer/Client Session History ---
 app.get('/api/astrology/history/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     // Find sessions where this user was either the client or the astrologer
     const sessions = await Session.find({
-      $or: [
-        { astrologerId: userId },
-        { clientId: userId },
-        { fromUserId: userId },
-        { toUserId: userId }
-      ],
-      status: 'ended'
+      $and: [
+        {
+          $or: [
+            { astrologerId: userId },
+            { clientId: userId },
+            { fromUserId: userId },
+            { toUserId: userId }
+          ]
+        },
+        {
+          $or: [
+            { status: { $in: ['ended', 'completed', 'active', 'answered', 'closed'] } },
+            { duration: { $gt: 0 } },
+            { totalCharged: { $gt: 0 } },
+            { actualBillingStart: { $gt: 0 } }
+          ]
+        }
+      ]
     })
-      .sort({ actualBillingStart: -1, startTime: -1 })
+      .sort({ actualBillingStart: -1, startTime: -1, _id: -1 })
       .limit(50)
-
       .lean();
 
     const populatedSessions = await Promise.all(sessions.map(async (s) => {
       const cId = s.clientId || s.fromUserId;
       const aId = s.astrologerId || s.toUserId;
       const [client, astro] = await Promise.all([
-        User.findOne({ userId: cId }).select('name').lean(),
-        User.findOne({ userId: aId }).select('name').lean()
+        User.findOne({ userId: cId }).select('name image').lean(),
+        User.findOne({ userId: aId }).select('name image').lean()
       ]);
       let calculatedDuration = Number(s.duration) || 0;
       if (calculatedDuration >= 1000) {
@@ -1275,14 +1286,19 @@ app.get('/api/astrology/history/:userId', async (req, res) => {
       }
       calculatedDuration = Math.max(0, calculatedDuration || 0);
 
+      const targetSessionId = s.sessionId || (s._id ? s._id.toString() : '') || s.id || '';
+
       return {
         ...s,
+        sessionId: targetSessionId,
+        id: targetSessionId,
         clientName: client ? client.name : 'Unknown Client',
         astrologerName: astro ? astro.name : 'Unknown Astrologer',
+        clientImage: client?.image || '',
+        astrologerImage: astro?.image || '',
         duration: calculatedDuration
       };
     }));
-
 
     res.json({ ok: true, sessions: populatedSessions });
   } catch (err) {
@@ -1828,6 +1844,60 @@ app.post('/api/user/intake', async (req, res) => {
 // ==========================================
 // CHAT HISTORY API (Required by Android App)
 // ==========================================
+app.get('/api/chat/history/:sessionId', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const limit = parseInt(req.query.limit) || 200;
+    let messages = await ChatMessage.find({ sessionId }).sort({ timestamp: 1 }).limit(limit).lean();
+
+    // Fallback: If no messages found by exact sessionId, try matching session participants
+    if ((!messages || messages.length === 0) && sessionId) {
+      const sess = await Session.findOne({ $or: [{ sessionId }, { _id: sessionId }] }).lean();
+      if (sess) {
+        const u1 = sess.clientId || sess.fromUserId;
+        const u2 = sess.astrologerId || sess.toUserId;
+        if (u1 && u2) {
+          const sTime = sess.startTime || sess.actualBillingStart || 0;
+          const eTime = sess.endTime || sess.sessionEndAt || (Date.now() + 86400000);
+          messages = await ChatMessage.find({
+            $or: [
+              { fromUserId: u1, toUserId: u2 },
+              { fromUserId: u2, toUserId: u1 }
+            ],
+            ...(sTime > 0 ? { timestamp: { $gte: sTime - 300000, $lte: eTime + 300000 } } : {})
+          }).sort({ timestamp: 1 }).limit(limit).lean();
+        }
+      }
+    }
+
+    const formatted = messages.map(m => {
+      const textVal = m.text || (m.content && typeof m.content === 'object' ? m.content.text : '') || '';
+      const typeVal = m.type || (m.content && typeof m.content === 'object' ? m.content.type : '') || 'text';
+      const fileUrlVal = m.fileUrl || (m.content && typeof m.content === 'object' ? m.content.fileUrl : '') || '';
+      return {
+        messageId: m.messageId,
+        fromUserId: m.fromUserId,
+        toUserId: m.toUserId,
+        sessionId: m.sessionId || sessionId,
+        timestamp: m.timestamp || (m.createdAt ? new Date(m.createdAt).getTime() : Date.now()),
+        text: textVal,
+        type: typeVal,
+        fileUrl: fileUrlVal,
+        fileName: m.fileName || '',
+        status: m.status || 'delivered',
+        content: {
+          text: textVal,
+          type: typeVal,
+          fileUrl: fileUrlVal
+        }
+      };
+    });
+    res.json({ ok: true, messages: formatted });
+  } catch (e) {
+    console.error('getChatHistory direct error:', e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
 
 // ==========================================
 // LEGACY CHART APIs (Redirect to rasi-eng)
@@ -2296,34 +2366,100 @@ io.on('connection', (socket) => {
   const feedbackCooldowns = new Map();
 
   socket.on('send-feedback', async (data, cb) => {
-    const userId = socketToUser.get(socket.id);
-    if (!userId || !data.comment) return cb({ ok: false, error: 'Invalid data' });
+    data = data || {};
+    const comment = (data.comment || data.message || data.suggestion || data.text || '').trim();
+    if (!comment) {
+      if (typeof cb === 'function') cb({ ok: false, error: 'Feedback message cannot be empty' });
+      return;
+    }
 
-    // Rate Limit Check (5 min cooldown)
+    const userId = socketToUser.get(socket.id) || data.userId || (socket.user && socket.user.userId) || 'guest_' + socket.id.substring(0, 6);
+
+    // Rate Limit Check (30s cooldown)
     const now = Date.now();
     const lastSent = feedbackCooldowns.get(userId) || 0;
-    if (now - lastSent < 300000) {
-      return cb({ ok: false, error: 'Please wait a few minutes before sending another feedback.' });
+    if (now - lastSent < 30000) {
+      if (typeof cb === 'function') cb({ ok: false, error: 'Please wait a moment before sending another feedback.' });
+      return;
     }
 
     try {
-      const user = await User.findOne({ userId });
+      let user = null;
+      try {
+        user = await User.findOne({ userId });
+      } catch (err) {}
+      const userName = (user && user.name) ? user.name : (data.userName || data.name || 'User ' + String(userId).slice(-4));
+
       const fb = await Feedback.create({
         userId,
-        userName: user ? user.name : 'Unknown User',
-        astrologerId: data.astrologerId,
-        astrologerName: data.astrologerName,
-        rating: data.rating || 5,
-        comment: data.comment,
-        sessionType: data.sessionType
+        userName,
+        astrologerId: data.astrologerId || '',
+        astrologerName: data.astrologerName || '',
+        rating: Number(data.rating) || 5,
+        comment,
+        sessionType: data.sessionType || data.type || 'Feedback & Support'
       });
 
-      // Send Email Notification
-      const { sendFeedbackEmail } = require('./services/email.service');
-      sendFeedbackEmail(fb).catch(err => console.error("Email send failed:", err));
+      // 1. Create Persistent Notification in DB for Super Admin
+      const notifSnippet = comment.length > 120 ? comment.substring(0, 117) + '...' : comment;
+      try {
+        const notif = await Notification.create({
+          targetRole: 'superadmin',
+          type: 'feedback',
+          title: `New Feedback from ${userName}`,
+          body: notifSnippet,
+          data: JSON.stringify({
+            feedbackId: fb._id,
+            userId: fb.userId,
+            userName: fb.userName,
+            rating: fb.rating,
+            type: 'feedback'
+          }),
+          isRead: false,
+          createdAt: new Date()
+        });
+
+        // 2. Real-time Socket Notification to Super Admin Room & Connected Admins
+        const notifPayload = {
+          id: notif._id || Date.now(),
+          type: 'feedback',
+          text: `New Feedback from ${userName}: "${notifSnippet}"`,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          data: {
+            feedbackId: fb._id,
+            userId: fb.userId,
+            userName: fb.userName,
+            rating: fb.rating,
+            type: 'feedback'
+          }
+        };
+
+        io.to('superadmin').emit('admin-notification', notifPayload);
+        io.to('superadmin').emit('new-feedback', fb);
+
+        // Also emit directly to connected super admin sockets if any are not in room yet
+        const superAdmins = await User.find({ role: { $in: ['admin', 'superadmin'] } });
+        for (const sa of superAdmins) {
+          const saSocketId = userSockets.get(sa.userId);
+          if (saSocketId) {
+            io.to(saSocketId).emit('admin-notification', notifPayload);
+            io.to(saSocketId).emit('new-feedback', fb);
+          }
+        }
+      } catch (notifErr) {
+        console.error('Error creating superadmin feedback notification:', notifErr);
+      }
+
+      // 3. Send Email Notification
+      try {
+        const { sendFeedbackEmail } = require('./services/email.service');
+        sendFeedbackEmail(fb).catch(err => console.error("Email send failed:", err));
+      } catch (mailErr) {
+        console.error("sendFeedbackEmail require error:", mailErr);
+      }
 
       feedbackCooldowns.set(userId, now);
-      if (typeof cb === 'function') cb({ ok: true });
+      if (typeof cb === 'function') cb({ ok: true, message: 'Feedback submitted successfully', feedback: fb });
     } catch (e) {
       console.error('Feedback Error:', e);
       if (typeof cb === 'function') cb({ ok: false, error: 'Database error' });
@@ -3634,11 +3770,34 @@ io.on('connection', (socket) => {
 
   // --- Withdrawal Logic ---
   socket.on('request-withdrawal', async (data, cb) => {
-    const userId = socketToUser.get(socket.id);
-    if (!userId) return;
+    if (typeof data === 'function') { cb = data; data = {}; }
+    const safeCb = (res) => { if (typeof cb === 'function') { try { cb(res); } catch(e){} } };
+
+    const userId = (data && (data.userId || data.astroId)) || socketToUser.get(socket.id);
+    if (!userId) {
+      return safeCb({ ok: false, error: 'User session not found. Please log in again.' });
+    }
+
+    // Ensure socket mapping is active
+    socketToUser.set(socket.id, userId);
+    userSockets.set(userId, socket.id);
+
     try {
-      const amount = parseInt(data.amount);
-      if (!amount || amount < 100) return cb({ ok: false, error: 'Minimum limit 100' });
+      const amount = parseFloat(data.amount);
+      if (!amount || isNaN(amount) || amount < 100) {
+        return safeCb({ ok: false, error: 'Minimum withdrawal amount is ₹100' });
+      }
+
+      // Check user and current balance first
+      const userBefore = await User.findOne({ userId });
+      if (!userBefore) {
+        return safeCb({ ok: false, error: 'Astrologer profile not found' });
+      }
+
+      const currentBal = Number(userBefore.walletBalance || 0);
+      if (currentBal < amount) {
+        return safeCb({ ok: false, error: `Insufficient balance (Available: ₹${currentBal.toFixed(2)})` });
+      }
 
       // Attempt atomic deduction to prevent race conditions
       const u = await User.findOneAndUpdate(
@@ -3648,9 +3807,10 @@ io.on('connection', (socket) => {
       );
 
       if (!u) {
-        // Either user not found OR insufficient balance
-        return cb({ ok: false, error: 'Insufficient Balance' });
+        return safeCb({ ok: false, error: 'Insufficient balance' });
       }
+
+      const newBalance = Number(u.walletBalance || 0);
 
       let w;
       try {
@@ -3658,30 +3818,101 @@ io.on('connection', (socket) => {
           astroId: userId,
           amount,
           status: 'pending',
-          requestedAt: Date.now()
+          requestedAt: new Date()
         });
       } catch (dbErr) {
-        // Rollback if DB creation fails
         console.error("DB Error creating withdrawal, rolling back wallet:", dbErr);
-        // Refund seamlessly
         await User.updateOne({ userId }, { $inc: { walletBalance: amount } });
-        return cb({ ok: false, error: 'Database Error - Try Again' });
+        return safeCb({ ok: false, error: 'Database Error - Amount Refunded' });
       }
 
-      // Emit wallet update to self
-      io.to(socket.id).emit('wallet-update', { balance: u.walletBalance });
+      const withdrawalId = (w._id || w.id || '').toString();
 
-      // Notify Super Admins
-      io.to('superadmin').emit('admin-notification', {
+      // 1. Create Persistent Notification in DB for Super Admin ("நோட்டிபிகேஷன்ல கெடக்கனும்")
+      try {
+        await Notification.create({
+          targetRole: 'superadmin',
+          type: 'withdrawal_request',
+          title: '💰 புதிய பணம் எடுக்கும் கோரிக்கை',
+          body: `${u.name || 'Astrologer'} ₹${amount} வித்ட்ரா செய்ய கோரியுள்ளார்.`,
+          data: JSON.stringify({
+            withdrawalId,
+            astroId: u.userId,
+            astroName: u.name || 'Astrologer',
+            amount,
+            phone: u.phone || '',
+            upiId: u.upiId || '',
+            upiNumber: u.upiNumber || '',
+            walletBalance: newBalance,
+            time: new Date().toISOString()
+          }),
+          isRead: false,
+          createdAt: new Date()
+        });
+      } catch (notifErr) {
+        console.error("Error creating persistent notification for withdrawal:", notifErr);
+      }
+
+      // 2. Real-time Socket Notification to Super Admin Room & Connected Admins
+      const notifPayload = {
+        id: withdrawalId,
         type: 'withdrawal_request',
-        text: `💰 New Withdrawal Request: ${u.name} requested ₹${amount}`,
-        data: { withdrawalId: w._id, astroName: u.name, amount }
-      });
+        title: '💰 புதிய பணம் எடுக்கும் கோரிக்கை',
+        text: `💰 ${u.name || 'Astrologer'} ₹${amount} வித்ட்ரா செய்ய கோரியுள்ளார்.`,
+        data: {
+          withdrawalId,
+          astroId: u.userId,
+          astroName: u.name || 'Astrologer',
+          amount,
+          phone: u.phone || '',
+          upiId: u.upiId || ''
+        },
+        time: new Date().toLocaleTimeString(),
+        createdAt: new Date()
+      };
 
-      cb({ ok: true, balance: u.walletBalance });
+      io.to('superadmin').emit('admin-notification', notifPayload);
+
+      // 3. Send Push Notifications (FCM) to all Super Admins
+      try {
+        const superAdmins = await User.find({ role: { $in: ['admin', 'superadmin'] } });
+        for (const sa of superAdmins) {
+          const saSocketId = userSockets.get(sa.userId);
+          if (saSocketId) {
+            io.to(saSocketId).emit('admin-notification', notifPayload);
+          }
+          if (sa.fcmToken) {
+            sendFcmV1Push(
+              sa.fcmToken,
+              {
+                type: 'withdrawal_request',
+                withdrawalId,
+                amount: String(amount),
+                astroName: u.name || 'Astrologer'
+              },
+              {
+                title: '💰 புதிய பணம் எடுக்கும் கோரிக்கை',
+                body: `${u.name || 'Astrologer'} ₹${amount} வித்ட்ரா செய்ய கோரியுள்ளார்.`
+              },
+              sa.userId
+            ).catch(err => console.error("Admin FCM Error:", err.message));
+          }
+        }
+      } catch (adminErr) {
+        console.error("Error notifying superadmins:", adminErr);
+      }
+
+      // 4. Emit instant wallet update to Astrologer
+      io.to(socket.id).emit('wallet-update', { balance: newBalance });
+      const astroSocketId = userSockets.get(userId);
+      if (astroSocketId && astroSocketId !== socket.id) {
+        io.to(astroSocketId).emit('wallet-update', { balance: newBalance });
+      }
+
+      safeCb({ ok: true, balance: newBalance, amount, withdrawalId });
     } catch (e) {
-      console.error(e);
-      cb({ ok: false, error: 'Error' });
+      console.error('request-withdrawal error:', e);
+      safeCb({ ok: false, error: 'Server error processing withdrawal' });
     }
   });
 
@@ -3788,14 +4019,17 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('get-my-withdrawals', async (cb) => {
-    const userId = socketToUser.get(socket.id);
-    if (!userId) return;
+  socket.on('get-my-withdrawals', async (data, cb) => {
+    if (typeof data === 'function') { cb = data; data = {}; }
+    const safeCb = (res) => { if (typeof cb === 'function') { try { cb(res); } catch(e){} } };
+
+    const userId = (data && (data.userId || data.astroId)) || socketToUser.get(socket.id);
+    if (!userId) return safeCb({ ok: false, list: [], withdrawals: [] });
     try {
-      const list = await Withdrawal.find({ astroId: userId }).sort({ requestedAt: -1 }).limit(10);
-      if (typeof cb === 'function') cb({ ok: true, list });
+      const list = await Withdrawal.find({ astroId: userId }).sort({ requestedAt: -1 }).limit(20);
+      safeCb({ ok: true, list, withdrawals: list });
     } catch (e) {
-      if (typeof cb === 'function') cb({ ok: false });
+      safeCb({ ok: false, list: [], withdrawals: [] });
     }
   });
 

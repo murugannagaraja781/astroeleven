@@ -1,16 +1,57 @@
 const User = require('../models/User');
 const { formatImageUrl } = require('../utils/formatImage');
 
+function extractSpecialties(skills, profession) {
+    let list = [];
+    if (Array.isArray(skills)) {
+        list = [...skills];
+    } else if (typeof skills === 'string' && skills.trim()) {
+        try {
+            const parsed = JSON.parse(skills);
+            if (Array.isArray(parsed)) list = parsed;
+            else list = skills.split(',');
+        } catch {
+            list = skills.split(',');
+        }
+    }
+
+    // Also extract tags mentioned in profession/bio
+    if (profession && typeof profession === 'string') {
+        const parts = profession.split(/[,/•|;]+|\band\b/i).map(s => s.trim()).filter(Boolean);
+        for (const p of parts) {
+            if (!list.some(existing => existing.toLowerCase() === p.toLowerCase())) {
+                list.push(p);
+            }
+        }
+    }
+
+    const cleanList = list.map(s => s.trim()).filter(Boolean);
+
+    // If astrologer has Vedic or is empty, include primary consultation areas
+    const isVedicOrGeneral = cleanList.length === 0 || cleanList.some(s => /vedic|வேதிக்|jathagam|ஜாதகம்/i.test(s));
+    if (isVedicOrGeneral) {
+        const standardTags = ['Vedic', 'Love', 'Career', 'Marriage', 'Business', 'Finance'];
+        for (const tag of standardTags) {
+            if (!cleanList.some(existing => existing.toLowerCase() === tag.toLowerCase())) {
+                cleanList.push(tag);
+            }
+        }
+    }
+
+    return cleanList;
+}
+
 async function getFormattedAstrologers(SERVER_URL) {
     try {
         const astros = await User.find({ role: 'astrologer', approvalStatus: 'approved' })
-            .select('userId name phone skills price chatPrice callPrice videoPrice isOnline isChatOnline isAudioOnline isVideoOnline experience isVerified image walletBalance totalEarnings isBusy languages orderCount isDocumentVerified')
+            .select('userId name phone skills profession price chatPrice callPrice videoPrice isOnline isChatOnline isAudioOnline isVideoOnline experience isVerified image walletBalance totalEarnings isBusy languages orderCount isDocumentVerified')
             .lean();
 
         return astros.map(a => ({
             userId: a.userId,
             name: a.name,
-            skills: a.skills || [],
+            skills: extractSpecialties(a.skills, a.profession),
+            profession: a.profession || '',
             price: a.price || 15,
             chatPrice: a.chatPrice || a.price || 15,
             callPrice: a.callPrice || a.price || 15,
@@ -51,14 +92,15 @@ async function broadcastSingleAstroUpdate(io, userId, SERVER_URL) {
     if (!io) return;
     try {
         const a = await User.findOne({ userId })
-            .select('userId name phone skills price chatPrice callPrice videoPrice isOnline isChatOnline isAudioOnline isVideoOnline experience isVerified image walletBalance totalEarnings isBusy languages orderCount isDocumentVerified')
+            .select('userId name phone skills profession price chatPrice callPrice videoPrice isOnline isChatOnline isAudioOnline isVideoOnline experience isVerified image walletBalance totalEarnings isBusy languages orderCount isDocumentVerified')
             .lean();
         if (!a) return;
 
         const formatted = {
             userId: a.userId,
             name: a.name,
-            skills: a.skills || [],
+            skills: extractSpecialties(a.skills, a.profession),
+            profession: a.profession || '',
             price: a.price || 15,
             chatPrice: a.chatPrice || a.price || 15,
             callPrice: a.callPrice || a.price || 15,

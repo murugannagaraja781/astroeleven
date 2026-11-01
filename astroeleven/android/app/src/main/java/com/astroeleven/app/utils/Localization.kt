@@ -6,6 +6,7 @@ object Localization {
     private val english = mapOf(
         "home_title" to "Astro Eleven",
         "home" to "Home",
+        "history" to "Consultation History",
         "profile" to "Profile",
         "settings" to "Settings",
         "logout" to "Logout",
@@ -143,6 +144,7 @@ object Localization {
     private val tamil = mapOf(
         "home_title" to "Astro Eleven",
         "home" to "முகப்பு",
+        "history" to "ஆலோசனை வரலாறு",
         "profile" to "சுயவிவரம்",
         "settings" to "அமைப்புகள்",
         "logout" to "வெளியேறு",

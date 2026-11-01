@@ -18,7 +18,9 @@
     content="Connect with certified astrologers for reliable guidance on career, love, and life.">
   <meta property="og:image" content="https://astroluna.in/favicon.png?v=2">
 
-  <link rel="canonical" href="https://astroeleven.com/">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="shortcut icon" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/favicon.png">
   <link rel="icon" type="image/svg+xml" href="images/astroeleven_icon.svg">
   <link
     href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Outfit:wght@300;400;600;700&family=Playfair+Display:wght@400;700&display=swap"
@@ -1662,9 +1664,12 @@
   </div>
 
   <!-- Screen: Login -->
-  <div id="screen-login" style="padding-top: 60px;">
+  <div id="screen-login" style="padding-top: 40px;">
     <div class="form-box">
-      <h2>✨Astro Eleven Login</h2>
+      <div style="text-align: center; margin-bottom: 18px;">
+        <img src="/images/welcome_logo.png" alt="Astro Eleven - Guiding Your Destiny" style="max-width: 250px; width: 85%; height: auto; display: inline-block; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.08));">
+      </div>
+      <h2 style="font-size: 1.3rem; margin-top: 0;">✨Astro Eleven Login</h2>
       <div id="step-phone">
         <input id="inputPhone" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="10" class="cosmic-input"
           placeholder="10 Digit Mobile Number" value="" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
@@ -2488,6 +2493,7 @@
                 <a href="/terms-condition.html">Terms & Conditions</a>
                 <a href="/privacy-policy.html">Privacy Policy</a>
                 <a href="/refund-cancellation-policy.html">Refund Policy</a>
+                <a href="/delete-account.html">Delete Account</a>
               </div>
             </div>
             <div class="footer-bottom">
@@ -2960,7 +2966,7 @@
             style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 6px 15px; border-radius: 20px; font-size: 0.85rem; cursor: pointer; margin-top: 10px; transition: all 0.2s;">
             <i class="fas fa-eye"></i> View Lifetime Earnings
           </button>
-          <div style="font-size: 0.75rem; opacity: 0.8; margin-top:2px;">Min. ₹500 to Withdraw</div>
+          <div style="font-size: 0.75rem; opacity: 0.8; margin-top:2px;">Min. ₹100 to Withdraw</div>
         </div>
         <div style="text-align: right;">
           <button id="btnAstroWithdraw" onclick="astroRequestWithdrawal()"
@@ -3468,6 +3474,26 @@
       </div>
       <div id="historyList" style="flex: 1; overflow-y: auto; padding: 15px;">
         <!-- History Items -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen: Chat History Modal -->
+  <div id="screen-chat-history" class="modal-overlay hidden" style="z-index: 10001;">
+    <div style="background: var(--bg-card); width: 90%; max-width: 480px; height: 85%; border-radius: 20px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+      <div style="padding: 15px 20px; background: linear-gradient(135deg, #1e3a8a, #3b82f6); color: white; display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <i class="fas fa-comments" style="font-size: 1.2rem; color: #F59E0B;"></i>
+          <div>
+            <div id="chatHistoryTitle" style="font-weight: bold; font-size: 1rem;">Chat History</div>
+            <div id="chatHistorySubtitle" style="font-size: 0.75rem; opacity: 0.85;">Session Messages</div>
+          </div>
+        </div>
+        <button onclick="document.getElementById('screen-chat-history').classList.add('hidden')"
+          style="background: rgba(255,255,255,0.2); border: none; color: white; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;"><i class="fas fa-times"></i></button>
+      </div>
+      <div id="chatHistoryContent" style="flex: 1; overflow-y: auto; padding: 15px; background: #f8fafc; display: flex; flex-direction: column; gap: 10px;">
+        <!-- Chat bubbles rendered here -->
       </div>
     </div>
   </div>
@@ -4514,6 +4540,9 @@
             z-index: 99999;
         `;
 
+        const astroId = astro.userId || astro.id || astro._id || '';
+        const isFav = window.isAstroLiked ? window.isAstroLiked(astroId) : false;
+        const astroSafeName = (astro.name || 'Astrologer').replace(/'/g, "\\'");
         const skills = astro.skills ? (Array.isArray(astro.skills) ? astro.skills.join(', ') : astro.skills) : 'Vedic, Prashana';
         const languages = astro.languages ? (Array.isArray(astro.languages) ? astro.languages.join(', ') : astro.languages) : 'Tamil, English';
 
@@ -4528,6 +4557,39 @@
                 position: relative;
                 border: 1px solid rgba(22, 101, 52, 0.1);
             ">
+                <!-- Like / Favorite Button (Item 7) -->
+                <button id="btnAstroLike_${astroId}" onclick="toggleAstroLike('${astroId}', '${astroSafeName}', event)" style="
+                    position: absolute;
+                    top: 15px; left: 15px;
+                    background: rgba(255, 255, 255, 0.2);
+                    backdrop-filter: blur(8px);
+                    border: 1px solid rgba(255, 255, 255, 0.4);
+                    width: 34px; height: 34px;
+                    border-radius: 50%;
+                    display: flex; align-items: center; justify-content: center;
+                    cursor: pointer; font-size: 1.1rem; color: ${isFav ? '#FF4081' : '#ffffff'};
+                    transition: transform 0.2s; z-index: 10;
+                " title="Like / Favorite">
+                    <i class="${isFav ? 'fas' : 'far'} fa-heart"></i>
+                </button>
+
+                <!-- Share Button (Item 7) -->
+                <button onclick="shareAstroProfile('${astroId}', '${astroSafeName}', '${astro.price || 15}', event)" style="
+                    position: absolute;
+                    top: 15px; right: 55px;
+                    background: rgba(255, 255, 255, 0.2);
+                    backdrop-filter: blur(8px);
+                    border: 1px solid rgba(255, 255, 255, 0.4);
+                    width: 34px; height: 34px;
+                    border-radius: 50%;
+                    display: flex; align-items: center; justify-content: center;
+                    cursor: pointer; font-size: 0.95rem; color: #ffffff;
+                    transition: transform 0.2s; z-index: 10;
+                " title="Share Profile">
+                    <i class="fas fa-share-alt"></i>
+                </button>
+
+                <!-- Close Modal Button -->
                 <button onclick="document.getElementById('astro-profile-modal').remove()" style="
                     position: absolute;
                     top: 15px; right: 15px;
@@ -4537,7 +4599,7 @@
                     border-radius: 50%;
                     display: flex; align-items: center; justify-content: center;
                     cursor: pointer; font-size: 1rem; color: #4b5563;
-                    transition: background 0.2s;
+                    transition: background 0.2s; z-index: 10;
                 " onmouseover="this.style.background='#e4e4e7'" onmouseout="this.style.background='rgba(244, 244, 245, 0.9)'">
                     <i class="fas fa-times"></i>
                 </button>
@@ -4567,14 +4629,30 @@
                         </div>
                     </div>
 
-                    <div style="margin-bottom: 16px;">
+                    <div style="margin-bottom: 12px;">
                         <span style="font-size: 0.75rem; color: #6b7280; font-weight: 600; text-transform: uppercase; display: block; margin-bottom: 4px;">Skills</span>
                         <span style="font-size: 0.85rem; font-weight: 500; color: #374151; line-height: 1.4;">${skills}</span>
                     </div>
 
-                    <div style="margin-bottom: 24px;">
+                    <div style="margin-bottom: 18px;">
                         <span style="font-size: 0.75rem; color: #6b7280; font-weight: 600; text-transform: uppercase; display: block; margin-bottom: 4px;">Languages</span>
                         <span style="font-size: 0.85rem; font-weight: 500; color: #374151;">${languages}</span>
+                    </div>
+
+                    <!-- Share & Like Action Bar -->
+                    <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                        <button onclick="toggleAstroLike('${astroId}', '${astroSafeName}', event)" style="
+                            flex: 1; padding: 8px; border: 1px solid #E5E7EB; border-radius: 8px; background: #FFF1F2;
+                            color: #E11D48; font-weight: 600; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+                        ">
+                            <i class="${isFav ? 'fas' : 'far'} fa-heart"></i> ${isFav ? 'Favorited' : 'Add Favorite'}
+                        </button>
+                        <button onclick="shareAstroProfile('${astroId}', '${astroSafeName}', '${astro.price || 15}', event)" style="
+                            flex: 1; padding: 8px; border: 1px solid #25D366; border-radius: 8px; background: #F0FDF4;
+                            color: #15803D; font-weight: 600; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+                        ">
+                            <i class="fab fa-whatsapp"></i> Share
+                        </button>
                     </div>
 
                     <div style="display: flex; gap: 10px;">
@@ -4616,6 +4694,63 @@
         `;
 
         document.body.appendChild(modal);
+    };
+
+    window.isAstroLiked = function(id) {
+        try {
+            const favs = JSON.parse(localStorage.getItem('astro_favs') || '[]');
+            return favs.includes(String(id));
+        } catch(e) { return false; }
+    };
+
+    window.toggleAstroLike = function(id, name, ev) {
+        if (ev) ev.stopPropagation();
+        try {
+            let favs = JSON.parse(localStorage.getItem('astro_favs') || '[]');
+            const strId = String(id);
+            const idx = favs.indexOf(strId);
+            let isNowFav = false;
+            if (idx >= 0) {
+                favs.splice(idx, 1);
+                isNowFav = false;
+            } else {
+                favs.push(strId);
+                isNowFav = true;
+            }
+            localStorage.setItem('astro_favs', JSON.stringify(favs));
+            
+            const btn = document.getElementById('btnAstroLike_' + id);
+            if (btn) {
+                btn.innerHTML = `<i class="${isNowFav ? 'fas' : 'far'} fa-heart"></i>`;
+                btn.style.color = isNowFav ? '#FF4081' : '#ffffff';
+            }
+            if (typeof showToast === 'function') {
+                showToast(isNowFav ? `${name || 'Astrologer'} added to Favorites ❤️` : `${name || 'Astrologer'} removed from Favorites`);
+            } else {
+                alert(isNowFav ? `${name || 'Astrologer'} added to Favorites ❤️` : `${name || 'Astrologer'} removed from Favorites`);
+            }
+        } catch(e) { console.error(e); }
+    };
+
+    window.shareAstroProfile = function(id, name, price, ev) {
+        if (ev) ev.stopPropagation();
+        const shareUrl = window.location.origin + '/?astro=' + (id || '');
+        const shareText = `Consult with ${name || 'Astrologer'} on Astro Eleven for accurate life predictions! Rate: ₹${price || 15}/min. ${shareUrl}`;
+        if (navigator.share) {
+            navigator.share({
+                title: `${name} - Astrologer Profile`,
+                text: shareText,
+                url: shareUrl
+            }).catch(() => {});
+        } else {
+            const waUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+            window.open(waUrl, '_blank');
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(shareUrl).then(() => {
+                    if (typeof showToast === 'function') showToast('Profile link copied! 📋');
+                });
+            }
+        }
     };
 
     // Login Handlers
@@ -5396,7 +5531,7 @@
       document.getElementById('astroWalletDisplay').innerText = Number(user.walletBalance || 0).toFixed(2);
 
       window.loadAstroWithdrawals = () => {
-        socket.emit('get-my-withdrawals', (res) => {
+        socket.emit('get-my-withdrawals', { userId: state.me?.userId }, (res) => {
           const list = document.getElementById('astroWithdrawList');
           if (!list) return;
           if (res.ok && res.list && res.list.length > 0) {
@@ -5446,7 +5581,7 @@
         if (isNaN(amount) || amount < 100) return alert("Minimum withdrawal is ₹100");
         if (amount > (state.me.walletBalance || 0)) return alert("Insufficient Balance");
 
-        socket.emit('request-withdrawal', { amount }, (res) => {
+        socket.emit('request-withdrawal', { amount, userId: state.me?.userId }, (res) => {
           if (res.ok) {
             alert("Withdrawal request sent successfully. Amount deducted from wallet.");
             loadAstroWithdrawals();
@@ -5650,12 +5785,76 @@
                   <span style="font-size:1.1rem; font-weight:800; color:${isAstro ? '#E1353C' : '#1e3a8a'};">₹${amount.toFixed(2)}</span>
                </div>
             </div>
+            ${s.type === 'chat' ? `
+            <div style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed #e2e8f0; text-align: right;">
+              <button onclick="openChatHistoryModal('${s.sessionId}', '${otherId || ''}')" style="background: linear-gradient(135deg, #1e3a8a, #2563eb); color: white; border: none; padding: 7px 16px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(37,99,235,0.25);">
+                <i class="fas fa-comments"></i> View Chat Messages
+              </button>
+            </div>
+            ` : ''}
           `;
           list.appendChild(item);
         });
 
       });
     }
+
+    window.openChatHistoryModal = async function(sessionId, partnerId) {
+      const modal = document.getElementById('screen-chat-history');
+      const content = document.getElementById('chatHistoryContent');
+      const titleEl = document.getElementById('chatHistoryTitle');
+      const subTitleEl = document.getElementById('chatHistorySubtitle');
+      
+      titleEl.innerText = partnerId ? `Chat with User (${partnerId.slice(0, 8)})` : 'Chat History';
+      subTitleEl.innerText = `Session: ${sessionId ? sessionId.slice(0, 8) : '---'}`;
+      content.innerHTML = '<div style="text-align:center; padding:30px; color:#64748b;"><i class="fas fa-spinner fa-spin" style="font-size:1.5rem; color:#F59E0B; margin-bottom:10px;"></i><br>Loading chat messages...</div>';
+      modal.classList.remove('hidden');
+
+      try {
+        let res = await fetch(`/api/chat/history/${sessionId}`).then(r => r.json()).catch(() => null);
+        if (!res || !res.ok) {
+          res = await fetch(`/api/chat/chat/history/${sessionId}`).then(r => r.json()).catch(() => null);
+        }
+        if (!res || !res.ok || !res.messages || res.messages.length === 0) {
+          content.innerHTML = '<div style="text-align:center; padding:40px 20px; color:#94a3b8;"><i class="far fa-comment-dots" style="font-size:2rem; margin-bottom:10px; display:block;"></i>No messages found in this chat session.</div>';
+          return;
+        }
+
+        content.innerHTML = '';
+        const myId = state && state.me ? state.me.userId : '';
+
+        res.messages.forEach(msg => {
+          const isMe = msg.fromUserId === myId || (msg.isSentByMe === true);
+          const time = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+          const bubble = document.createElement('div');
+          bubble.style.cssText = `max-width: 80%; padding: 10px 14px; border-radius: 16px; font-size: 0.9rem; line-height: 1.4; word-break: break-word; align-self: ${isMe ? 'flex-end' : 'flex-start'}; background: ${isMe ? 'linear-gradient(135deg, #1e3a8a, #2563eb)' : '#ffffff'}; color: ${isMe ? '#ffffff' : '#1e293b'}; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: ${isMe ? 'none' : '1px solid #e2e8f0'};`;
+          
+          let textHtml = (msg.text || (msg.content && msg.content.text) || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          let mediaHtml = '';
+          const fileUrl = msg.fileUrl || (msg.content && msg.content.fileUrl);
+          if (fileUrl) {
+            if (msg.type === 'image' || fileUrl.match(/\.(jpeg|jpg|gif|png|webp)/i)) {
+              mediaHtml = `<div style="margin-top:6px;"><img src="${fileUrl}" style="max-width:100%; border-radius:8px; cursor:pointer;" onclick="window.open('${fileUrl}')" /></div>`;
+            } else if (msg.type === 'audio' || fileUrl.match(/\.(mp3|wav|ogg|m4a)/i)) {
+              mediaHtml = `<div style="margin-top:6px;"><audio controls src="${fileUrl}" style="max-width:100%; height:36px;"></audio></div>`;
+            } else {
+              mediaHtml = `<div style="margin-top:6px;"><a href="${fileUrl}" target="_blank" style="color:${isMe ? '#93c5fd' : '#2563eb'}; font-weight:600;"><i class="fas fa-file"></i> View Attachment</a></div>`;
+            }
+          }
+
+          bubble.innerHTML = `
+            <div>${textHtml}</div>
+            ${mediaHtml}
+            <div style="font-size:0.68rem; text-align:right; margin-top:4px; opacity:0.75;">${time}</div>
+          `;
+          content.appendChild(bubble);
+        });
+
+        content.scrollTop = content.scrollHeight;
+      } catch (err) {
+        content.innerHTML = `<div style="text-align:center; padding:30px; color:#ef4444;"><i class="fas fa-exclamation-triangle"></i><br>Failed to load chat history.</div>`;
+      }
+    };
 
     // Session Request Logic
     // Global reference to calling timeout/interval to clear them later
@@ -5947,7 +6146,7 @@
         // Update Withdraw Button State
         const btnWithdraw = document.getElementById('btnAstroWithdraw');
         if (btnWithdraw) {
-          if ((state.me.walletBalance || 0) < 500) {
+          if ((state.me.walletBalance || 0) < 100) {
             btnWithdraw.style.opacity = '0.5';
             btnWithdraw.style.cursor = 'not-allowed';
           } else {
@@ -8998,21 +9197,30 @@
     };
 
     window.skipReferral = function () {
-      document.getElementById('referralWelcomeModal').classList.add('hidden');
-      fetch('/api/referral/skip', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: state.me.userId })
-      });
+      const welcome = document.getElementById('referralWelcomeModal');
+      if (welcome) welcome.classList.add('hidden');
+      const info = document.getElementById('referralInfoModal');
+      if (info) info.classList.add('hidden');
+      if (state && state.me && state.me.userId) {
+        fetch('/api/referral/skip', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: state.me.userId })
+        }).catch(() => {});
+      }
     };
 
     window.applyReferral = async function () {
-      const code = document.getElementById('inputReferralCode').value;
+      const codeInp = document.getElementById('inputReferralCode');
+      const code = codeInp ? codeInp.value.trim() : '';
       if (!code) return alert('Please enter a referral code');
+      if (!state.me || !state.me.userId) return alert('Please login to apply referral code');
 
-      const btn = event.target;
-      btn.disabled = true;
-      btn.innerText = 'Applying...';
+      const btn = event ? event.target : null;
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = 'Applying...';
+      }
 
       try {
         const res = await fetch('/api/referral/apply', {
@@ -9022,13 +9230,25 @@
         }).then(r => r.json());
 
         if (res.ok) {
-          document.getElementById('referralWelcomeModal').classList.add('hidden');
+          const welcome = document.getElementById('referralWelcomeModal');
+          if (welcome) welcome.classList.add('hidden');
+          const info = document.getElementById('referralInfoModal');
+          if (info) info.classList.add('hidden');
+
+          const applySection = document.getElementById('applyCodeSection');
+          if (applySection) applySection.style.display = 'none';
+
           // Money Animation
-          startMoneyAnimation();
+          if (typeof startMoneyAnimation === 'function') startMoneyAnimation();
+
           // Update Wallet
-          document.getElementById('clientWallet').innerText = res.newBalance;
-          state.me.walletBalance = res.newBalance;
-          state.me.isNewUser = false;
+          const w = document.getElementById('clientWallet');
+          if (w) w.innerText = res.newBalance;
+          if (state && state.me) {
+            state.me.walletBalance = res.newBalance;
+            state.me.isNewUser = false;
+            saveSession(state.me);
+          }
           showToast('₹' + res.bonusAmount + ' Bonus Credited! 🎊');
         } else {
           alert(res.error || 'Invalid Code');
@@ -9036,8 +9256,10 @@
       } catch (e) {
         alert('Error applying referral');
       } finally {
-        btn.disabled = false;
-        btn.innerText = 'Apply & Claim';
+        if (btn) {
+          btn.disabled = false;
+          btn.innerText = 'Apply & Claim';
+        }
       }
     };
 

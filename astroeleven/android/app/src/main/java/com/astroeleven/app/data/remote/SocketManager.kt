@@ -391,6 +391,10 @@ object SocketManager {
     fun requestWithdrawal(amount: Double, callback: ((JSONObject?) -> Unit)? = null) {
         val payload = JSONObject().apply {
             put("amount", amount)
+            currentUserId?.let {
+                put("userId", it)
+                put("astroId", it)
+            }
         }
         socket?.emit("request-withdrawal", payload, Ack { args ->
             if (args != null && args.isNotEmpty()) {
@@ -402,12 +406,18 @@ object SocketManager {
     }
 
     fun getMyWithdrawals(callback: ((List<JSONObject>) -> Unit)) {
-        socket?.emit("get-my-withdrawals", null, Ack { args ->
+        val payload = JSONObject().apply {
+            currentUserId?.let {
+                put("userId", it)
+                put("astroId", it)
+            }
+        }
+        socket?.emit("get-my-withdrawals", payload, Ack { args ->
             val list = mutableListOf<JSONObject>()
             if (args != null && args.isNotEmpty()) {
                 val response = args[0] as? JSONObject
                 if (response?.optBoolean("ok") == true) {
-                    val arr = response.optJSONArray("withdrawals")
+                    val arr = response.optJSONArray("withdrawals") ?: response.optJSONArray("list")
                     if (arr != null) {
                         for (i in 0 until arr.length()) {
                             list.add(arr.getJSONObject(i))
@@ -434,6 +444,8 @@ object SocketManager {
     fun sendFeedback(message: String, callback: ((Boolean) -> Unit)? = null) {
         val payload = JSONObject().apply {
             put("message", message)
+            put("comment", message)
+            currentUserId?.let { put("userId", it) }
         }
         socket?.emit("send-feedback", payload, Ack { args ->
             val success = if (args != null && args.isNotEmpty()) {

@@ -362,26 +362,33 @@ module.exports = (io, socket, SERVER_URL, broadcastAstroUpdate) => {
                     userActiveSession.delete(fromUserId);
                     userActiveSession.delete(toUserId);
                     activeSessions.delete(sessionId);
+
+                    // GHOST CALL FIX 1: Mark session as ended in DB immediately so late answers are rejected
+                    await Session.updateOne({ sessionId }, { 
+                        status: 'ended', 
+                        endReason: 'missed', 
+                        endTime: Date.now() 
+                    }).catch(() => {});
+
+                    // GHOST CALL FIX 2: Send FCM CANCEL_CALL to recipient to kill notification & ringing
+                    try {
+                        const recipient = await User.findOne({ userId: toUserId }).select('fcmToken');
+                        if (recipient && recipient.fcmToken) {
+                            sendFcmV1Push(recipient.fcmToken, {
+                                type: 'CANCEL_CALL',
+                                sessionId,
+                                callId: sessionId,
+                                callerId: fromUserId,
+                                reason: 'missed'
+                            }, null, toUserId).catch(e => logError('missed-call-FCM', e));
+                        }
+                    } catch (e) {
+                        logError('missed-call-FCM-lookup', e);
+                    }
+
                     // AUTO-OFFLINE LOGIC: Modified as per USER REQUEST (Astrologer stays online)
                     const astro = await User.findOne({ userId: toUserId });
                     if (astro && astro.role === 'astrologer') {
-                        /*
-                        astro.isOnline = false;
-                        astro.isChatOnline = false;
-                        astro.isAudioOnline = false;
-                        astro.isVideoOnline = false;
-                        astro.isAvailable = false;
-                        await astro.save();
-                        
-                        if (broadcastAstroUpdate) broadcastAstroUpdate();
-
-                        // Notify Super Admin
-                        io.to('superadmin').emit('admin-notification', {
-                            text: `Missed Call Alert: ${astro.name} marked OFFLINE due to no response.`,
-                            type: 'missed_call'
-                        });
-                        */
-
                         // Log to file
                         const fs = require('fs');
                         const path = require('path');
@@ -400,12 +407,111 @@ module.exports = (io, socket, SERVER_URL, broadcastAstroUpdate) => {
         }
     });
 
+    // --- Cancel Call (Caller cancels before astrologer answers) ---
+    // GHOST CALL FIX 3: Fully handle caller cancellation and immediately clear astrologer UI & notification
+    socket.on('cancel-call', async (data, cb) => {
+        try {
+            const { sessionId } = data || {};
+            let toUserId = data?.toUserId;
+            let fromUserId = socketToUser.get(socket.id) || (data && data.fromUserId);
+
+            console.log(`[CallHandler][cancel-call] Caller ${fromUserId} cancelled session ${sessionId} for ${toUserId}`);
+
+            let session = null;
+            if (sessionId) {
+                session = activeSessions.get(sessionId);
+            }
+
+            // GUARD: If session was already answered or active, do NOT treat as caller cancellation!
+            // Route through normal billing completion so duration & earnings are accurately saved.
+            if (session && (session.status === 'active' || session.status === 'answered' || session.actualBillingStart)) {
+                console.log(`[CallHandler][cancel-call] Session ${sessionId} was already active/connected. Routing to endSessionRecord.`);
+                billingService.endSessionRecord(sessionId, broadcastAstroUpdate, 'ended');
+                if (typeof cb === 'function') cb({ ok: true });
+                return;
+            }
+
+            const dbSess = sessionId ? await Session.findOne({ sessionId }) : null;
+            if (dbSess && (dbSess.actualBillingStart || dbSess.status === 'active') && dbSess.status !== 'ended') {
+                console.log(`[CallHandler][cancel-call] DB Session ${sessionId} was already active/connected. Routing to endSessionRecord.`);
+                billingService.endSessionRecord(sessionId, broadcastAstroUpdate, 'ended');
+                if (typeof cb === 'function') cb({ ok: true });
+                return;
+            }
+
+            if (!toUserId && session && session.users) {
+                toUserId = session.users.find(u => u !== fromUserId);
+            }
+            if (!toUserId && dbSess) {
+                toUserId = dbSess.toUserId === fromUserId ? dbSess.fromUserId : dbSess.toUserId;
+            }
+
+            if (sessionId) {
+                await Session.updateOne({ sessionId }, { 
+                    status: 'ended', 
+                    endReason: 'caller_cancelled',
+                    endTime: Date.now() 
+                }).catch(() => {});
+                activeSessions.delete(sessionId);
+            }
+
+            if (fromUserId && userActiveSession.get(fromUserId) === sessionId) {
+                userActiveSession.delete(fromUserId);
+            }
+            if (toUserId && userActiveSession.get(toUserId) === sessionId) {
+                userActiveSession.delete(toUserId);
+            }
+
+            if (toUserId) {
+                io.to(toUserId).emit('session-ended', { sessionId, reason: 'caller_cancelled' });
+                io.to(toUserId).emit('call-cancelled', { sessionId, fromUserId });
+
+                // Dismiss notification & ringing on recipient device immediately via FCM
+                try {
+                    const recipientUser = await User.findOne({ userId: toUserId }).select('fcmToken');
+                    if (recipientUser && recipientUser.fcmToken) {
+                        sendFcmV1Push(recipientUser.fcmToken, {
+                            type: 'CANCEL_CALL',
+                            sessionId,
+                            callId: sessionId,
+                            callerId: fromUserId,
+                            reason: 'caller_cancelled'
+                        }, null, toUserId).catch(e => logError('cancel-call-FCM', e));
+                    }
+                } catch (e) {
+                    logError('cancel-call-FCM-lookup', e);
+                }
+            }
+
+            if (fromUserId) {
+                io.to(fromUserId).emit('session-ended', { sessionId, reason: 'caller_cancelled' });
+            }
+
+            if (typeof cb === 'function') cb({ ok: true });
+        } catch (err) {
+            logError('cancel-call', err);
+            if (typeof cb === 'function') cb({ ok: false, error: 'Internal error' });
+        }
+    });
+
     // --- Answer Session ---
     socket.on('answer-session', async (data, cb) => {
         try {
             const { sessionId, type, accept } = data || {};
             let toUserId = data?.toUserId;
             let fromUserId = socketToUser.get(socket.id) || (data && data.fromUserId);
+
+            // Fallback for fromUserId if missing
+            if (!fromUserId && sessionId) {
+                const existingS = activeSessions.get(sessionId);
+                if (existingS && existingS.users && toUserId) {
+                    fromUserId = existingS.users.find(u => u !== toUserId);
+                }
+                if (!fromUserId) {
+                    const dbS = await Session.findOne({ sessionId });
+                    if (dbS) fromUserId = (toUserId && dbS.toUserId === toUserId) ? dbS.fromUserId : dbS.toUserId;
+                }
+            }
             
             // Self-registration for signaling robustness
             if (!socketToUser.has(socket.id) && fromUserId) {
@@ -427,16 +533,34 @@ module.exports = (io, socket, SERVER_URL, broadcastAstroUpdate) => {
                 }
             }
 
+            // Fallback for type if missing from packet
+            let sessionType = type;
+            if (!sessionType && sessionId) {
+                const existingS = activeSessions.get(sessionId);
+                if (existingS) sessionType = existingS.type;
+                if (!sessionType) {
+                    const dbS = await Session.findOne({ sessionId });
+                    if (dbS) sessionType = dbS.type;
+                }
+            }
+
             if (!fromUserId || !sessionId || !toUserId) {
                 console.warn(`[CallHandler][answer-session] missing data for session ${sessionId}. fromUserId=${fromUserId}, toUserId=${toUserId}`);
                 return typeof cb === 'function' && cb({ ok: false, error: 'Missing data' });
             }
 
-            // Guard: Check if DB session is already ended (prevents late answer packet from resurrecting ended sessions)
+            // Guard: Check if DB session is already ended or expired (prevents late answer packet from resurrecting ended sessions)
             const existingDbSession = await Session.findOne({ sessionId });
-            if (existingDbSession && existingDbSession.status === 'ended') {
-                console.log(`[CallHandler][answer-session] Session ${sessionId} already ended in DB. Ignoring.`);
+            if (existingDbSession && (existingDbSession.status === 'ended' || existingDbSession.status === 'cancelled')) {
+                console.log(`[CallHandler][answer-session] Session ${sessionId} already ended in DB (${existingDbSession.endReason || 'ended'}). Rejecting stale answer.`);
+                socket.emit('session-ended', { sessionId, reason: existingDbSession.endReason || 'already_ended' });
                 return typeof cb === 'function' && cb({ ok: false, error: 'Session already ended' });
+            }
+            if (existingDbSession && existingDbSession.startTime && (Date.now() - existingDbSession.startTime > 45000)) {
+                console.log(`[CallHandler][answer-session] Session ${sessionId} expired (${Math.round((Date.now() - existingDbSession.startTime)/1000)}s old). Rejecting.`);
+                await Session.updateOne({ sessionId }, { status: 'ended', endReason: 'expired', endTime: Date.now() }).catch(() => {});
+                socket.emit('session-ended', { sessionId, reason: 'expired' });
+                return typeof cb === 'function' && cb({ ok: false, error: 'Session expired' });
             }
 
             // Update status to prevent timeout cleanup
@@ -456,10 +580,10 @@ module.exports = (io, socket, SERVER_URL, broadcastAstroUpdate) => {
             Session.updateOne({ sessionId }, updatePayload).catch(() => {});
 
             io.to(toUserId).emit('session-answered', {
-                sessionId, fromUserId, type, accept: !!accept
+                sessionId, fromUserId, type: sessionType || 'chat', accept: !!accept
             });
 
-            console.log(`[CallHandler][answer-session] ${accept ? '✅ ACCEPTED' : '❌ REJECTED'} | session=${sessionId}, type=${type} | by=${fromUserId} for=${toUserId}`);
+            console.log(`[CallHandler][answer-session] ${accept ? '✅ ACCEPTED' : '❌ REJECTED'} | session=${sessionId}, type=${sessionType || 'chat'} | by=${fromUserId} for=${toUserId}`);
             if (typeof cb === 'function') cb({ ok: true });
         } catch (err) {
             logError('answer-session', err);
@@ -471,10 +595,41 @@ module.exports = (io, socket, SERVER_URL, broadcastAstroUpdate) => {
     socket.on('answer-session-native', async (data, cb) => {
         try {
             const { sessionId, accept, callType } = data || {};
-            const astrologerId = socketToUser.get(socket.id);
+            let astrologerId = socketToUser.get(socket.id) || (data && (data.astrologerId || data.fromUserId));
+
+            if (!astrologerId && sessionId) {
+                const existingS = activeSessions.get(sessionId);
+                if (existingS) astrologerId = existingS.toUserId || existingS.users?.[1] || existingS.users?.[0];
+                if (!astrologerId) {
+                    const dbS = await Session.findOne({ sessionId });
+                    if (dbS) astrologerId = dbS.toUserId;
+                }
+            }
 
             if (!astrologerId || !sessionId) {
                 if (typeof cb === 'function') cb({ ok: false, error: 'Invalid data' });
+                return;
+            }
+
+            if (!socketToUser.has(socket.id) && astrologerId) {
+                socketToUser.set(socket.id, astrologerId);
+                userSockets.set(astrologerId, socket.id);
+                socket.join(astrologerId);
+            }
+
+            const dbSession = await Session.findOne({ sessionId });
+            if (!dbSession || dbSession.status === 'ended' || dbSession.status === 'cancelled') {
+                console.log(`[CallHandler][answer-session-native] Session ${sessionId} not found or already ended in DB. Rejecting.`);
+                socket.emit('session-ended', { sessionId, reason: dbSession?.endReason || 'already_ended' });
+                if (typeof cb === 'function') cb({ ok: false, error: 'Session already ended' });
+                return;
+            }
+
+            if (dbSession.startTime && (Date.now() - dbSession.startTime > 45000)) {
+                console.log(`[CallHandler][answer-session-native] Session ${sessionId} expired (>45s). Rejecting.`);
+                await Session.updateOne({ sessionId }, { status: 'ended', endReason: 'expired', endTime: Date.now() }).catch(() => {});
+                socket.emit('session-ended', { sessionId, reason: 'expired' });
+                if (typeof cb === 'function') cb({ ok: false, error: 'Session expired' });
                 return;
             }
 
@@ -485,12 +640,6 @@ module.exports = (io, socket, SERVER_URL, broadcastAstroUpdate) => {
             Session.updateOne({ sessionId }, { status: accept ? 'answered' : 'rejected' }).catch(() => {});
 
             if (!session) {
-                const dbSession = await Session.findOne({ sessionId });
-                if (!dbSession) {
-                    if (typeof cb === 'function') cb({ ok: false, error: 'Session not found' });
-                    return;
-                }
-
                 const fromUserId = dbSession.fromUserId;
                 if (accept) {
                     io.to(fromUserId).emit('session-answered', {
@@ -548,11 +697,27 @@ module.exports = (io, socket, SERVER_URL, broadcastAstroUpdate) => {
                 socket.join(fromUserId);
             }
 
-            console.log(`[CallHandler][signal] type=${signalType} | from=${fromUserId} to=${toUserId} | session=${sessionId}`);
+            let targetUserId = toUserId;
+            if ((!targetUserId || targetUserId === 'unknown') && sessionId) {
+                const s = activeSessions.get(sessionId);
+                if (s && s.users) {
+                    targetUserId = s.users.find(u => u !== fromUserId);
+                }
+                if (!targetUserId) {
+                    for (const [uid, sessId] of userActiveSession.entries()) {
+                        if (sessId === sessionId && uid !== fromUserId) {
+                            targetUserId = uid;
+                            break;
+                        }
+                    }
+                }
+            }
 
-            if (toUserId) {
-                console.log(`[CallHandler][signal] Forwarding ${signalType} to room ${toUserId}`);
-                io.to(toUserId).emit('signal', { sessionId, fromUserId, signal });
+            console.log(`[CallHandler][signal] type=${signalType} | from=${fromUserId} to=${targetUserId} (orig: ${toUserId}) | session=${sessionId}`);
+
+            if (targetUserId) {
+                console.log(`[CallHandler][signal] Forwarding ${signalType} to room ${targetUserId}`);
+                io.to(targetUserId).emit('signal', { sessionId, fromUserId, signal });
             }
         } catch (err) {
             logError('signal', err);
@@ -575,7 +740,20 @@ module.exports = (io, socket, SERVER_URL, broadcastAstroUpdate) => {
             console.log(`[CallHandler][session-connect] User ${userId} joined session ${sessionId}`);
 
             const session = await Session.findOne({ sessionId });
-            if (!session || session.status === 'ended') return;
+            if (!session || session.status === 'ended' || session.status === 'cancelled') {
+                console.warn(`[CallHandler][session-connect] Session ${sessionId} already ended or cancelled in DB. Rejecting user ${userId}`);
+                socket.emit('session-ended', { sessionId, reason: session?.endReason || 'session_expired' });
+                return;
+            }
+
+            // GHOST CALL GUARD: Validate session age
+            const sessionAge = Date.now() - (session.startTime || 0);
+            if (session.status === 'ringing' && sessionAge > 45000) {
+                console.warn(`[CallHandler][session-connect] Session ${sessionId} is expired (${Math.round(sessionAge / 1000)}s old). Terminating.`);
+                await Session.updateOne({ sessionId }, { status: 'ended', endReason: 'expired', endTime: Date.now() }).catch(() => {});
+                socket.emit('session-ended', { sessionId, reason: 'expired' });
+                return;
+            }
 
             // Ensure clientId and astrologerId are set
             let updated = false;
@@ -600,9 +778,16 @@ module.exports = (io, socket, SERVER_URL, broadcastAstroUpdate) => {
 
             if (updated) await session.save();
 
-            // Check if both are connected or ready to start billing
-            const isClientReady = !!(session.clientConnectedAt || userId === session.clientId);
-            const isAstroReady = !!(session.astrologerConnectedAt || userId === session.astrologerId || session.status === 'answered' || session.status === 'active');
+            // GHOST CALL GUARD: Check if both parties actually have alive socket connections!
+            const clientSocketId = userSockets.get(session.clientId);
+            const isClientSocketAlive = !!(clientSocketId && io.sockets.sockets.has(clientSocketId));
+
+            const astroSocketId = userSockets.get(session.astrologerId);
+            const isAstroSocketAlive = !!(astroSocketId && io.sockets.sockets.has(astroSocketId));
+
+            // Check if both are connected and ready to start billing
+            const isClientReady = !!(session.clientConnectedAt || userId === session.clientId) && isClientSocketAlive;
+            const isAstroReady = !!(session.astrologerConnectedAt || userId === session.astrologerId || session.status === 'answered' || session.status === 'active') && isAstroSocketAlive;
 
             if (isClientReady && isAstroReady && !session.actualBillingStart) {
                 const billingStart = Date.now();

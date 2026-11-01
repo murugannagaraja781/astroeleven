@@ -397,9 +397,6 @@ class ChatActivity : ComponentActivity() {
         if (sessionId != null) {
             Toast.makeText(this, "Ending Chat...", Toast.LENGTH_SHORT).show()
             viewModel.endSession(sessionId!!)
-            if (toUserId != null) {
-                SocketManager.cancelCall(sessionId, toUserId)
-            }
         } else {
             Toast.makeText(this, "Chat Ended", Toast.LENGTH_SHORT).show()
             finishSessionAndNavigate()

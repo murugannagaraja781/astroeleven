@@ -241,95 +241,87 @@ class AstrologerDashboardActivity : ComponentActivity() {
 
             // Launch IncomingCallActivity on main thread
             runOnUiThread {
-                if (type == "chat") {
-                    android.app.AlertDialog.Builder(this@AstrologerDashboardActivity)
-                        .setTitle("Incoming Chat Request")
-                        .setMessage("$callerName wants to chat with you.")
-                        .setPositiveButton("Accept") { _, _ ->
-                            val intent = Intent(this@AstrologerDashboardActivity, com.astroeleven.app.ui.chat.ChatActivity::class.java).apply {
-                                putExtra("toUserId", fromUserId)
-                                putExtra("sessionId", sessionId)
-                                putExtra("isNewRequest", true)
-                                if (birthDataStr != null) {
-                                    putExtra("birthData", birthDataStr)
-                                }
-                            }
-                            startActivity(intent)
+                val intent = Intent(this@AstrologerDashboardActivity, com.astroeleven.app.IncomingCallActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                            Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                            Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    putExtra("callerId", fromUserId)
+                    putExtra("callerName", callerName)
+                    putExtra("callId", sessionId)
+                    putExtra("callType", type)
+                    if (birthDataStr != null) {
+                        putExtra("birthData", birthDataStr)
+                    }
+                }
+                
+                // CRITICAL FIX: If app is in background, startActivity() is silently blocked by Android 10+.
+                // We must use a Full-Screen Intent Notification to force the UI to open with loud ringing.
+                try {
+                    val pendingIntent = android.app.PendingIntent.getActivity(
+                        this@AstrologerDashboardActivity,
+                        sessionId.hashCode(),
+                        intent,
+                        android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+                    )
+                    
+                    val notificationManager = getSystemService(android.app.NotificationManager::class.java)
+                    val channelId = "incoming_calls"
+                    
+                    // Ensure channel exists
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                        val channel = android.app.NotificationChannel(
+                            channelId,
+                            "Incoming Calls",
+                            android.app.NotificationManager.IMPORTANCE_HIGH // Must be HIGH or MAX
+                        ).apply {
+                            description = "Notifications for incoming calls and chat requests"
+                            setBypassDnd(true)
+                            enableVibration(true)
+                            val ringtoneUri = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_RINGTONE)
+                            setSound(
+                                ringtoneUri,
+                                android.media.AudioAttributes.Builder()
+                                    .setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
+                                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                                    .build()
+                            )
                         }
-                        .setNegativeButton("Reject") { _, _ ->
-                            val payload = JSONObject().apply {
-                                put("sessionId", sessionId)
-                                put("toUserId", fromUserId)
-                                put("type", "chat")
-                                put("accept", false)
-                            }
-                            SocketManager.getSocket()?.emit("answer-session-native", payload)
-                            CallState.currentSessionId = null
-                        }
-                        .setCancelable(false)
-                        .show()
-                } else {
-                    val intent = Intent(this@AstrologerDashboardActivity, com.astroeleven.app.IncomingCallActivity::class.java).apply {
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-                                Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                                Intent.FLAG_ACTIVITY_SINGLE_TOP
-                        putExtra("callerId", fromUserId)
-                        putExtra("callerName", callerName)
-                        putExtra("callId", sessionId)
-                        putExtra("callType", type)
-                        if (birthDataStr != null) {
-                            putExtra("birthData", birthDataStr)
-                        }
+                        notificationManager.createNotificationChannel(channel)
                     }
                     
-                    // CRITICAL FIX: If app is in background, startActivity() is silently blocked by Android 10+.
-                    // We must use a Full-Screen Intent Notification to force the UI to open.
-                    try {
-                        val pendingIntent = android.app.PendingIntent.getActivity(
-                            this@AstrologerDashboardActivity,
-                            sessionId.hashCode(),
-                            intent,
-                            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
-                        )
+                    val notifTitle = if (type == "chat") "💬 Incoming Chat Request" else "Incoming $type Call"
+                    val notifText = if (type == "chat") "$callerName wants to chat with you" else "$callerName is calling"
+
+                    val notification = androidx.core.app.NotificationCompat.Builder(this@AstrologerDashboardActivity, channelId)
+                        .setSmallIcon(R.mipmap.ic_launcher)
+                        .setContentTitle(notifTitle)
+                        .setContentText(notifText)
+                        .setPriority(androidx.core.app.NotificationCompat.PRIORITY_MAX)
+                        .setCategory(androidx.core.app.NotificationCompat.CATEGORY_CALL)
+                        .setFullScreenIntent(pendingIntent, true)
+                        .setAutoCancel(true)
+                        .setOngoing(true)
+                        .build()
                         
-                        val notificationManager = getSystemService(android.app.NotificationManager::class.java)
-                        val channelId = "incoming_calls"
-                        
-                        // Ensure channel exists
-                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                            val channel = android.app.NotificationChannel(
-                                channelId,
-                                "Incoming Calls",
-                                android.app.NotificationManager.IMPORTANCE_HIGH // Must be HIGH or MAX
-                            ).apply {
-                                description = "Notifications for incoming calls"
-                                setBypassDnd(true)
-                            }
-                            notificationManager.createNotificationChannel(channel)
-                        }
-                        
-                        val notification = androidx.core.app.NotificationCompat.Builder(this@AstrologerDashboardActivity, channelId)
-                            .setSmallIcon(R.mipmap.ic_launcher)
-                            .setContentTitle("Incoming Call")
-                            .setContentText("$callerName is calling")
-                            .setPriority(androidx.core.app.NotificationCompat.PRIORITY_MAX)
-                            .setCategory(androidx.core.app.NotificationCompat.CATEGORY_CALL)
-                            .setFullScreenIntent(pendingIntent, true)
-                            .setAutoCancel(true)
-                            .setOngoing(true)
-                            .build()
-                            
-                        notificationManager.notify(200, notification)
-                        android.util.Log.d("AstrologerDashboard", "Fired Full-Screen Intent Notification for socket call")
-                    } catch (e: Exception) {
-                        android.util.Log.e("AstrologerDashboard", "Failed to fire notification, falling back to startActivity", e)
-                        startActivity(intent)
-                    }
+                    notificationManager.notify(200, notification)
+                    android.util.Log.d("AstrologerDashboard", "Fired Full-Screen Intent Notification for socket $type")
+                } catch (e: Exception) {
+                    android.util.Log.e("AstrologerDashboard", "Failed to fire notification, falling back to startActivity", e)
+                    startActivity(intent)
                 }
             }
         }
 
         // NEW FIX removed: session-request listener is removed so that chats trigger the ringing screen via incoming-session.
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val session = tokenManager.getUserSession()
+        if (session?.userId != null) {
+            SocketManager.ensureConnection()
+            SocketManager.registerUser(session.userId)
+        }
     }
 
     override fun onDestroy() {
@@ -1083,7 +1075,42 @@ fun AstrologerDashboardScreen(
             }
         }
         tokenManager.setDailyProgress(todayProgress)
+        SocketManager.init()
+        SocketManager.registerUser(sessionId)
         refreshBalanceAndHistory()
+    }
+
+    DisposableEffect(Unit) {
+        val socket = SocketManager.getSocket()
+        val walletListener = io.socket.emitter.Emitter.Listener { args ->
+            if (args.isNotEmpty()) {
+                val data = args[0] as? JSONObject
+                val newBal = data?.optDouble("balance", -1.0) ?: -1.0
+                if (newBal >= 0) {
+                    scope.launch(kotlinx.coroutines.Dispatchers.Main) {
+                        walletBalance = newBal
+                    }
+                }
+            }
+        }
+        val notifListener = io.socket.emitter.Emitter.Listener { args ->
+            if (args.isNotEmpty()) {
+                val data = args[0] as? JSONObject
+                val text = data?.optString("text") ?: ""
+                if (text.isNotEmpty()) {
+                    scope.launch(kotlinx.coroutines.Dispatchers.Main) {
+                        Toast.makeText(context, text, Toast.LENGTH_LONG).show()
+                        refreshBalanceAndHistory()
+                    }
+                }
+            }
+        }
+        socket?.on("wallet-update", walletListener)
+        socket?.on("app-notification", notifListener)
+        onDispose {
+            socket?.off("wallet-update", walletListener)
+            socket?.off("app-notification", notifListener)
+        }
     }
 
     val isOnline = isChatOnline || isAudioOnline || isVideoOnline
@@ -1130,22 +1157,28 @@ fun AstrologerDashboardScreen(
                             unfocusedTextColor = colors.textPrimary
                         )
                     )
-                    Text("Min. ₹500 required", fontSize = 11.sp, color = colors.textSecondary, modifier = Modifier.padding(top = 4.dp))
+                    Text("Min. ₹100 required", fontSize = 11.sp, color = colors.textSecondary, modifier = Modifier.padding(top = 4.dp))
                 }
             },
             confirmButton = {
                 Button(
                     onClick = {
                         val amt = withdrawAmount.toDoubleOrNull() ?: 0.0
-                        if (amt < 500) {
-                            Toast.makeText(context, "Minimum withdrawal is ₹500", Toast.LENGTH_SHORT).show()
+                        if (amt < 100) {
+                            Toast.makeText(context, "Minimum withdrawal is ₹100", Toast.LENGTH_SHORT).show()
                         } else if (amt > walletBalance) {
                             Toast.makeText(context, "Insufficient balance", Toast.LENGTH_SHORT).show()
                         } else {
                             SocketManager.requestWithdrawal(amt) { res ->
                                 scope.launch(kotlinx.coroutines.Dispatchers.Main) {
                                     if (res?.optBoolean("ok") == true) {
-                                        Toast.makeText(context, "Withdrawal Requested Successfully", Toast.LENGTH_LONG).show()
+                                        val serverBal = res.optDouble("balance", -1.0)
+                                        if (serverBal >= 0) {
+                                            walletBalance = serverBal
+                                        } else {
+                                            walletBalance = maxOf(0.0, walletBalance - amt)
+                                        }
+                                        Toast.makeText(context, "Withdrawal Requested: ₹${amt.toInt()} deducted", Toast.LENGTH_LONG).show()
                                         showWithdrawDialog = false
                                         withdrawAmount = ""
                                         refreshBalanceAndHistory()
@@ -1390,6 +1423,35 @@ fun AstrologerDashboardScreen(
                 } else true)
             }
 
+            val permissionLauncher = rememberLauncherForActivityResult(
+                ActivityResultContracts.RequestMultiplePermissions()
+            ) { perms ->
+                hasAudio = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+                hasCamera = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    hasNotification = ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+                }
+            }
+
+            // Upfront prompt on entry for all astrologer runtime permissions
+            LaunchedEffect(Unit) {
+                val needed = mutableListOf<String>()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                        needed.add(Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                }
+                if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                    needed.add(Manifest.permission.RECORD_AUDIO)
+                }
+                if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                    needed.add(Manifest.permission.CAMERA)
+                }
+                if (needed.isNotEmpty()) {
+                    permissionLauncher.launch(needed.toTypedArray())
+                }
+            }
+
             LaunchedEffect(Unit) {
                 while(true) {
                     hasOverlay = Settings.canDrawOverlays(context)
@@ -1445,12 +1507,32 @@ fun AstrologerDashboardScreen(
                         )
                         Spacer(modifier = Modifier.height(10.dp))
                         Button(
-                            onClick = { context.startActivity(Intent(context, PermissionActivity::class.java)) },
+                            onClick = {
+                                val needed = mutableListOf<String>()
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotification) {
+                                    needed.add(Manifest.permission.POST_NOTIFICATIONS)
+                                }
+                                if (!hasAudio) needed.add(Manifest.permission.RECORD_AUDIO)
+                                if (!hasCamera) needed.add(Manifest.permission.CAMERA)
+                                if (needed.isNotEmpty()) {
+                                    permissionLauncher.launch(needed.toTypedArray())
+                                } else {
+                                    context.startActivity(Intent(context, PermissionActivity::class.java))
+                                }
+                            },
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
-                            modifier = Modifier.fillMaxWidth().height(36.dp),
+                            modifier = Modifier.fillMaxWidth().height(38.dp),
                             shape = RoundedCornerShape(10.dp)
                         ) {
-                            Text("REPAIR PERMISSIONS", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 12.sp)
+                            Text(
+                                if (!hasAudio || !hasCamera || (!hasNotification && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU))
+                                    "GRANT PERMISSIONS (அனுமதிகள் வழங்கு)"
+                                else
+                                    "REPAIR SETTINGS (அமைப்புகளை சரிசெய்)",
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                fontSize = 12.sp
+                            )
                         }
                     }
                 }

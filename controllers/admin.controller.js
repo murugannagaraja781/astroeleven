@@ -3,6 +3,7 @@ const Banner = require('../models/Banner');
 const AccountDeletionRequest = require('../models/AccountDeletionRequest');
 const User = require('../models/User');
 const Withdrawal = require('../models/Withdrawal');
+const Notification = require('../models/Notification');
 const Session = require('../models/Session');
 const Feedback = require('../models/Feedback');
 const GlobalSettings = require('../models/GlobalSettings');
@@ -1364,6 +1365,105 @@ exports.updateAstrologerRates = async (req, res) => {
         res.status(500).json({ ok: false, error: err.message });
     }
 };
+
+exports.getAdminNotifications = async (req, res) => {
+    try {
+        const list = await Notification.find({
+            targetRole: { $in: ['superadmin', 'admin', 'all'] }
+        }).sort({ createdAt: -1 }).limit(100);
+        res.json({ ok: true, list });
+    } catch (e) {
+        console.error('[AdminController] Error in getAdminNotifications:', e);
+        res.status(500).json({ ok: false, error: e.message });
+    }
+};
+
+exports.markNotificationRead = async (req, res) => {
+    try {
+        const { id } = req.body;
+        if (id) {
+            await Notification.findByIdAndUpdate(id, { isRead: true });
+        } else {
+            await Notification.updateMany({ targetRole: { $in: ['superadmin', 'admin', 'all'] } }, { isRead: true });
+        }
+        res.json({ ok: true });
+    } catch (e) {
+        res.status(500).json({ ok: false, error: e.message });
+    }
+};
+
+exports.approveWithdrawal = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const w = await Withdrawal.findById(id);
+        if (!w || w.status !== 'pending') {
+            return res.json({ ok: false, error: 'Invalid or already processed withdrawal' });
+        }
+        const u = await User.findOne({ userId: w.astroId });
+        w.status = 'approved';
+        w.processedAt = new Date();
+        await w.save();
+
+        const io = req.app.get('io');
+        const userSockets = req.app.get('userSockets');
+        if (u) {
+            if (userSockets && io) {
+                const sId = userSockets.get(u.userId);
+                if (sId) {
+                    io.to(sId).emit('app-notification', { text: `✅ Your withdrawal of ₹${w.amount} is approved! Amount will be credited in 2 working days.` });
+                }
+            }
+            if (u.fcmToken) {
+                const { sendFcmV1Push } = require('../services/push.service');
+                sendFcmV1Push(
+                    u.fcmToken,
+                    { type: 'withdrawal_approved', amount: String(w.amount) },
+                    { title: 'Withdrawal Approved! 💰', body: `Your withdrawal of ₹${w.amount} has been approved.` },
+                    u.userId
+                ).catch(err => console.error('Astro FCM error:', err));
+            }
+        }
+        res.json({ ok: true, message: 'Withdrawal approved successfully' });
+    } catch (e) {
+        console.error('[AdminController] Error in approveWithdrawal:', e);
+        res.status(500).json({ ok: false, error: e.message });
+    }
+};
+
+exports.rejectWithdrawal = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const w = await Withdrawal.findById(id);
+        if (!w || w.status !== 'pending') {
+            return res.json({ ok: false, error: 'Invalid or already processed withdrawal' });
+        }
+        const u = await User.findOne({ userId: w.astroId });
+        if (u) {
+            await User.updateOne({ userId: u.userId }, { $inc: { walletBalance: w.amount } });
+            const freshU = await User.findOne({ userId: u.userId });
+            const newBal = freshU ? Number(freshU.walletBalance || 0) : ((u.walletBalance || 0) + w.amount);
+
+            const io = req.app.get('io');
+            const userSockets = req.app.get('userSockets');
+            if (userSockets && io) {
+                const sId = userSockets.get(u.userId);
+                if (sId) {
+                    io.to(sId).emit('wallet-update', { balance: newBal });
+                    io.to(sId).emit('app-notification', { text: `❌ Your withdrawal of ₹${w.amount} was rejected. Money refunded to wallet.` });
+                }
+            }
+        }
+        w.status = 'rejected';
+        w.processedAt = new Date();
+        await w.save();
+
+        res.json({ ok: true, message: 'Withdrawal rejected and amount refunded' });
+    } catch (e) {
+        console.error('[AdminController] Error in rejectWithdrawal:', e);
+        res.status(500).json({ ok: false, error: e.message });
+    }
+};
+
 
 
 

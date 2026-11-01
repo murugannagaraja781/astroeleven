@@ -705,7 +705,8 @@ class CustomModel {
             if (!doc) return null;
             await this.updateOne(query, update);
             if (options.new || options.returnDocument === 'after') {
-                return await this.findOne(query);
+                const lookup = (doc.id !== undefined && doc.id !== null) ? { id: doc.id } : ((doc._id !== undefined && doc._id !== null) ? { _id: doc._id } : query);
+                return await this.findOne(lookup);
             }
             return doc;
         })();

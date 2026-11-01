@@ -24,15 +24,22 @@ class ChatActionReceiver : BroadcastReceiver() {
         val action = intent.action
         val callerId = intent.getStringExtra("callerId") ?: return
         val sessionId = intent.getStringExtra("sessionId") ?: return
+        val callerName = intent.getStringExtra("callerName") ?: "Client"
         val birthDataStr = intent.getStringExtra("birthData")
+
+        val notificationManager =
+            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         when (action) {
             ACTION_ACCEPT_CHAT -> {
                 Log.d(TAG, "User accepted chat request from $callerId")
-                // Re‑use the same extras as the full‑screen intent to open ChatActivity
+                notificationManager.cancel(sessionId.hashCode())
+                notificationManager.cancel(callerId.hashCode())
+
                 val chatIntent = Intent(context, ChatActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                     putExtra("toUserId", callerId)
+                    putExtra("toUserName", callerName)
                     putExtra("sessionId", sessionId)
                     putExtra("isNewRequest", true)
                     if (birthDataStr != null) {
@@ -43,11 +50,21 @@ class ChatActionReceiver : BroadcastReceiver() {
             }
             ACTION_REJECT_CHAT -> {
                 Log.d(TAG, "User rejected chat request from $callerId")
-                // Dismiss the notification
-                val notificationManager =
-                    context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                notificationManager.cancel(sessionId.hashCode())
                 notificationManager.cancel(callerId.hashCode())
-                // TODO: inform backend about rejection if needed
+
+                try {
+                    val payload = org.json.JSONObject().apply {
+                        put("sessionId", sessionId)
+                        put("toUserId", callerId)
+                        put("type", "chat")
+                        put("accept", false)
+                    }
+                    com.astroeleven.app.data.remote.SocketManager.init()
+                    com.astroeleven.app.data.remote.SocketManager.getSocket()?.emit("answer-session-native", payload)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to emit rejection to backend", e)
+                }
             }
             else -> {
                 Log.w(TAG, "Unknown action received: $action")

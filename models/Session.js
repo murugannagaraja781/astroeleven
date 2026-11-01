@@ -18,7 +18,8 @@ const SessionSchema = new mongoose.Schema({
     endTime: Number,
     duration: Number,
     totalEarned: Number,
-    totalCharged: Number
+    totalCharged: Number,
+    endReason: String
 });
 
 SessionSchema.index({ clientId: 1 });

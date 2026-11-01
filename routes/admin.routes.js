@@ -25,6 +25,10 @@ router.post('/smtp-config', adminController.updateSmtpConfig);
 
 router.get('/users', adminController.getUsers);
 router.get('/withdrawals', adminController.getWithdrawals);
+router.post('/withdrawals/:id/approve', adminController.approveWithdrawal);
+router.post('/withdrawals/:id/reject', adminController.rejectWithdrawal);
+router.get('/notifications', adminController.getAdminNotifications);
+router.post('/notifications/mark-read', adminController.markNotificationRead);
 router.get('/sessions/history', adminController.getSessionsHistory);
 router.get('/feedback', adminController.getFeedback);
 router.get('/slab-rates', adminController.getSlabRates);

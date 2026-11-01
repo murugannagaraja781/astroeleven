@@ -55,7 +55,7 @@ class FCMService : FirebaseMessagingService() {
         private const val CALL_CHANNEL_NAME = "Incoming Calls"
         private const val CHAT_CHANNEL_ID = "chat_messages_v1"
         private const val CHAT_CHANNEL_NAME = "Chat Messages"
-        private const val CHAT_CALL_CHANNEL_ID = "incoming_chats_v2"
+        private const val CHAT_CALL_CHANNEL_ID = "incoming_chats_v3"
         private const val CHAT_CALL_CHANNEL_NAME = "Incoming Chat Requests"
         private const val CALL_NOTIFICATION_ID = 9999
         private const val GENERIC_NOTIFICATION_ID = 1002
@@ -145,22 +145,23 @@ class FCMService : FirebaseMessagingService() {
             Log.d(TAG, "Data Payload: $data, Type: $messageType")
 
             when (messageType) {
-                "INCOMING_CALL" -> handleIncomingCall(data)
+                "INCOMING_CALL", "INCOMING_CHAT" -> handleIncomingCall(data)
                 "CANCEL_CALL", "CALL_CANCELLED", "CALL_ENDED", "SESSION_ENDED" -> {
                     Log.d(TAG, "Call cancelled/ended via FCM: $data")
                     val notificationManager = getSystemService(NotificationManager::class.java)
                     notificationManager.cancel(CALL_NOTIFICATION_ID)
                     
-                    // Broadcast to IncomingCallActivity if it's open
-                    val cancelIntent = Intent("com.astroeleven.app.ACTION_CANCEL_CALL")
+                    // GHOST CALL FIX: Clear all dynamic call notification IDs
+                    data["sessionId"]?.hashCode()?.let { notificationManager.cancel(it) }
+                    data["callId"]?.hashCode()?.let { notificationManager.cancel(it) }
+                    data["callerId"]?.hashCode()?.let { notificationManager.cancel(it) }
+                    data["fromUserId"]?.hashCode()?.let { notificationManager.cancel(it) }
+                    
+                    // Broadcast to IncomingCallActivity / CallActivity if open
+                    val cancelIntent = Intent("com.astroeleven.app.ACTION_CANCEL_CALL").apply {
+                        putExtra("sessionId", data["sessionId"] ?: data["callId"])
+                    }
                     sendBroadcast(cancelIntent)
-                }
-                "INCOMING_CHAT" -> {
-                    val callerId = data["callerId"] ?: data["fromUserId"] ?: ""
-                    val callerName = data["callerName"] ?: data["userName"] ?: data["name"] ?: "Unknown"
-                    val sessionId = data["sessionId"] ?: ""
-                    val birthDataStr = data["birthData"]
-                    handleIncomingChat(callerName, callerId, sessionId, birthDataStr)
                 }
                 "CHAT_MESSAGE" -> {
                     val text = data["text"] ?: "New message"
@@ -296,7 +297,7 @@ class FCMService : FirebaseMessagingService() {
         val callerId = data["callerId"] ?: data["fromUserId"] ?: "Unknown"
         val callerName = data["callerName"] ?: data["userName"] ?: data["name"] ?: callerId
         val callId = data["sessionId"] ?: data["callId"] ?: System.currentTimeMillis().toString()
-        val callType = data["callType"] ?: "audio"
+        val callType = data["callType"] ?: if (data["type"] == "INCOMING_CHAT") "chat" else "audio"
 
         Log.d(TAG, "=== INCOMING $callType (via SERVICE) ===")
         Log.d(TAG, "From: $callerName ($callerId), callId: $callId")
@@ -324,10 +325,14 @@ class FCMService : FirebaseMessagingService() {
                 val pendingIntent = PendingIntent.getActivity(
                     this, System.currentTimeMillis().toInt(), notificationIntent, pendingIntentFlags
                 )
+                val notifTitle = if (callType == "chat") "💬 Incoming Chat Request" else "Incoming $callType Call"
+                val notifText = if (callType == "chat") "$callerName wants to chat with you..." else "$callerName is calling..."
+                val notifIcon = if (callType == "chat") R.mipmap.ic_launcher else android.R.drawable.ic_menu_call
+
                 val notification = NotificationCompat.Builder(this, CALL_CHANNEL_ID)
-                    .setContentTitle("Incoming $callType Call")
-                    .setContentText("$callerName is calling...")
-                    .setSmallIcon(android.R.drawable.ic_menu_call)
+                    .setContentTitle(notifTitle)
+                    .setContentText(notifText)
+                    .setSmallIcon(notifIcon)
                     .setPriority(NotificationCompat.PRIORITY_MAX)
                     .setCategory(NotificationCompat.CATEGORY_CALL)
                     .setFullScreenIntent(pendingIntent, true)
@@ -439,7 +444,7 @@ class FCMService : FirebaseMessagingService() {
             }
             notificationManager.createNotificationChannel(chatChannel)
 
-            // 3. Chat Call Channel (High Importance for incoming chat requests)
+            // 3. Chat Call Channel (High Importance for incoming chat requests with chime sound)
             val chatCallChannel = NotificationChannel(
                 CHAT_CALL_CHANNEL_ID,
                 CHAT_CALL_CHANNEL_NAME,
@@ -448,9 +453,9 @@ class FCMService : FirebaseMessagingService() {
                 description = "Notifications for incoming chat requests"
                 enableVibration(true)
                 enableLights(true)
-                val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+                val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
                 setSound(soundUri, AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                     .build())
                 setShowBadge(true)
@@ -466,76 +471,74 @@ class FCMService : FirebaseMessagingService() {
         Log.d(TAG, "=== INCOMING CHAT (via SERVICE) ===")
         Log.d(TAG, "From: $callerName ($callerId), sessionId: $sessionId")
 
-        // Wake up the screen
+        // Wake up the screen briefly to alert astrologer
         wakeUpDevice()
 
-        // Build full‑screen intent that launches IncomingCallActivity in a WhatsApp-like ringing UI
-        val fullScreenIntent = Intent(this, com.astroeleven.app.IncomingCallActivity::class.java).apply {
+        // Content intent: tapping notification opens ChatActivity directly
+        val chatIntent = Intent(this, com.astroeleven.app.ui.chat.ChatActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            putExtra("callerId", callerId)
-            putExtra("callerName", callerName)
-            putExtra("callId", sessionId)
-            putExtra("callType", "chat")
+            putExtra("toUserId", callerId)
+            putExtra("toUserName", callerName)
+            putExtra("sessionId", sessionId)
+            putExtra("isNewRequest", true)
             if (birthDataStr != null) {
                 putExtra("birthData", birthDataStr)
             }
         }
-        val fullScreenPending = PendingIntent.getActivity(
+        val contentPending = PendingIntent.getActivity(
             this,
-            System.currentTimeMillis().toInt(),
-            fullScreenIntent,
+            sessionId.hashCode(),
+            chatIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // Action intents for Accept and Reject (keeps notification buttons functional)
+        // Action intents for Accept and Reject buttons on the notification
         val acceptIntent = Intent(this, com.astroeleven.app.receiver.ChatActionReceiver::class.java).apply {
-            action = ChatActionReceiver.ACTION_ACCEPT_CHAT
+            action = com.astroeleven.app.receiver.ChatActionReceiver.ACTION_ACCEPT_CHAT
             putExtra("callerId", callerId)
+            putExtra("callerName", callerName)
             putExtra("sessionId", sessionId)
             if (birthDataStr != null) {
                 putExtra("birthData", birthDataStr)
             }
         }
         val rejectIntent = Intent(this, com.astroeleven.app.receiver.ChatActionReceiver::class.java).apply {
-            action = ChatActionReceiver.ACTION_REJECT_CHAT
+            action = com.astroeleven.app.receiver.ChatActionReceiver.ACTION_REJECT_CHAT
             putExtra("callerId", callerId)
             putExtra("sessionId", sessionId)
         }
         val acceptPending = PendingIntent.getBroadcast(
             this,
-            System.currentTimeMillis().toInt(),
+            sessionId.hashCode() + 1,
             acceptIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val rejectPending = PendingIntent.getBroadcast(
             this,
-            System.currentTimeMillis().toInt() + 1,
+            sessionId.hashCode() + 2,
             rejectIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+
         val notification = NotificationCompat.Builder(this, CHAT_CALL_CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_menu_agenda)
-            .setContentTitle("Chat Request")
-            .setContentText("$callerName wants to chat")
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle("💬 Incoming Chat Request")
+            .setContentText("$callerName wants to chat with you")
+            .setStyle(NotificationCompat.BigTextStyle().bigText("$callerName wants to consult with you via Chat. Tap Accept to start chatting."))
             .setPriority(NotificationCompat.PRIORITY_MAX)
-            .setCategory(NotificationCompat.CATEGORY_CALL) // use CALL category for full‑screen behaviour
-            .setFullScreenIntent(fullScreenPending, true)
-            .setContentIntent(fullScreenPending)
-            .addAction(android.R.drawable.sym_action_call, "Accept", acceptPending)
+            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            .setContentIntent(contentPending)
+            .setSound(soundUri)
+            .setVibrate(longArrayOf(0, 400, 200, 400))
+            .addAction(android.R.drawable.ic_menu_send, "Accept", acceptPending)
             .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Reject", rejectPending)
-            .setAutoCancel(false)
-            .setOngoing(true)
+            .setAutoCancel(true)
             .build()
 
         val notificationManager = getSystemService(NotificationManager::class.java)
-        notificationManager.notify(callerId.hashCode(), notification)
-
-        try {
-            startActivity(fullScreenIntent)
-        } catch (e2: Exception) {
-            Log.w(TAG, "Direct IncomingCallActivity startActivity for Chat failed, relying on fullScreenIntent", e2)
-        }
+        notificationManager.notify(sessionId.hashCode(), notification)
     }
 
     private fun showChatMessageNotification(senderName: String, text: String, senderId: String, sessionId: String) {

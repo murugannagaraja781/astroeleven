@@ -5,6 +5,7 @@ const BillingLedger = require('../models/BillingLedger');
 const crypto = require('crypto');
 const { activeSessions, userActiveSession, sessionDisconnectTimeouts } = require('./socketStore');
 const { broadcastAstroUpdate } = require('./astrologer.service');
+const { sendFcmV1Push } = require('./push.service');
 
 let SLAB_RATES = {
     1: 0.30,
@@ -333,6 +334,24 @@ async function endSessionRecord(sessionId, broadcastAstroUpdate, endReason = 'en
             s.users.forEach(u => io.to(u).emit('session-ended', payload));
         }
     }
+
+    // GHOST CALL FIX: Push CANCEL_CALL via FCM to dismiss ringing / calling notifications on devices
+    try {
+        const participants = [s.clientId, s.astrologerId, ...(s.users || [])].filter(Boolean);
+        const uniqueUids = [...new Set(participants)];
+        for (const uid of uniqueUids) {
+            User.findOne({ userId: uid }).select('fcmToken').then(uDoc => {
+                if (uDoc && uDoc.fcmToken) {
+                    sendFcmV1Push(uDoc.fcmToken, {
+                        type: 'CANCEL_CALL',
+                        sessionId,
+                        callId: sessionId,
+                        reason: finalReason
+                    }, null, uid).catch(() => {});
+                }
+            }).catch(() => {});
+        }
+    } catch (_) {}
 
     if (s.astrologerId) {
         require('./presence.service').setBusy(s.astrologerId, false, io);

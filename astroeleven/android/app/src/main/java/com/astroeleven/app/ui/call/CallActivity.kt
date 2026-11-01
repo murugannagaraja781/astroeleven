@@ -148,7 +148,8 @@ class CallActivity : ComponentActivity() {
     // Helper state for formatted time
     private val formattedDuration: String
         get() {
-            val secondsToFormat = if (statusText.isEmpty()) callDurationSeconds else connectingSeconds
+            // GHOST CALL FIX: Do not show elapsed duration until call is actually connected
+            val secondsToFormat = if (statusText.isEmpty()) callDurationSeconds else 0
             val minutes = secondsToFormat / 60
             val seconds = secondsToFormat % 60
             return String.format("%02d:%02d", minutes, seconds)
@@ -223,6 +224,21 @@ class CallActivity : ComponentActivity() {
         }
     }
 
+    private val callControlReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: android.content.Context?, intent: android.content.Intent?) {
+            if (intent?.action == "com.astroeleven.app.ACTION_CANCEL_CALL") {
+                val sId = intent.getStringExtra("sessionId")
+                if (sId.isNullOrEmpty() || sId == sessionId) {
+                    Log.d(TAG, "ACTION_CANCEL_CALL received for session $sessionId. Terminating CallActivity.")
+                    runOnUiThread {
+                        android.widget.Toast.makeText(this@CallActivity, "அழைப்பு முடிந்தது (Call ended)", android.widget.Toast.LENGTH_SHORT).show()
+                        endCall()
+                    }
+                }
+            }
+        }
+    }
+
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putBoolean("isEditingIntake", isEditingIntake)
@@ -258,8 +274,18 @@ class CallActivity : ComponentActivity() {
             }
             
             sessionId = incomingSessionId
-            partnerId = intent.getStringExtra("partnerId") ?: savedInstanceState?.getString("partnerId") ?: "unknown"
-            partnerName = intent.getStringExtra("partnerName") ?: intent.getStringExtra("userName") ?: partnerId
+            partnerId = intent.getStringExtra("partnerId")
+                ?: intent.getStringExtra("toUserId")
+                ?: intent.getStringExtra("callerId")
+                ?: intent.getStringExtra("targetUserId")
+                ?: savedInstanceState?.getString("partnerId")
+            if (partnerId.isNullOrEmpty() || partnerId == "unknown") {
+                val active = com.astroeleven.app.utils.ActiveChatSessionManager.getActiveSession(this)
+                if (active != null && active.sessionId == sessionId && active.toUserId.isNotEmpty()) {
+                    partnerId = active.toUserId
+                }
+            }
+            partnerName = intent.getStringExtra("partnerName") ?: intent.getStringExtra("userName") ?: intent.getStringExtra("callerName") ?: (partnerId ?: "")
             
             CallState.isCallActive = true
             CallState.currentSessionId = sessionId
@@ -400,6 +426,31 @@ class CallActivity : ComponentActivity() {
             // Start Timer Delay
             timerHandler.postDelayed(timerRunnable, 1000)
 
+            // GHOST CALL FIX 1: Register ACTION_CANCEL_CALL receiver to handle remote cancellations
+            try {
+                ContextCompat.registerReceiver(
+                    this,
+                    callControlReceiver,
+                    android.content.IntentFilter("com.astroeleven.app.ACTION_CANCEL_CALL"),
+                    ContextCompat.RECEIVER_NOT_EXPORTED
+                )
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to register callControlReceiver", e)
+            }
+
+            // GHOST CALL FIX 2: 25-second watchdog - auto-end if partner doesn't connect
+            timerHandler.postDelayed({
+                if (!isFinishing && !isDestroyed && !isCallTerminated) {
+                    if (statusText.isNotEmpty() || !isBillingActive) {
+                        Log.w(TAG, "Ghost call watchdog: Peer did not connect within 25s. Auto-terminating.")
+                        runOnUiThread {
+                            Toast.makeText(this@CallActivity, "இணைப்பு தோல்வி: கிளைன்ட் இணையவில்லை", Toast.LENGTH_LONG).show()
+                            endCall()
+                        }
+                    }
+                }
+            }, 25000)
+
             // Initialize Call Logic after a small delay to ensure configs are ready
             lifecycleScope.launch {
                 if (iceServers.size <= 2) { 
@@ -408,9 +459,10 @@ class CallActivity : ComponentActivity() {
                 if (checkPermissions()) {
                     startCallLimit()
                 } else {
+                    val perms = if (callType == "audio") arrayOf(Manifest.permission.RECORD_AUDIO) else arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
                     ActivityCompat.requestPermissions(
                         this@CallActivity,
-                        arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO),
+                        perms,
                         PERMISSION_REQ_CODE
                     )
                 }
@@ -1024,8 +1076,13 @@ class CallActivity : ComponentActivity() {
                              put("sdpMLineIndex", candidate.sdpMLineIndex)
                          })
                     }
+                    val target = partnerId?.takeIf { it.isNotEmpty() && it != "unknown" }
+                        ?: intent.getStringExtra("callerId")
+                        ?: intent.getStringExtra("toUserId")
+                        ?: intent.getStringExtra("partnerId")
+                        ?: intent.getStringExtra("targetUserId")
                     val payload = JSONObject().apply {
-                        put("toUserId", partnerId)
+                        put("toUserId", target)
                         put("signal", signalData)
                     }
                     sendSignal(payload)
@@ -1124,13 +1181,32 @@ class CallActivity : ComponentActivity() {
                     return@runOnUiThread
                 }
                 isBillingActive = true
-                // Offer is now created in startCallLimit() immediately, not here.
-                // If offer hasn't been created yet (edge case), create it now as fallback
-                if (isInitiator && ::peerConnection.isInitialized && peerConnection.localDescription == null) {
-                    Log.d(TAG, "Billing started but no local SDP yet - creating offer as fallback")
-                    timerHandler.postDelayed({
-                        createOffer()
-                    }, 500)
+                // CRITICAL FIX: As soon as billing starts, BOTH parties are in the session room.
+                // If remote description is null (no answer received yet), send/resend offer immediately!
+                if (isInitiator && ::peerConnection.isInitialized) {
+                    if (peerConnection.remoteDescription == null) {
+                        Log.d(TAG, "Billing started: Peer is now ready. Ensuring offer is sent immediately.")
+                        val localDesc = peerConnection.localDescription
+                        val target = partnerId?.takeIf { it.isNotEmpty() && it != "unknown" }
+                            ?: intent.getStringExtra("callerId")
+                            ?: intent.getStringExtra("toUserId")
+                            ?: intent.getStringExtra("partnerId")
+                            ?: intent.getStringExtra("targetUserId")
+                        if (localDesc != null) {
+                            val signalData = JSONObject().apply {
+                                put("type", "offer")
+                                put("sdp", localDesc.description)
+                            }
+                            val payload = JSONObject().apply {
+                                put("toUserId", target)
+                                put("signal", signalData)
+                            }
+                            sendSignal(payload)
+                            Log.d(TAG, "Re-sent existing offer on billing-started to $target for instant connection")
+                        } else {
+                            createOffer()
+                        }
+                    }
                 }
             }
         }
@@ -1202,6 +1278,12 @@ class CallActivity : ComponentActivity() {
     }
 
     private fun onSignalReceived(data: JSONObject) {
+        val fromUser = data.optString("fromUserId")
+        if ((partnerId.isNullOrEmpty() || partnerId == "unknown") && !fromUser.isNullOrEmpty() && fromUser != "unknown") {
+            partnerId = fromUser
+            Log.d(TAG, "Resolved partnerId from incoming signal: $partnerId")
+        }
+
         if (!::peerConnection.isInitialized) {
             Log.d(TAG, "✘ PeerConnection not ready. Buffering incoming signal.")
             signalBuffer.add(data)
@@ -1282,12 +1364,17 @@ class CallActivity : ComponentActivity() {
                     put("type", "offer")
                     put("sdp", mungedSdp)
                 }
+                val target = partnerId?.takeIf { it.isNotEmpty() && it != "unknown" }
+                    ?: intent.getStringExtra("callerId")
+                    ?: intent.getStringExtra("toUserId")
+                    ?: intent.getStringExtra("partnerId")
+                    ?: intent.getStringExtra("targetUserId")
                 val payload = JSONObject().apply {
-                    put("toUserId", partnerId)
+                    put("toUserId", target)
                     put("signal", signalData)
                 }
                 sendSignal(payload)
-                Log.d(TAG, "Opus-prioritized offer sent")
+                Log.d(TAG, "Opus-prioritized offer sent to $target")
             }
         }, constraints)
     }
@@ -1309,12 +1396,17 @@ class CallActivity : ComponentActivity() {
                     put("type", "answer")
                     put("sdp", mungedSdp)
                 }
+                val target = partnerId?.takeIf { it.isNotEmpty() && it != "unknown" }
+                    ?: intent.getStringExtra("callerId")
+                    ?: intent.getStringExtra("toUserId")
+                    ?: intent.getStringExtra("partnerId")
+                    ?: intent.getStringExtra("targetUserId")
                 val payload = JSONObject().apply {
-                    put("toUserId", partnerId)
+                    put("toUserId", target)
                     put("signal", signalData)
                 }
                 sendSignal(payload)
-                Log.d(TAG, "Opus-prioritized answer sent")
+                Log.d(TAG, "Opus-prioritized answer sent to $target")
             }
         }, constraints)
     }
@@ -1399,6 +1491,9 @@ class CallActivity : ComponentActivity() {
         SocketManager.off("client-birth-chart")
         SocketManager.getSocket()?.off("wallet-update")
         SocketManager.getSocket()?.off(io.socket.client.Socket.EVENT_DISCONNECT)
+        try {
+            unregisterReceiver(callControlReceiver)
+        } catch (_: Exception) {}
         try {
             if (proximityWakeLock?.isHeld == true) proximityWakeLock?.release()
             proximityWakeLock = null

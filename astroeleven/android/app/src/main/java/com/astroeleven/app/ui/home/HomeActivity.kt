@@ -31,7 +31,11 @@ import okhttp3.*
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
-
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 
 import com.astroeleven.app.ui.dashboard.RasiDetailDialog
 
@@ -43,6 +47,34 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private lateinit var tokenManager: TokenManager
+
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val notificationsGranted = permissions[Manifest.permission.POST_NOTIFICATIONS] ?: true
+        val audioGranted = permissions[Manifest.permission.RECORD_AUDIO] ?: false
+        val cameraGranted = permissions[Manifest.permission.CAMERA] ?: false
+        Log.d(TAG, "Permissions result: notifications=$notificationsGranted, audio=$audioGranted, camera=$cameraGranted")
+    }
+
+    private fun checkAndRequestPermissions() {
+        val needed = mutableListOf<String>()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                needed.add(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            needed.add(Manifest.permission.RECORD_AUDIO)
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            needed.add(Manifest.permission.CAMERA)
+        }
+
+        if (needed.isNotEmpty()) {
+            requestPermissionLauncher.launch(needed.toTypedArray())
+        }
+    }
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
@@ -68,6 +100,9 @@ class HomeActivity : AppCompatActivity() {
         // Legacy ThemeManager removed.
 
         tokenManager = TokenManager(this)
+
+        // Request all essential permissions (Notification, Audio, Camera) upfront
+        checkAndRequestPermissions()
 
         setContent {
             // Retrieve Page Overrides
@@ -181,6 +216,10 @@ class HomeActivity : AppCompatActivity() {
                             }
                             "join_as_astrologer" -> {
                                 startActivity(Intent(this, com.astroeleven.app.ui.auth.AstrologerRegistrationActivity::class.java))
+                            }
+                            "history" -> {
+                                val intent = Intent(this, com.astroeleven.app.ui.astro.AstrologerHistoryActivity::class.java)
+                                startActivity(intent)
                             }
                             else -> {
                                 // Handle Navigation

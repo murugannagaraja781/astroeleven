@@ -207,3 +207,130 @@ exports.updateRate = async (req, res) => {
         res.json({ ok: false, error: e.message });
     }
 };
+
+exports.requestWithdrawal = async (req, res) => {
+    try {
+        const { userId, amount } = req.body;
+        const amt = parseFloat(amount);
+        if (!userId) {
+            return res.status(400).json({ ok: false, error: 'User ID is required' });
+        }
+        if (!amt || isNaN(amt) || amt < 100) {
+            return res.status(400).json({ ok: false, error: 'Minimum withdrawal amount is ₹100' });
+        }
+
+        const user = await User.findOne({ userId });
+        if (!user) {
+            return res.status(404).json({ ok: false, error: 'Astrologer not found' });
+        }
+
+        const curBal = Number(user.walletBalance || 0);
+        if (curBal < amt) {
+            return res.status(400).json({ ok: false, error: `Insufficient balance (Available: ₹${curBal.toFixed(2)})` });
+        }
+
+        // Deduct atomically
+        const u = await User.findOneAndUpdate(
+            { userId, walletBalance: { $gte: amt } },
+            { $inc: { walletBalance: -amt } },
+            { returnDocument: 'after' }
+        );
+
+        if (!u) {
+            return res.status(400).json({ ok: false, error: 'Insufficient balance' });
+        }
+
+        const Withdrawal = require('../models/Withdrawal');
+        const Notification = require('../models/Notification');
+        const { sendFcmV1Push } = require('../services/push.service');
+
+        let w;
+        try {
+            w = await Withdrawal.create({
+                astroId: userId,
+                amount: amt,
+                status: 'pending',
+                requestedAt: new Date()
+            });
+        } catch (dbErr) {
+            console.error('[AstroController] Error creating withdrawal, rolling back wallet:', dbErr);
+            await User.updateOne({ userId }, { $inc: { walletBalance: amt } });
+            return res.status(500).json({ ok: false, error: 'Database error. Amount refunded.' });
+        }
+
+        const withdrawalId = (w._id || w.id || '').toString();
+
+        // Persistent notification for Super Admin
+        try {
+            await Notification.create({
+                targetRole: 'superadmin',
+                type: 'withdrawal_request',
+                title: '💰 புதிய பணம் எடுக்கும் கோரிக்கை',
+                body: `${u.name || 'Astrologer'} ₹${amt} வித்ட்ரா செய்ய கோரியுள்ளார்.`,
+                data: JSON.stringify({
+                    withdrawalId,
+                    astroId: u.userId,
+                    astroName: u.name || 'Astrologer',
+                    amount: amt,
+                    phone: u.phone || '',
+                    upiId: u.upiId || '',
+                    upiNumber: u.upiNumber || '',
+                    walletBalance: Number(u.walletBalance || 0),
+                    time: new Date().toISOString()
+                }),
+                isRead: false,
+                createdAt: new Date()
+            });
+        } catch (notifErr) {
+            console.error('[AstroController] Error creating notification:', notifErr);
+        }
+
+        const io = req.app.get('io');
+        const userSockets = req.app.get('userSockets');
+        const notifPayload = {
+            id: withdrawalId,
+            type: 'withdrawal_request',
+            title: '💰 புதிய பணம் எடுக்கும் கோரிக்கை',
+            text: `💰 ${u.name || 'Astrologer'} ₹${amt} வித்ட்ரா செய்ய கோரியுள்ளார்.`,
+            data: { withdrawalId, astroId: u.userId, astroName: u.name, amount: amt },
+            time: new Date().toLocaleTimeString(),
+            createdAt: new Date()
+        };
+
+        if (io) {
+            io.to('superadmin').emit('admin-notification', notifPayload);
+        }
+
+        // Send FCM to Super Admins
+        try {
+            const admins = await User.find({ role: { $in: ['admin', 'superadmin'] } });
+            for (const admin of admins) {
+                if (io && userSockets) {
+                    const sId = userSockets.get(admin.userId);
+                    if (sId) io.to(sId).emit('admin-notification', notifPayload);
+                }
+                if (admin.fcmToken) {
+                    sendFcmV1Push(
+                        admin.fcmToken,
+                        { type: 'withdrawal_request', withdrawalId, amount: String(amt), astroName: u.name || 'Astrologer' },
+                        { title: '💰 புதிய பணம் எடுக்கும் கோரிக்கை', body: `${u.name || 'Astrologer'} ₹${amt} வித்ட்ரா செய்ய கோரியுள்ளார்.` },
+                        admin.userId
+                    ).catch(e => console.error('[AstroController] FCM error:', e.message));
+                }
+            }
+        } catch (err) {
+            console.error('[AstroController] FCM error:', err);
+        }
+
+        if (io && userSockets) {
+            const sId = userSockets.get(userId);
+            if (sId) io.to(sId).emit('wallet-update', { balance: Number(u.walletBalance || 0) });
+        }
+
+        res.json({ ok: true, balance: Number(u.walletBalance || 0), amount: amt, withdrawalId });
+    } catch (e) {
+        console.error('[AstroController] Error in requestWithdrawal:', e);
+        res.status(500).json({ ok: false, error: e.message });
+    }
+};
+

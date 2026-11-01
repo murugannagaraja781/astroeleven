@@ -133,16 +133,18 @@ class IncomingCallActivity : ComponentActivity() {
 
             setupWindowFlags()
 
-            try {
-                startCallForegroundService()
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to start foreground service", e)
-            }
+            if (callType != "chat") {
+                try {
+                    startCallForegroundService()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to start foreground service", e)
+                }
 
-            try {
-                startRingtone()
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to start ringtone", e)
+                try {
+                    startRingtone()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to start ringtone", e)
+                }
             }
 
             try {
@@ -404,7 +406,7 @@ class IncomingCallActivity : ComponentActivity() {
                     putExtra("sessionId", callId)
                     putExtra("toUserId", callerId)
                     putExtra("toUserName", callerName)
-                    // DO NOT putExtra("isNewRequest", true) here, because IncomingCallActivity already answered the session!
+                    putExtra("isNewRequest", true)
                     putExtra("birthData", birthData)
                 }
             } else {
@@ -421,33 +423,45 @@ class IncomingCallActivity : ComponentActivity() {
             }
 
             try {
+                val myUserId = com.astroeleven.app.data.local.TokenManager(this).getUserSession()?.userId
                 val payload = JSONObject().apply {
                     put("sessionId", callId)
                     put("toUserId", callerId)
+                    if (myUserId != null) put("fromUserId", myUserId)
                     put("type", callType)
                     put("accept", true)
                 }
                 
                 Log.d(TAG, "Attempting to emit answer-session for $callId...")
                 SocketManager.emitReliable("answer-session", payload, io.socket.client.Ack { args ->
+                    val resp = args?.getOrNull(0) as? JSONObject
+                    val isOk = resp?.optBoolean("ok", true) ?: true
+                    if (!isOk) {
+                        val errMsg = resp?.optString("error") ?: "Session expired"
+                        Log.w(TAG, "Server rejected answer-session ($errMsg). Call cancelled or expired.")
+                        runOnUiThread {
+                            Toast.makeText(this@IncomingCallActivity, "அழைப்பு முடிந்துவிட்டது / காலாவதியாகிவிட்டது ($errMsg)", Toast.LENGTH_SHORT).show()
+                            clearAllCallNotifications()
+                            finish()
+                        }
+                        return@Ack
+                    }
                     Log.d(TAG, "Server acknowledged answer-session. Proceeding to CallActivity.")
                     runOnUiThread {
                         startCallActivity(intent, callId)
                     }
                 })
                 
-                // Backup timer: If server doesn't respond in 1.5 seconds, PROCEED ANYWAY
-                // Reduced from 3s to 1.5s for faster experience
+                // Backup timer: only if socket is alive and server didn't reject
                 handler.postDelayed({
-                    if (!hasStartedTransition) {
+                    if (!hasStartedTransition && !isFinishing && !isDestroyed) {
                         Log.w(TAG, "Signaling ack delay. Forcing transition for responsiveness.")
                         startCallActivity(intent, callId)
                     }
-                }, 1500)
+                }, 2500)
 
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to emit answer-session on accept", e)
-                // Fallback: proceed anyway so user isn't stuck on ringing screen
                 startCallActivity(intent, callId)
             }
         }
