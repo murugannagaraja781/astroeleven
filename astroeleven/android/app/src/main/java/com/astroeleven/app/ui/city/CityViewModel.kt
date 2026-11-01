@@ -118,4 +118,46 @@ class CityViewModel(application: Application) : AndroidViewModel(application) {
     fun onCitySelected(city: LocationItem) {
         _uiState.value = _uiState.value.copy(selectedCity = city)
     }
+
+    fun searchOnline(query: String) {
+        if (query.isBlank()) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            try {
+                val currentState = _uiState.value.selectedState?.name ?: ""
+                val fullQuery = if (currentState.isNotBlank() && !query.contains(currentState, ignoreCase = true)) {
+                    "$query, $currentState"
+                } else {
+                    query
+                }
+                val results = com.astroeleven.app.data.remote.nominatim.CityRepository.searchCities(fullQuery)
+                val locationItems = results.map { item ->
+                    val primaryName = item.address?.getCityName()?.ifBlank { null }
+                        ?: item.display_name.split(",").firstOrNull()?.trim()
+                        ?: item.display_name
+                    LocationItem(
+                        id = item.place_id.toString(),
+                        name = primaryName,
+                        lat = item.lat.toDoubleOrNull() ?: 0.0,
+                        lon = item.lon.toDoubleOrNull() ?: 0.0,
+                        timezone = "Asia/Kolkata"
+                    )
+                }.distinctBy { it.name }
+
+                if (locationItems.isNotEmpty()) {
+                    val currentCities = _uiState.value.cities.toMutableList()
+                    locationItems.forEach { onlineCity ->
+                        if (currentCities.none { it.name.equals(onlineCity.name, ignoreCase = true) }) {
+                            currentCities.add(0, onlineCity)
+                        }
+                    }
+                    _uiState.value = _uiState.value.copy(cities = currentCities, isLoading = false)
+                } else {
+                    _uiState.value = _uiState.value.copy(isLoading = false)
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isLoading = false)
+            }
+        }
+    }
 }

@@ -136,6 +136,18 @@ fun CSCScreen(viewModel: CityViewModel, onFinalSelect: (LocationItem) -> Unit) {
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 }
 
+                // If user is searching and wants to search online map for any village/town
+                if (cityQuery.trim().length >= 2) {
+                    TextButton(
+                        onClick = { viewModel.searchOnline(cityQuery.trim()) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Search online map for \"$cityQuery\"")
+                    }
+                }
+
                 val filteredCities = if (cityQuery.isBlank()) uiState.cities else uiState.cities.filter {
                     it.name.contains(cityQuery, ignoreCase = true)
                 }
@@ -150,12 +162,24 @@ fun CSCScreen(viewModel: CityViewModel, onFinalSelect: (LocationItem) -> Unit) {
                     }
                     if (filteredCities.isEmpty() && !uiState.isLoading) {
                         item {
-                            Text(
-                                "No cities found.",
-                                modifier = Modifier.fillMaxWidth().padding(24.dp),
-                                textAlign = TextAlign.Center,
-                                color = Color.Gray
-                            )
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    "No cities found locally for \"$cityQuery\".",
+                                    textAlign = TextAlign.Center,
+                                    color = Color.Gray
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Button(onClick = { viewModel.searchOnline(cityQuery.trim()) }) {
+                                    Icon(Icons.Default.Search, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Search Online Map for \"$cityQuery\"")
+                                }
+                            }
                         }
                     }
                 }

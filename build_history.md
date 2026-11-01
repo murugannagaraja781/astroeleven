@@ -2,6 +2,29 @@
 
 This file tracks the builds created for the Astro Eleven Android application.
 
+## [2026-11-02] - Release Build v1.2.2 (Code 58)
+
+A release rebuild was performed containing:
+1. **Tamil Nadu Comprehensive Cities & Districts (All 38 Districts & 60+ Towns):**
+   - Populated `CSCDatabaseHelper.kt` with all 38 district headquarters and 74+ major towns of Tamil Nadu (Trichy, Salem, Tirunelveli, Erode, Vellore, Thanjavur, Dindigul, Tiruppur, Thoothukudi, Nagercoil, Hosur, Kanchipuram, Kumbakonam, Ooty, etc.) with accurate latitude and longitude.
+   - Added major Indian states (Kerala, Karnataka, Andhra Pradesh, Telangana, Maharashtra, Delhi, Puducherry, etc.) with their key cities.
+   - Auto-upgrade logic `ensureDataAvailable()` to auto-populate any legacy app installations that previously only held 3 cities.
+2. **OpenStreetMap (Nominatim) Dynamic Online City Search:**
+   - Integrated OpenStreetMap reverse/forward geocoding search in `CitySearchActivity.kt` and `CityViewModel.kt`.
+   - Users can now search and select any village, town, or area in Tamil Nadu or across India dynamically with exact coordinates.
+3. **Android App Bundle (AAB) & APK Dual Release:**
+   - Generated production signed APK and Google Play Store AAB Bundle.
+
+* **Date & Time:** November 02, 2026 - 01:00:00 AM (IST)
+* **File Name:** `app-release.apk` / `app-release.aab`
+* **Version Code:** 58
+* **Version Name:** 1.2.2
+* **APK Download:** https://astroeleven.com/astroeleven.apk
+* **AAB Download:** https://astroeleven.com/astroeleven.aab
+* **Status:** Release Build & Deployment Successful
+
+---
+
 ## [2026-11-01] - Release Build v1.2.1 (Code 57)
 
 A release rebuild was performed containing:
