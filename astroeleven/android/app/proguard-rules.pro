@@ -1,9 +1,9 @@
 # ============================================================
-# ProGuard / R8 Rules for Astrohark App
-# Play Store Release Build
+# ProGuard / R8 Rules for Astro Eleven App
+# Play Store Release Build - Optimized for Google Play DEX Compliance
 # ============================================================
 
-# ---- General Android ----
+# ---- General Android & Attributes ----
 -keepattributes *Annotation*
 -keepattributes Signature
 -keepattributes InnerClasses,EnclosingMethod
@@ -26,40 +26,26 @@
     java.lang.Object readResolve();
 }
 
-# ---- Firebase ----
--keep class com.google.firebase.** { *; }
--keep class com.google.android.gms.** { *; }
+# ---- Firebase & Google Play Services ----
+# (Allow R8 to optimize & obfuscate; consumer rules embedded in AAR will handle keep rules)
 -dontwarn com.google.firebase.**
 -dontwarn com.google.android.gms.**
 
-# ---- App Services (FCM, Call) ----
--keep class com.astrohark.app.FCMService { *; }
--keep class com.astrohark.app.CallForegroundService { *; }
--keep class com.astrohark.app.AstrologerApp { *; }
--keep class com.astroeleven.app.FCMService { *; }
--keep class com.astroeleven.app.CallForegroundService { *; }
--keep class com.astroeleven.app.AstrologerApp { *; }
-
-# Keep all Activity classes
--keep class com.astrohark.app.** extends android.app.Activity { *; }
--keep class com.astrohark.app.** extends androidx.appcompat.app.AppCompatActivity { *; }
--keep class com.astrohark.app.** extends androidx.fragment.app.Fragment { *; }
--keep class com.astroeleven.app.** extends android.app.Activity { *; }
--keep class com.astroeleven.app.** extends androidx.appcompat.app.AppCompatActivity { *; }
--keep class com.astroeleven.app.** extends androidx.fragment.app.Fragment { *; }
-
+# ---- App Core Services & Entry Points ----
+-keep class com.astroeleven.app.FCMService
+-keep class com.astroeleven.app.CallForegroundService
+-keep class com.astroeleven.app.AstrologerApp
+-keep public class * extends android.app.Activity
+-keep public class * extends androidx.fragment.app.Fragment
 
 # ---- OkHttp ----
 -dontwarn okhttp3.**
 -dontwarn okio.**
--keep class okhttp3.** { *; }
--keep interface okhttp3.** { *; }
 -dontwarn javax.annotation.**
 -dontwarn org.conscrypt.**
 
 # ---- Retrofit ----
 -dontwarn retrofit2.**
--keep class retrofit2.** { *; }
 -keepattributes Exceptions
 -keepclasseswithmembers class * {
     @retrofit2.http.* <methods>;
@@ -77,7 +63,8 @@
 -keep class * implements com.google.gson.TypeAdapterFactory
 -keep class * implements com.google.gson.JsonSerializer
 -keep class * implements com.google.gson.JsonDeserializer
-# Keep data/model classes used with Gson
+
+# Keep data/model classes used with Gson reflection
 -keepclassmembers,allowobfuscation class * {
     @com.google.gson.annotations.SerializedName <fields>;
 }
@@ -120,17 +107,15 @@
 
 # ---- Coil (Compose image loading) ----
 -dontwarn coil.**
--keep class coil.** { *; }
 
 # ---- Room Database ----
--keep class * extends androidx.room.RoomDatabase { *; }
+-keep class * extends androidx.room.RoomDatabase
 -keep @androidx.room.Entity class * { *; }
 -keep @androidx.room.Dao interface * { *; }
 -dontwarn androidx.room.**
 
 # ---- Jetpack Compose ----
 -dontwarn androidx.compose.**
--keep class androidx.compose.** { *; }
 
 # ---- Kotlin ----
 -keep class kotlin.Metadata { *; }
@@ -150,23 +135,17 @@
 }
 -dontwarn kotlinx.coroutines.**
 
-# ---- AndroidX / Material ----
--keep class com.google.android.material.** { *; }
+# ---- AndroidX & Material (Let standard AAR rules govern) ----
 -dontwarn com.google.android.material.**
--keep class androidx.** { *; }
 -dontwarn androidx.**
 
 # ---- Security Crypto ----
--keep class androidx.security.crypto.** { *; }
 -dontwarn androidx.security.crypto.**
 
 # ---- CircleImageView ----
 -keep class de.hdodenhof.circleimageview.** { *; }
 
-# ---- Keep all model/data classes in the app ----
--keep class com.astrohark.app.data.** { *; }
--keep class com.astrohark.app.model.** { *; }
--keep class com.astrohark.app.network.** { *; }
+# ---- Keep all model/data classes in the app for JSON serialization ----
 -keep class com.astroeleven.app.data.** { *; }
 -keep class com.astroeleven.app.model.** { *; }
 -keep class com.astroeleven.app.network.** { *; }
@@ -177,8 +156,7 @@
 -keep class com.astroeleven.app.data.api.** { *; }
 -keepclassmembers class com.astroeleven.app.data.api.** { *; }
 
-
-# ---- Prevent R8 from removing used classes ----
+# ---- Prevent R8 from removing JavascriptInterface ----
 -keepclassmembers class * {
     @android.webkit.JavascriptInterface <methods>;
 }
@@ -186,14 +164,10 @@
 # ---- Razorpay SDK ----
 -keep class com.razorpay.** { *; }
 -dontwarn com.razorpay.**
--keepattributes *Annotation*
--keepclassmembers class * {
-    @android.webkit.JavascriptInterface <methods>;
-}
 -dontwarn com.razorpay.RzpAssist
 -keep class com.razorpay.RzpAssist { *; }
 
-# ---- Suppress warnings ----
+# ---- Suppress external build warnings ----
 -dontwarn java.lang.invoke.**
 -dontwarn javax.annotation.**
 -dontwarn org.codehaus.mojo.**

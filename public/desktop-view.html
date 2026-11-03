@@ -400,6 +400,11 @@
       }
     }
 
+    @keyframes astro-pulse {
+      0%, 100% { opacity: 0.65; transform: scale(1); }
+      50% { opacity: 0.25; transform: scale(0.995); }
+    }
+
     /* Info Section */
     .astro-details {
       flex: 1;
@@ -3904,6 +3909,38 @@
     const state = { me: null, socket: null, session: null, peer: null, localStream: null, lang: 'ta', signalBuffer: [], astroList: [], selectedService: 'all' };
     window.state = state; // Expose for Android onResume wallet refresh
 
+    // Performance Optimization: Instant Zero-Latency Avatar generator (No 3rd party external network hits)
+    function getAstroAvatar(imgUrl, name) {
+      if (imgUrl && typeof imgUrl === 'string' && imgUrl.trim() && !imgUrl.includes('ui-avatars.com')) return imgUrl.trim();
+      const initial = (name ? name.trim().charAt(0) : 'A').toUpperCase();
+      return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="%23221C14"/><text x="50%" y="54%" font-family="sans-serif" font-weight="bold" font-size="44" fill="%23FFCC00" text-anchor="middle" dominant-baseline="middle">${initial}</text></svg>`;
+    }
+
+    // Instant Stale-While-Revalidate: load cached astrologers in 0ms on boot
+    try {
+      const _earlyCache = localStorage.getItem('astro_list_cache');
+      if (_earlyCache) {
+        const _parsed = JSON.parse(_earlyCache);
+        if (Array.isArray(_parsed) && _parsed.length > 0) {
+          state.astroList = _parsed;
+        }
+      }
+    } catch (e) {}
+
+    // Early Parallel Preload (starts right away, does not wait for Socket handshake)
+    fetch('/api/astrology/astrologers')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.ok && Array.isArray(data.astrologers) && data.astrologers.length > 0) {
+          state.astroList = data.astrologers;
+          try { localStorage.setItem('astro_list_cache', JSON.stringify(data.astrologers)); } catch (e) {}
+          if (typeof renderAstroList === 'function' && document.getElementById('astroList')) {
+            renderAstroList(state.astroList);
+          }
+        }
+      })
+      .catch(() => {});
+
     // --- Translation Logic ---
     const tamilDict = {
       'Sun': 'சூரியன்', 'Moon': 'சந்திரன்', 'Mars': 'செவ்வாய்', 'Mercury': 'புதன்',
@@ -4829,7 +4866,7 @@
     };
 
     // Client Dashboard Logic
-    state.astroList = [];
+    if (!state.astroList) state.astroList = [];
 
     function loadClientDash(user) {
       hideAllScreens();
@@ -4898,8 +4935,10 @@
       navSwitch('home');
       fetchAstrologers();
 
+      socket.off('astrologer-update');
       socket.on('astrologer-update', (list) => {
         state.astroList = list;
+        try { localStorage.setItem('astro_list_cache', JSON.stringify(list)); } catch (e) {}
         const active = document.querySelector('.nav-item.active');
         if (active) {
           if (active.id === 'nav-call') navSwitch('call');
@@ -5350,21 +5389,69 @@
       });
     };
 
-    function fetchAstrologers() {
-      socket.emit('get-astrologers', (res) => {
-        if (res.astrologers) {
-          state.astroList = res.astrologers;
-          renderAstroList(state.astroList);
-        } else {
-          renderAstroList([]);
-        }
-      });
+    function renderAstroSkeleton(targetContainerId = 'astroList') {
+      const container = document.getElementById(targetContainerId);
+      if (!container || (state.astroList && state.astroList.length > 0)) return;
+      container.className = 'astro-grid-container';
+      container.innerHTML = Array(6).fill(0).map(() => `
+        <div class="premium-astro-card" style="opacity:0.6; pointer-events:none; min-height:160px; animation:astro-pulse 1.2s infinite ease-in-out;">
+          <div style="display:flex; gap:16px; align-items:center;">
+            <div style="width:72px; height:72px; border-radius:50%; background:#F0E5D0; flex-shrink:0;"></div>
+            <div style="flex:1;">
+              <div style="height:18px; width:60%; background:#F0E5D0; border-radius:4px; margin-bottom:8px;"></div>
+              <div style="height:14px; width:45%; background:#F0E5D0; border-radius:4px; margin-bottom:6px;"></div>
+              <div style="height:14px; width:30%; background:#F0E5D0; border-radius:4px;"></div>
+            </div>
+          </div>
+        </div>
+      `).join('');
     }
 
-    function selectQuickService(type) {
-      state.selectedService = type;
-      renderAstroList(state.astroList);
-      document.getElementById('astroList').scrollIntoView({ behavior: 'smooth' });
+    function fetchAstrologers() {
+      // 1. Instant Render from Cache (0ms)
+      if (state.astroList && state.astroList.length > 0) {
+        renderAstroList(state.astroList);
+      } else {
+        try {
+          const cached = localStorage.getItem('astro_list_cache');
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              state.astroList = parsed;
+              renderAstroList(state.astroList);
+            } else {
+              renderAstroSkeleton();
+            }
+          } else {
+            renderAstroSkeleton();
+          }
+        } catch(e) {
+          renderAstroSkeleton();
+        }
+      }
+
+      // 2. High-Speed Background HTTP Fetch (Concurrent, non-blocking)
+      fetch('/api/astrology/astrologers')
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.ok && Array.isArray(data.astrologers)) {
+            state.astroList = data.astrologers;
+            try { localStorage.setItem('astro_list_cache', JSON.stringify(data.astrologers)); } catch (e) {}
+            renderAstroList(state.astroList);
+          }
+        })
+        .catch(err => console.warn('[AstroPreload] Desktop HTTP Fetch:', err));
+
+      // 3. Realtime Socket Sync
+      if (typeof socket !== 'undefined') {
+        socket.emit('get-astrologers', (res) => {
+          if (res && res.astrologers && Array.isArray(res.astrologers)) {
+            state.astroList = res.astrologers;
+            try { localStorage.setItem('astro_list_cache', JSON.stringify(res.astrologers)); } catch (e) {}
+            renderAstroList(state.astroList);
+          }
+        });
+      }
     }
 
     function selectQuickService(type) {
@@ -5389,8 +5476,10 @@
           liveContainer.innerHTML = liveAstros.map(a => `
             <div style="flex:0 0 auto; width:120px; text-align:center; position:relative; cursor:pointer;" onclick="openAstroProfile(${JSON.stringify(a).replace(/"/g, '&quot;')})">
               <div style="position:relative; width:90px; height:90px; margin:0 auto 10px auto; transition:0.3s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                <img src="${a.image || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(a.name) + '&background=random'}" 
-                     style="width:100%; height:100%; border-radius:50%; object-fit:cover; border:3px solid #EF4444; box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);">
+                <img src="${getAstroAvatar(a.image, a.name)}" 
+                     loading="lazy" decoding="async" width="90" height="90"
+                     style="width:100%; height:100%; border-radius:50%; object-fit:cover; border:3px solid #EF4444; box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);"
+                     onerror="this.onerror=null; this.src=getAstroAvatar('', '${a.name}');">
                 <div style="position:absolute; bottom:0; left:50%; transform:translateX(-50%); background:#EF4444; color:white; font-size:0.7rem; font-weight:900; padding:2px 8px; border-radius:6px; white-space:nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">LIVE</div>
               </div>
               <div style="font-size:0.9rem; font-weight:700; color:white; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${a.name}</div>
@@ -5438,8 +5527,10 @@
           <!-- Top Row: Avatar & Basic Info -->
           <div style="display: flex; gap: 16px; align-items: flex-start; width: 100%;">
              <div style="position: relative; width: 72px; height: 72px; flex-shrink: 0;">
-                <img src="${a.image || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(a.name) + '&background=f6c453&color=fff'}"
-                     style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2.5px solid #D4A017; box-shadow: 0 4px 10px rgba(212, 160, 23, 0.15);" alt="${a.name}">
+                <img src="${getAstroAvatar(a.image, a.name)}"
+                     loading="lazy" decoding="async" width="72" height="72"
+                     style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2.5px solid #D4A017; box-shadow: 0 4px 10px rgba(212, 160, 23, 0.15);"
+                     alt="${a.name}" onerror="this.onerror=null; this.src=getAstroAvatar('', '${a.name}');">
                 <div class="online-indicator ${a.isOnline ? 'active' : ''}" style="position: absolute; bottom: 1px; right: 1px; width: 14px; height: 14px; background: ${a.isOnline ? '#16A34A' : '#9CA3AF'}; border: 2px solid #FFFFFF; border-radius: 50%; box-shadow: ${a.isOnline ? '0 0 8px #16A34A' : 'none'};"></div>
              </div>
              <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">

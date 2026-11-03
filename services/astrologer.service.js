@@ -41,13 +41,30 @@ function extractSpecialties(skills, profession) {
     return cleanList;
 }
 
-async function getFormattedAstrologers(SERVER_URL) {
+// In-Memory Astrologer Cache to eliminate repetitive MySQL queries on website/app requests
+let astroCache = {
+    data: null,
+    timestamp: 0,
+    serverUrl: null
+};
+const CACHE_TTL_MS = 8000; // 8 seconds TTL
+
+function invalidateAstroCache() {
+    astroCache.data = null;
+    astroCache.timestamp = 0;
+}
+
+async function getFormattedAstrologers(SERVER_URL, forceFresh = false) {
+    if (!forceFresh && astroCache.data && (Date.now() - astroCache.timestamp < CACHE_TTL_MS) && (astroCache.serverUrl === SERVER_URL)) {
+        return astroCache.data;
+    }
+
     try {
         const astros = await User.find({ role: 'astrologer', approvalStatus: 'approved' })
             .select('userId name phone skills profession price chatPrice callPrice videoPrice isOnline isChatOnline isAudioOnline isVideoOnline experience isVerified image walletBalance totalEarnings isBusy languages orderCount isDocumentVerified')
             .lean();
 
-        return astros.map(a => ({
+        const formatted = astros.map(a => ({
             userId: a.userId,
             name: a.name,
             skills: extractSpecialties(a.skills, a.profession),
@@ -68,19 +85,28 @@ async function getFormattedAstrologers(SERVER_URL) {
             orderCount: a.orderCount || 0,
             isDocumentVerified: a.isDocumentVerified || false
         }));
+
+        astroCache = {
+            data: formatted,
+            timestamp: Date.now(),
+            serverUrl: SERVER_URL
+        };
+
+        return formatted;
     } catch (e) {
         console.error('Error fetching formatted astros:', e);
-        return [];
+        return astroCache.data || [];
     }
 }
 
 async function broadcastAstroUpdate(io, SERVER_URL) {
+    invalidateAstroCache();
     if (!io) {
         console.error('[Broadcast] Failed: io instance is undefined. Make sure app.set("io", io) is called in server.js');
         return;
     }
     try {
-        const formattedAstros = await getFormattedAstrologers(SERVER_URL);
+        const formattedAstros = await getFormattedAstrologers(SERVER_URL, true);
         io.emit('astrologer-update', formattedAstros);
         console.log(`Broadcasting update for ${formattedAstros.length} astrologers.`);
     } catch (e) {
@@ -89,6 +115,7 @@ async function broadcastAstroUpdate(io, SERVER_URL) {
 }
 
 async function broadcastSingleAstroUpdate(io, userId, SERVER_URL) {
+    invalidateAstroCache();
     if (!io) return;
     try {
         const a = await User.findOne({ userId })
@@ -125,4 +152,4 @@ async function broadcastSingleAstroUpdate(io, userId, SERVER_URL) {
     }
 }
 
-module.exports = { getFormattedAstrologers, broadcastAstroUpdate, broadcastSingleAstroUpdate };
+module.exports = { getFormattedAstrologers, broadcastAstroUpdate, broadcastSingleAstroUpdate, invalidateAstroCache };

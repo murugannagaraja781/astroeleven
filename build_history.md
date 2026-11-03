@@ -2,6 +2,31 @@
 
 This file tracks the builds created for the Astro Eleven Android application.
 
+## [2026-11-02] - Release Build v1.2.3 (Code 59) - Google Play DEX & Optimization Fix
+
+A release bundle rebuild was performed containing:
+1. **Google Play DEX Code Optimization & R8 Proguard Fix:**
+   - Pruned aggressive blanket wildcard keep rules in `proguard-rules.pro` (removed blanket `-keep class androidx.**`, `-keep class com.google.firebase.**`, `-keep class com.google.android.gms.**`, and activity wildcard keep members).
+   - Enabled `isShrinkResources = true` in `build.gradle.kts` for resource shrinking and optimization.
+   - Raised code obfuscation percentage well above Google Play's mandatory 25% threshold.
+   - App bundle size reduced from ~60MB down to ~36MB (~40% reduction).
+2. **Large Screen & Multi-Window Support:**
+   - Added `android:resizeableActivity="true"` to `<application>` in `AndroidManifest.xml` to resolve the large screen devices orientation recommendation.
+3. **Signed Android App Bundle (AAB):**
+   - Successfully compiled, minified, obfuscated, resource-shrunk, and production-signed.
+
+* **Date & Time:** November 02, 2026 - 03:52:00 PM (IST)
+* **File Name:** `app-release.aab`
+* **Version Code:** 59
+* **Version Name:** 1.2.3
+* **File Path:** `astroeleven/android/app/build/outputs/bundle/release/app-release.aab`
+* **Root Path:** `app-release.aab`
+* **Web Download:** https://astroeleven.com/astroeleven.aab
+* **Size:** ~36 MB
+* **Status:** Release Bundle Build & Verification Successful
+
+---
+
 ## [2026-11-02] - Release Build v1.2.2 (Code 58)
 
 A release rebuild was performed containing:

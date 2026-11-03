@@ -1178,10 +1178,15 @@ generateTamilHoroscope();
 
 
 
-// Astrologer List API (Used by Mobile App)
+// Astrologer List API (Used by Mobile App & Web Preload with Caching)
 app.get('/api/astrology/astrologers', async (req, res) => {
   try {
-    const formatted = await getFormattedAstrologers(SERVER_URL);
+    res.set({
+      'Cache-Control': 'public, max-age=5, stale-while-revalidate=15',
+      'X-Content-Type-Options': 'nosniff'
+    });
+    const currentServerUrl = req.app.get('SERVER_URL') || SERVER_URL || `${req.protocol}://${req.get('host')}` || 'https://astroeleven.com';
+    const formatted = await getFormattedAstrologers(currentServerUrl);
     res.json({ ok: true, astrologers: formatted });
   } catch (err) {
     console.error('Error fetching astrologers:', err);

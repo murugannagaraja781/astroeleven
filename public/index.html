@@ -329,6 +329,11 @@
       }
     }
 
+    @keyframes astro-pulse {
+      0%, 100% { opacity: 0.65; transform: scale(1); }
+      50% { opacity: 0.25; transform: scale(0.995); }
+    }
+
     /* Info Section */
     .astro-details {
       flex: 1;
@@ -3592,6 +3597,38 @@
     let allBanners = []; // Global store for banner data
     window.state = state; // Expose for Android onResume wallet refresh
 
+    // Performance Optimization: Instant Zero-Latency Avatar generator (No 3rd party external network hits)
+    function getAstroAvatar(imgUrl, name) {
+      if (imgUrl && typeof imgUrl === 'string' && imgUrl.trim() && !imgUrl.includes('ui-avatars.com')) return imgUrl.trim();
+      const initial = (name ? name.trim().charAt(0) : 'A').toUpperCase();
+      return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="%23221C14"/><text x="50%" y="54%" font-family="sans-serif" font-weight="bold" font-size="44" fill="%23FFCC00" text-anchor="middle" dominant-baseline="middle">${initial}</text></svg>`;
+    }
+
+    // Instant Stale-While-Revalidate: load cached astrologers in 0ms on boot
+    try {
+      const _earlyCache = localStorage.getItem('astro_list_cache');
+      if (_earlyCache) {
+        const _parsed = JSON.parse(_earlyCache);
+        if (Array.isArray(_parsed) && _parsed.length > 0) {
+          state.astroList = _parsed;
+        }
+      }
+    } catch (e) {}
+
+    // Early Parallel Preload (starts right away, does not wait for Socket handshake)
+    fetch('/api/astrology/astrologers')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.ok && Array.isArray(data.astrologers) && data.astrologers.length > 0) {
+          state.astroList = data.astrologers;
+          try { localStorage.setItem('astro_list_cache', JSON.stringify(data.astrologers)); } catch (e) {}
+          if (typeof renderAstroList === 'function' && document.getElementById('astroList')) {
+            renderAstroList(state.astroList);
+          }
+        }
+      })
+      .catch(() => {});
+
     // --- Translation Logic ---
     const tamilDict = {
       'Sun': 'சூரியன்', 'Moon': 'சந்திரன்', 'Mars': 'செவ்வாய்', 'Mercury': 'புதன்',
@@ -4582,7 +4619,7 @@
     };
 
     // Client Dashboard Logic
-    state.astroList = [];
+    if (!state.astroList) state.astroList = [];
 
     function loadClientDash(user) {
       hideAllScreens();
@@ -4651,8 +4688,10 @@
       navSwitch('home');
       fetchAstrologers();
 
+      socket.off('astrologer-update');
       socket.on('astrologer-update', (list) => {
         state.astroList = list;
+        try { localStorage.setItem('astro_list_cache', JSON.stringify(list)); } catch (e) {}
         const active = document.querySelector('.nav-item.active');
         if (active) {
           if (active.id === 'nav-call') navSwitch('call');
@@ -4664,10 +4703,12 @@
         }
       });
 
+      socket.off('astrologer-single-update');
       socket.on('astrologer-single-update', (updatedAstro) => {
         const idx = state.astroList.findIndex(a => a.userId === updatedAstro.userId);
         if (idx !== -1) state.astroList[idx] = updatedAstro;
         else state.astroList.push(updatedAstro);
+        try { localStorage.setItem('astro_list_cache', JSON.stringify(state.astroList)); } catch (e) {}
         
         // Refresh the list view while preserving the current filter
         renderAstroList(state.astroList);
@@ -5118,15 +5159,68 @@
       });
     };
 
+    function renderAstroSkeleton(targetContainerId = 'astroList') {
+      const container = document.getElementById(targetContainerId);
+      if (!container || (state.astroList && state.astroList.length > 0)) return;
+      container.innerHTML = Array(4).fill(0).map(() => `
+        <div class="astro-card" style="opacity:0.6; pointer-events:none; min-height:110px; animation:astro-pulse 1.2s infinite ease-in-out;">
+          <div class="card-top-row" style="display:flex; gap:12px; align-items:center;">
+            <div style="width:60px; height:60px; border-radius:50%; background:#2A251A; flex-shrink:0;"></div>
+            <div style="flex:1;">
+              <div style="height:16px; width:55%; background:#2A251A; border-radius:4px; margin-bottom:8px;"></div>
+              <div style="height:12px; width:40%; background:#2A251A; border-radius:4px; margin-bottom:6px;"></div>
+              <div style="height:12px; width:30%; background:#2A251A; border-radius:4px;"></div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
     function fetchAstrologers() {
-      socket.emit('get-astrologers', (res) => {
-        if (res.astrologers) {
-          state.astroList = res.astrologers;
-          renderAstroList(state.astroList);
-        } else {
-          renderAstroList([]);
+      // 1. Instant Render from Cache (0ms)
+      if (state.astroList && state.astroList.length > 0) {
+        renderAstroList(state.astroList);
+      } else {
+        try {
+          const cached = localStorage.getItem('astro_list_cache');
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              state.astroList = parsed;
+              renderAstroList(state.astroList);
+            } else {
+              renderAstroSkeleton();
+            }
+          } else {
+            renderAstroSkeleton();
+          }
+        } catch(e) {
+          renderAstroSkeleton();
         }
-      });
+      }
+
+      // 2. High-Speed Background HTTP Fetch (Concurrent, non-blocking)
+      fetch('/api/astrology/astrologers')
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.ok && Array.isArray(data.astrologers)) {
+            state.astroList = data.astrologers;
+            try { localStorage.setItem('astro_list_cache', JSON.stringify(data.astrologers)); } catch (e) {}
+            renderAstroList(state.astroList);
+          }
+        })
+        .catch(err => console.warn('[AstroPreload] HTTP Fetch:', err));
+
+      // 3. Realtime Socket Sync
+      if (typeof socket !== 'undefined') {
+        socket.emit('get-astrologers', (res) => {
+          if (res && res.astrologers && Array.isArray(res.astrologers)) {
+            state.astroList = res.astrologers;
+            try { localStorage.setItem('astro_list_cache', JSON.stringify(res.astrologers)); } catch (e) {}
+            renderAstroList(state.astroList);
+          }
+        });
+      }
     }
 
     function selectQuickService(type) {
@@ -5183,9 +5277,7 @@
       // If we are in a specific service view, we might want to filter by availability too
       if (specificService) {
         astrologers = astrologers.filter(a => {
-          if (specificService === 'chat') return true; // Show all but disable if offline? Or hide? 
-          // Per user request "chat button madum show panu", usually implies showing people who can do it.
-          // Let's filter to those who have the service enabled.
+          if (specificService === 'chat') return true;
           if (specificService === 'chat') return a.isChatOnline;
           if (specificService === 'call') return a.isAudioOnline;
           if (specificService === 'video') return a.isVideoOnline;
@@ -5201,8 +5293,10 @@
           liveContainer.innerHTML = liveAstros.map(a => `
             <div style="flex:0 0 auto; width:70px; text-align:center; position:relative;" onclick="openAstroProfile(${JSON.stringify(a).replace(/"/g, '&quot;')})">
               <div style="position:relative; width:60px; height:60px; margin:0 auto 5px auto;">
-                <img src="${a.image || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(a.name) + '&background=random'}" 
-                     style="width:100%; height:100%; border-radius:50%; object-fit:cover; border:2px solid #EF4444;">
+                <img src="${getAstroAvatar(a.image, a.name)}" 
+                     loading="lazy" decoding="async" width="60" height="60"
+                     style="width:100%; height:100%; border-radius:50%; object-fit:cover; border:2px solid #EF4444;"
+                     onerror="this.onerror=null; this.src=getAstroAvatar('', '${a.name}');">
                 <div style="position:absolute; bottom:-2px; left:50%; transform:translateX(-50%); background:#EF4444; color: #FFFFFF; font-size:0.5rem; font-weight:800; padding:1px 4px; border-radius:4px; white-space:nowrap;">LIVE</div>
               </div>
               <div style="font-size:0.65rem; font-weight:600; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${a.name}</div>
@@ -5236,8 +5330,10 @@
         div.innerHTML = `
           <div class="card-top-row">
               <div class="astro-img-wrapper">
-                  <img src="${a.image || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(a.name) + '&background=random'}"
-                       class="astro-img" style="border: 2px solid var(--primary);">
+                  <img src="${getAstroAvatar(a.image, a.name)}"
+                       class="astro-img" loading="lazy" decoding="async" width="60" height="60"
+                       style="border: 2px solid var(--primary);"
+                       onerror="this.onerror=null; this.src=getAstroAvatar('', '${a.name}');">
                   <div class="status-badge ${a.isOnline ? 'online' : ''}" style="background: ${a.isOnline ? '#10B981' : '#666'}; border-color: #ffffff;">${a.isBusy ? '<i class="fas fa-video" style="font-size:0.5rem; color: #FFFFFF;"></i>' : ''}</div>
               </div>
 

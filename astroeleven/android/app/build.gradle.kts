@@ -16,8 +16,8 @@ android {
         applicationId = "com.astroeleven.app"
         minSdk = 24
         targetSdk = 36
-        versionCode = 58
-        versionName = "1.2.2"
+        versionCode = 59
+        versionName = "1.2.3"
 
 
         ndk {
@@ -57,7 +57,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = true
-            isShrinkResources = false
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
